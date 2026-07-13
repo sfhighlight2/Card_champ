@@ -92,6 +92,7 @@ export default function App() {
     const card = cards.find(c => c.id === id);
     setCards(prev => prev.filter(c => c.id !== id));
     setFolders(prev => prev.map(f => ({ ...f, cardIds: f.cardIds.filter(cid => cid !== id) })));
+    setListings(prev => prev.filter(l => l.cardId !== id));
     if (card) showToast(`Deleted ${card.player}`);
   };
 
@@ -143,6 +144,16 @@ export default function App() {
     showToast("Listed for sale");
   };
 
+  const handleUpdateListingStatus = (id: number, status: Listing["status"]) => {
+    setListings(prev => prev.map(l => l.id === id ? { ...l, status } : l));
+    showToast(status === "sold" ? "Marked as sold" : "Listing updated");
+  };
+
+  const handleRemoveListing = (id: number) => {
+    setListings(prev => prev.filter(l => l.id !== id));
+    showToast("Listing removed");
+  };
+
   const handleRestore = (data: BackupData) => {
     setCards(data.cards);
     setFolders(data.folders);
@@ -189,9 +200,11 @@ export default function App() {
     <div className="min-h-screen w-full flex justify-center bg-white" style={{ fontFamily: "'Google Sans', sans-serif" }}>
       <div className="relative w-full max-w-[430px] md:max-w-2xl lg:max-w-5xl flex flex-col min-h-screen bg-white overflow-hidden">
 
-        <button onClick={() => navigate("/settings")} className="absolute top-6 right-6 w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 z-10">
-          <SettingsIcon className="w-4 h-4 text-gray-500" />
-        </button>
+        {!openFolder && (
+          <button onClick={() => navigate("/settings")} className="absolute top-6 right-6 w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 z-10">
+            <SettingsIcon className="w-4 h-4 text-gray-500" />
+          </button>
+        )}
 
         <div className="flex flex-col items-center px-7 pt-16 pb-5 md:flex-row md:items-center md:justify-center md:gap-6 md:pt-12">
           <div className="relative mb-3 md:mb-0">
@@ -328,7 +341,7 @@ export default function App() {
         )}
 
         {openFolder && (
-          <div className="absolute inset-0 bg-white flex flex-col z-20">
+          <div className="absolute inset-0 bg-white flex flex-col">
             <FolderDetailView
               folder={openFolder}
               onBack={() => setOpenFolder(null)}
@@ -349,6 +362,8 @@ export default function App() {
             watchlist={watchlist}
             onToggleWatchlist={handleToggleWatchlist}
             onBuy={handleBuy}
+            onUpdateListingStatus={handleUpdateListingStatus}
+            onRemoveListing={handleRemoveListing}
           />
         )}
         {mainTab === "peers" && (

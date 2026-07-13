@@ -19,7 +19,7 @@ export function CardListRow({ card, onClick }: CardListRowProps) {
         <span className="text-xs font-bold px-2 py-0.5 rounded-full text-white" style={{ background: GRADER_COLOR[card.grader] || "#111" }}>
           {card.grader} {card.grade}
         </span>
-        <span className="text-sm font-semibold text-gray-800">${card.value}</span>
+        <span className="text-sm font-semibold text-gray-800">${card.value.toLocaleString()}</span>
       </div>
       <ChevronRight className="w-3.5 h-3.5 text-gray-300 flex-shrink-0" />
     </button>

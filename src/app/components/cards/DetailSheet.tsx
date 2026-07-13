@@ -215,7 +215,7 @@ export function DetailSheet({ card, onClose, isPeer = false, cards = [], initial
       {sharing && (
         <ShareSheet
           title={`${current.player} — ${current.year} ${current.brand}`}
-          subtitle={`${current.grader} ${current.grade} · Est. $${current.value}`}
+          subtitle={`${current.grader} ${current.grade} · Est. $${current.value.toLocaleString()}`}
           onClose={() => setSharing(false)}
         />
       )}

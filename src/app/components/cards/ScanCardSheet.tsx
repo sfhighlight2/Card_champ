@@ -305,7 +305,7 @@ export function ScanCardSheet({ onClose, onAdd }: ScanCardSheetProps) {
                       ...(value     ? [{ label: "Est. Value", value: `$${parseFloat(value).toLocaleString()}`,     sub: "eBay"     }] : []),
                       ...(sellPrice ? [{ label: "Sell Price", value: `$${parseFloat(sellPrice).toLocaleString()}`, sub: "Fanatics" }] : []),
                       ...(popReport ? [{ label: "Pop Report", value: popReport, sub: "PSA" }] : []),
-                    ].map((s: any) => (
+                    ].map((s: { label: string; value: string; mono?: boolean; sub?: string }) => (
                       <div key={s.label} className="rounded-xl bg-white px-3 py-2.5">
                         <p className="text-[9px] font-medium text-gray-400 tracking-widest uppercase mb-0.5">{s.label}</p>
                         <p className={`text-sm font-semibold text-gray-800 ${s.mono ? "font-mono text-xs" : ""}`}>{s.value || "—"}</p>

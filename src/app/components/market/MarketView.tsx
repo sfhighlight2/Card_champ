@@ -47,9 +47,11 @@ interface MarketViewProps {
   watchlist: number[];
   onToggleWatchlist: (id: number) => void;
   onBuy: (item: MarketItem) => void;
+  onUpdateListingStatus: (id: number, status: Listing["status"]) => void;
+  onRemoveListing: (id: number) => void;
 }
 
-export function MarketView({ allCards, listings, watchlist, onToggleWatchlist, onBuy }: MarketViewProps) {
+export function MarketView({ allCards, listings, watchlist, onToggleWatchlist, onBuy, onUpdateListingStatus, onRemoveListing }: MarketViewProps) {
   const [query, setQuery] = useState("");
   const [marketTab, setMarketTab] = useState<"browse" | "watchlist" | "listings">("browse");
   const [selectedItem, setSelectedItem] = useState<MarketItem | null>(null);
@@ -110,8 +112,18 @@ export function MarketView({ allCards, listings, watchlist, onToggleWatchlist, o
                     <p className="text-[11px] text-gray-400 mt-0.5">{listing.views} views</p>
                   </div>
                   <div className="flex-shrink-0 text-right">
-                    <p className="text-base font-semibold text-gray-900">${listing.askingPrice}</p>
+                    <p className="text-base font-semibold text-gray-900">${listing.askingPrice.toLocaleString()}</p>
                     <p className="text-[10px] text-gray-400">{listing.platform}</p>
+                    <div className="flex items-center justify-end gap-2 mt-1">
+                      {listing.status === "active" && (
+                        <button onClick={() => onUpdateListingStatus(listing.id, "sold")} className="text-[10px] font-semibold text-emerald-600">
+                          Mark sold
+                        </button>
+                      )}
+                      <button onClick={() => onRemoveListing(listing.id)} className="text-[10px] font-semibold text-gray-400">
+                        Remove
+                      </button>
+                    </div>
                   </div>
                 </div>
                 </AnimateIn>
