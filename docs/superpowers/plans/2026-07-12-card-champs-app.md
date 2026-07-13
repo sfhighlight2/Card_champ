@@ -461,7 +461,7 @@ export const SUGGESTED: SuggestedPeer[] = [
 
 Run: `npm run typecheck 2>&1 | grep -E "data/(mockCards|mockMarket|mockPeers|cardImages)"`
 
-Expected: no output (no errors reference these four new files — they aren't imported by anything yet, but a bad literal like the `card10 = card10` typo above would still surface here as a syntax error).
+Expected: no output (no errors reference these four new files — they aren't imported by anything yet, but any typo in the literals above would still surface here as a syntax/type error).
 
 - [ ] **Step 6: Commit**
 
