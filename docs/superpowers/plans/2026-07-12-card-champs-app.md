@@ -759,7 +759,7 @@ export function parseBackupFile(file: File): Promise<BackupData> {
 
 Run: `npm run test -- backup`
 
-Expected: PASS, 8 tests.
+Expected: PASS, 9 tests.
 
 - [ ] **Step 5: Commit**
 
