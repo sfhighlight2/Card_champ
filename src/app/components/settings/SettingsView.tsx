@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, Download, Upload, RotateCcw } from "lucide-react";
 import type { Card, FolderType, Listing, Profile } from "../../types";
 import { buildBackup, downloadBackup, parseBackupFile } from "../../lib/backup";
@@ -27,6 +27,14 @@ export function SettingsView({
   const [confirmingImport, setConfirmingImport] = useState<BackupData | null>(null);
   const [confirmingReset, setConfirmingReset] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Keep local field state in sync when the profile changes from outside this
+  // form (e.g. Reset all data or Import collection), so a stray blur can't
+  // silently overwrite the fresh profile with stale, pre-reset/import values.
+  useEffect(() => {
+    setName(profile.name);
+    setHandle(profile.handle);
+  }, [profile.name, profile.handle]);
 
   const saveProfile = () => {
     onProfileChange({ ...profile, name: name.trim() || profile.name, handle: handle.trim() || profile.handle });

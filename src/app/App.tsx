@@ -328,7 +328,7 @@ export default function App() {
         )}
 
         {openFolder && (
-          <div className="absolute inset-0 bg-white flex flex-col">
+          <div className="absolute inset-0 bg-white flex flex-col z-20">
             <FolderDetailView
               folder={openFolder}
               onBack={() => setOpenFolder(null)}
