@@ -105,7 +105,7 @@ export function PeerProfileSheet({ peer, onClose, allCards, isFollowing, onToggl
 
           <div className="px-6 pt-1">
             <p className="text-xs font-semibold text-gray-400 tracking-widest uppercase mb-3">Collection</p>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
               {peer.snapshot.map((img, i) => (
                 <button key={i} className="overflow-hidden focus:outline-none active:opacity-80" style={{ background: "#f4f4f5" }}
                   onClick={() => { const c = cardByImg(img); if (c) setSelectedCard(c); }}>

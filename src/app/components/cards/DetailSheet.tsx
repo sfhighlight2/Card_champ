@@ -112,7 +112,7 @@ export function DetailSheet({ card, onClose, isPeer = false, cards = [], initial
             </AnimateIn>
 
             <AnimateIn delay={160}>
-            <div className="grid grid-cols-2 gap-2.5 mb-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5 mb-4">
               <div className="rounded-2xl bg-gray-50 px-4 py-3.5">
                 <div className="flex items-center justify-between mb-1">
                   <p className="text-[10px] font-medium text-gray-400 tracking-widest uppercase">Est. Value</p>
