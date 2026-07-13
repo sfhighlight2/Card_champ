@@ -1,9 +1,10 @@
-import { useState } from "react";
-import { Scan, X, Check, Share2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Scan, X, Check, Share2, AlertTriangle, RotateCcw } from "lucide-react";
 import type { Card } from "../../types";
 import { GRADER_COLOR, GRADERS, GRADES, GRADE_LABELS, ALL_YEARS, BRANDS_BY_YEAR, ALL_TEAMS } from "../../data/mockCards";
 import { card2 } from "../../data/cardImages";
 import { ScrollPicker } from "../shared/ScrollPicker";
+import { useBarcodeScanner } from "../../hooks/useBarcodeScanner";
 
 interface ScanCardSheetProps {
   onClose: () => void;
@@ -12,7 +13,6 @@ interface ScanCardSheetProps {
 
 export function ScanCardSheet({ onClose, onAdd }: ScanCardSheetProps) {
   const [step, setStep]         = useState(1);
-  const [scanDone, setScanDone] = useState(false);
   const [done, setDone]         = useState(false);
   const [player, setPlayer]     = useState("");
   const [year, setYear]         = useState("1986");
@@ -25,6 +25,29 @@ export function ScanCardSheet({ onClose, onAdd }: ScanCardSheetProps) {
   const [value, setValue]       = useState("");
   const [sellPrice, setSellPrice] = useState("");
   const [popReport, setPopReport] = useState("");
+  const [scannedImage, setScannedImage] = useState<string | undefined>(undefined);
+
+  const scanner = useBarcodeScanner();
+  const scanDone = scanner.status === "detected";
+
+  // Live camera + barcode decode runs only while step 1 is showing; released
+  // as soon as the wizard moves on (or the sheet closes / unmounts).
+  useEffect(() => {
+    if (step !== 1) return;
+    scanner.start();
+    return () => scanner.stop();
+    // scanner.start/stop are stable (useCallback with no deps); only `step`
+    // should retrigger this.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step]);
+
+  useEffect(() => {
+    if (scanner.status === "detected" && scanner.detectedText) {
+      setCert(scanner.detectedText.trim());
+      setScannedImage(scanner.capturedImage ?? undefined);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scanner.status, scanner.detectedText]);
 
   const STEPS = ["Scan","Player","Card","Grading","Pricing","Review"];
   const gradeLabel  = GRADE_LABELS[grade] || "";
@@ -42,11 +65,6 @@ export function ScanCardSheet({ onClose, onAdd }: ScanCardSheetProps) {
     value.trim().length > 0,
     true,
   ][step - 1];
-
-  const startScan = () => {
-    setScanDone(false);
-    setTimeout(() => setScanDone(true), 2000);
-  };
 
   if (done) return (
     <div className="fixed inset-0 z-50 flex flex-col items-center justify-center px-8" style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(8px)" }}>
@@ -111,30 +129,77 @@ export function ScanCardSheet({ onClose, onAdd }: ScanCardSheetProps) {
               <h2 className="text-xl font-semibold text-gray-900 mb-1">Add a card</h2>
               <p className="text-sm text-gray-400 mb-6">Scan the barcode on the slab or enter manually.</p>
 
-              <button
-                onClick={startScan}
-                className="w-full rounded-2xl overflow-hidden mb-5 focus:outline-none"
+              <div
+                className="relative w-full rounded-2xl overflow-hidden mb-5"
                 style={{ height: 200, background: "#0c0c0e" }}
               >
-                {[["top-3 left-3","border-t-2 border-l-2"],["top-3 right-3","border-t-2 border-r-2"],["bottom-3 left-3","border-b-2 border-l-2"],["bottom-3 right-3","border-b-2 border-r-2"]].map(([pos, border], i) => (
-                  <div key={i} className={`absolute w-7 h-7 ${pos} ${border} border-white/50 rounded-sm`} />
-                ))}
-                {scanDone ? (
-                  <div className="w-full h-full flex flex-col items-center justify-center gap-2">
-                    <div className="w-12 h-12 rounded-full bg-emerald-500 flex items-center justify-center">
-                      <Check className="w-6 h-6 text-white" />
-                    </div>
-                    <p className="text-white text-sm font-semibold">Detected</p>
-                  </div>
-                ) : (
+                {scanner.status !== "error" && (
+                  [["top-3 left-3","border-t-2 border-l-2"],["top-3 right-3","border-t-2 border-r-2"],["bottom-3 left-3","border-b-2 border-l-2"],["bottom-3 right-3","border-b-2 border-r-2"]].map(([pos, border], i) => (
+                    <div key={i} className={`absolute w-7 h-7 ${pos} ${border} border-white/50 rounded-sm z-10`} />
+                  ))
+                )}
+
+                <video
+                  ref={scanner.videoRef}
+                  autoPlay
+                  muted
+                  playsInline
+                  className="absolute inset-0 w-full h-full object-cover"
+                  style={{ display: scanner.status === "scanning" || scanner.status === "starting" ? "block" : "none" }}
+                />
+
+                {scanner.status === "starting" && (
                   <div className="relative w-full h-full flex items-center justify-center">
+                    <p className="text-white/50 text-xs font-medium">Starting camera…</p>
+                  </div>
+                )}
+
+                {scanner.status === "scanning" && (
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                     <div className="absolute left-6 right-6 h-px bg-white/50 rounded-full"
                       style={{ animation: "scanLine 1.8s ease-in-out infinite" }} />
                     <Scan className="w-8 h-8 text-white/20" />
                     <style>{`@keyframes scanLine{0%,100%{top:25%}50%{top:75%}}`}</style>
                   </div>
                 )}
-              </button>
+
+                {scanner.status === "detected" && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+                    {scannedImage && (
+                      <img src={scannedImage} alt="" className="absolute inset-0 w-full h-full object-cover opacity-40" draggable={false} />
+                    )}
+                    <div className="relative w-12 h-12 rounded-full bg-emerald-500 flex items-center justify-center">
+                      <Check className="w-6 h-6 text-white" />
+                    </div>
+                    <p className="relative text-white text-sm font-semibold">Detected</p>
+                  </div>
+                )}
+
+                {scanner.status === "error" && (
+                  <div className="w-full h-full flex flex-col items-center justify-center gap-2 px-6 text-center">
+                    <AlertTriangle className="w-6 h-6 text-amber-400" />
+                    <p className="text-white/70 text-xs">{scanner.errorMessage}</p>
+                    <button
+                      onClick={() => scanner.start()}
+                      className="mt-1 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 text-white text-xs font-semibold"
+                    >
+                      <RotateCcw className="w-3 h-3" />Try Again
+                    </button>
+                  </div>
+                )}
+
+                {(scanner.status === "idle") && (
+                  <div className="relative w-full h-full flex items-center justify-center">
+                    <Scan className="w-8 h-8 text-white/20" />
+                  </div>
+                )}
+              </div>
+
+              {(scanner.status === "scanning" || scanner.status === "detected") && (
+                <p className="text-xs text-gray-400 text-center mb-3 -mt-2">
+                  {scanner.status === "scanning" ? "Point the camera at the barcode on the slab" : `Cert # ${cert} detected`}
+                </p>
+              )}
 
               <button onClick={next}
                 className="w-full py-3.5 rounded-2xl bg-gray-950 text-white text-sm font-semibold mb-3">
@@ -320,7 +385,7 @@ export function ScanCardSheet({ onClose, onAdd }: ScanCardSheetProps) {
                 onClick={() => {
                   onAdd({
                     id: Date.now(),
-                    img: "",
+                    img: scannedImage ?? "",
                     player,
                     year,
                     brand,
