@@ -7,13 +7,16 @@ interface CardTileProps {
   card: Card;
   onClick: () => void;
   index?: number;
+  selectMode?: boolean;
+  selected?: boolean;
 }
 
-export function CardTile({ card, onClick, index = 0 }: CardTileProps) {
+export function CardTile({ card, onClick, index = 0, selectMode = false, selected = false }: CardTileProps) {
   const tilt = use3DTilt();
   const [spinning, setSpinning] = useState(false);
 
   const handleClick = () => {
+    if (selectMode) { onClick(); return; }
     if (spinning) return;
     setSpinning(true);
   };
@@ -33,7 +36,7 @@ export function CardTile({ card, onClick, index = 0 }: CardTileProps) {
           ref={spinning ? undefined : tilt.ref}
           style={spinning
             ? { animation: "cardFlip 0.45s cubic-bezier(0.4,0,0.2,1) forwards", willChange: "transform" }
-            : { ...tilt.style, transformStyle: "preserve-3d", willChange: "transform" }
+            : { ...tilt.style, transformStyle: "preserve-3d", willChange: "transform", outline: selectMode && selected ? "2px solid #111" : "2px solid transparent", outlineOffset: 2, opacity: selectMode && !selected ? 0.55 : 1 }
           }
           onMouseMove={spinning ? undefined : tilt.onMouseMove}
           onMouseLeave={spinning ? undefined : tilt.onMouseLeave}
@@ -50,6 +53,15 @@ export function CardTile({ card, onClick, index = 0 }: CardTileProps) {
             </div>
         }
         <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(circle at var(--glare-x,50%) var(--glare-y,50%), rgba(255,255,255,0.18) 0%, transparent 65%)" }} />
+        {selectMode && (
+          <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full flex items-center justify-center" style={{ background: selected ? "#111" : "rgba(255,255,255,0.85)", border: selected ? "none" : "1.5px solid #d1d5db" }}>
+            {selected && (
+              <svg viewBox="0 0 10 10" className="w-2.5 h-2.5" fill="none">
+                <path d="M2 5l2 2 4-4" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            )}
+          </div>
+        )}
         </div>
       </button>
     </>

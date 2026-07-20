@@ -1,5 +1,6 @@
 import { X } from "lucide-react";
 import type { MarketItem } from "../../types";
+import { useEscapeClose } from "../../hooks/useEscapeClose";
 
 interface BuyConfirmSheetProps {
   item: MarketItem;
@@ -8,12 +9,13 @@ interface BuyConfirmSheetProps {
 }
 
 export function BuyConfirmSheet({ item, onClose, onConfirm }: BuyConfirmSheetProps) {
+  useEscapeClose(onClose);
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center px-6" style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(6px)" }} onClick={onClose}>
       <div className="w-full max-w-sm rounded-3xl bg-white p-6" onClick={e => e.stopPropagation()}>
         <div className="flex items-start justify-between mb-4">
           <h2 className="text-lg font-semibold text-gray-900">Buy this card?</h2>
-          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 flex-shrink-0">
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 flex-shrink-0" aria-label="Close">
             <X className="w-4 h-4 text-gray-500" />
           </button>
         </div>

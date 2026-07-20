@@ -5,6 +5,7 @@ import { GRADER_COLOR, GRADERS, GRADES, GRADE_LABELS, ALL_YEARS, BRANDS_BY_YEAR,
 import { card2 } from "../../data/cardImages";
 import { ScrollPicker } from "../shared/ScrollPicker";
 import { useBarcodeScanner } from "../../hooks/useBarcodeScanner";
+import { useEscapeClose } from "../../hooks/useEscapeClose";
 
 interface ScanCardSheetProps {
   onClose: () => void;
@@ -12,6 +13,7 @@ interface ScanCardSheetProps {
 }
 
 export function ScanCardSheet({ onClose, onAdd }: ScanCardSheetProps) {
+  useEscapeClose(onClose);
   const [step, setStep]         = useState(1);
   const [done, setDone]         = useState(false);
   const [player, setPlayer]     = useState("");
@@ -117,7 +119,7 @@ export function ScanCardSheet({ onClose, onAdd }: ScanCardSheetProps) {
             ))}
           </div>
           <span className="text-xs text-gray-400 mr-3 flex-shrink-0">{step}/{STEPS.length}</span>
-          <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100">
+          <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100" aria-label="Close">
             <X className="w-3.5 h-3.5 text-gray-500" />
           </button>
         </div>
@@ -347,7 +349,7 @@ export function ScanCardSheet({ onClose, onAdd }: ScanCardSheetProps) {
               <h2 className="text-xl font-semibold text-gray-900 mb-1">Looks good?</h2>
               <p className="text-sm text-gray-400 mb-5">Review before adding to your collection.</p>
 
-              <div className="rounded-2xl overflow-hidden mb-6" style={{ background: "#f7f7f7" }}>
+              <div className="rounded-2xl overflow-hidden mb-6 bg-gray-50">
                 <div className="h-1.5 w-full" style={{ background: graderColor }} />
                 <div className="px-4 pt-4 pb-3">
                   <div className="flex items-start justify-between mb-4">

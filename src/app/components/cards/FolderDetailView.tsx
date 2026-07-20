@@ -4,6 +4,7 @@ import type { Card, FolderType } from "../../types";
 import { CardTile } from "./CardTile";
 import { DetailSheet } from "./DetailSheet";
 import { ShareSheet } from "../shared/ShareSheet";
+import { useEscapeClose } from "../../hooks/useEscapeClose";
 
 interface FolderDetailViewProps {
   folder: FolderType;
@@ -17,6 +18,7 @@ interface FolderDetailViewProps {
 }
 
 export function FolderDetailView({ folder, onBack, onUpdate, allCards, onEdit, onDelete, onEditCard, onDeleteCard }: FolderDetailViewProps) {
+  useEscapeClose(onBack);
   const [selected, setSelected] = useState<Card | null>(null);
   const [sharing, setSharing] = useState(false);
   const [addingCards, setAddingCards] = useState(false);
@@ -35,7 +37,7 @@ export function FolderDetailView({ folder, onBack, onUpdate, allCards, onEdit, o
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       <div className="flex items-center gap-3 px-6 pt-6 pb-4">
-        <button onClick={onBack} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100">
+        <button onClick={onBack} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100" aria-label="Back">
           <ChevronLeft className="w-4 h-4 text-gray-600" />
         </button>
         <button onClick={() => setChangingThumb(true)} className="w-9 h-9 rounded-xl overflow-hidden flex-shrink-0 relative">
@@ -55,7 +57,7 @@ export function FolderDetailView({ folder, onBack, onUpdate, allCards, onEdit, o
           <Share2 className="w-3 h-3" />Share
         </button>
         <div className="relative flex-shrink-0">
-          <button onClick={() => setMenuOpen(o => !o)} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100">
+          <button onClick={() => setMenuOpen(o => !o)} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100" aria-label="More options">
             <MoreVertical className="w-4 h-4 text-gray-500" />
           </button>
           {menuOpen && (
@@ -98,7 +100,7 @@ export function FolderDetailView({ folder, onBack, onUpdate, allCards, onEdit, o
             <div className="flex justify-center pt-3 md:hidden"><div className="w-8 h-1 rounded-full bg-gray-200" /></div>
             <div className="flex items-center justify-between px-6 pt-4 pb-3">
               <h2 className="text-base font-semibold text-gray-900">Add Cards</h2>
-              <button onClick={() => setAddingCards(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100"><X className="w-4 h-4 text-gray-500" /></button>
+              <button onClick={() => setAddingCards(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100" aria-label="Close"><X className="w-4 h-4 text-gray-500" /></button>
             </div>
             <div className="grid grid-cols-3 md:grid-cols-4 gap-3 px-6 pb-10 overflow-y-auto" style={{ scrollbarWidth: "none", maxHeight: "calc(80vh - 80px)" }}>
               {allCards.map(card => (
@@ -126,7 +128,7 @@ export function FolderDetailView({ folder, onBack, onUpdate, allCards, onEdit, o
             <div className="flex justify-center pt-3 md:hidden"><div className="w-8 h-1 rounded-full bg-gray-200" /></div>
             <div className="flex items-center justify-between px-6 pt-4 pb-3">
               <h2 className="text-base font-semibold text-gray-900">Choose Thumbnail</h2>
-              <button onClick={() => setChangingThumb(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100"><X className="w-4 h-4 text-gray-500" /></button>
+              <button onClick={() => setChangingThumb(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100" aria-label="Close"><X className="w-4 h-4 text-gray-500" /></button>
             </div>
             <div className="grid grid-cols-4 gap-2 px-6 pb-10 overflow-y-auto" style={{ scrollbarWidth: "none", maxHeight: "calc(70vh - 80px)" }}>
               <button onClick={() => { onUpdate({ ...folder, thumbnail: undefined }); setChangingThumb(false); }}

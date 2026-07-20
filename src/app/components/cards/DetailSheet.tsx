@@ -4,6 +4,7 @@ import { X, Share2, Pencil, Trash2 } from "lucide-react";
 import type { Card } from "../../types";
 import { GRADER_COLOR } from "../../data/mockCards";
 import { use3DTilt } from "../../hooks/use3DTilt";
+import { useEscapeClose } from "../../hooks/useEscapeClose";
 import { AnimateIn } from "../shared/AnimateIn";
 import { ShareSheet } from "../shared/ShareSheet";
 import { ConfirmDialog } from "../shared/ConfirmDialog";
@@ -19,6 +20,7 @@ interface DetailSheetProps {
 }
 
 export function DetailSheet({ card, onClose, isPeer = false, cards = [], initialIndex = 0, onEdit, onDelete }: DetailSheetProps) {
+  useEscapeClose(onClose);
   const [idx, setIdx] = useState(initialIndex);
   const current = cards.length > 0 ? cards[idx] : card!;
   const gradeColor = GRADER_COLOR[current.grader] || "#111";
@@ -57,7 +59,7 @@ export function DetailSheet({ card, onClose, isPeer = false, cards = [], initial
             <div className="w-8 h-1 rounded-full bg-gray-200" />
           </div>
           <div className="flex items-center justify-between px-5 pt-2 pb-0">
-            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100">
+            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100" aria-label="Close">
               <X className="w-4 h-4 text-gray-500" />
             </button>
             {cards.length > 1 && (

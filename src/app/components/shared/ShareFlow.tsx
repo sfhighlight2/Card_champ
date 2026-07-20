@@ -3,6 +3,7 @@ import { X, Check, Share2, Link, Mail, MessageCircle, ChevronRight, ChevronLeft,
 import type { Card, FolderType, Peer } from "../../types";
 import { GRADER_COLOR } from "../../data/mockCards";
 import { PEERS } from "../../data/mockPeers";
+import { useEscapeClose } from "../../hooks/useEscapeClose";
 
 const SHARE_PLATFORMS = [
   { id: "dm",    label: "Direct message", sub: "Send to a collector you follow", icon: <Send className="w-4 h-4 text-violet-500" /> },
@@ -19,6 +20,7 @@ interface ShareFlowProps {
 }
 
 export function ShareFlow({ onClose, allCards, folders }: ShareFlowProps) {
+  useEscapeClose(onClose);
   const [step, setStep] = useState<1 | 2>(1);
   const [type, setType] = useState<"collection" | "folder" | "card" | null>(null);
   const [selectedFolder, setSelectedFolder] = useState<FolderType | null>(null);
@@ -97,7 +99,7 @@ export function ShareFlow({ onClose, allCards, folders }: ShareFlowProps) {
             {[1,2].map(i => <div key={i} className="flex-1 h-1 rounded-full transition-all duration-300" style={{ background: step >= i ? "#111" : "#f0f0f0" }} />)}
           </div>
           <span className="text-xs text-gray-400 mr-3">{step}/2</span>
-          <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100">
+          <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100" aria-label="Close">
             <X className="w-3.5 h-3.5 text-gray-500" />
           </button>
         </div>

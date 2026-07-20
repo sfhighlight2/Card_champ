@@ -16,7 +16,7 @@ interface MarketTileProps {
 
 function MarketTile({ item, onSelect, isWatchlisted, onToggleWatchlist, size = "grid" }: MarketTileProps) {
   return (
-    <div className={`relative ${size === "trending" ? "flex-shrink-0 w-32" : "w-full"} rounded-2xl overflow-hidden`} style={{ background: "#f7f7f7" }}>
+    <div className={`relative ${size === "trending" ? "flex-shrink-0 w-32" : "w-full"} rounded-2xl overflow-hidden bg-gray-50`}>
       <button onClick={onSelect} className="w-full text-left focus:outline-none">
         <img src={item.img} alt={item.player} className="w-full" style={{ objectFit: "contain", background: "#f0f0f0" }} draggable={false} />
         <div className="px-2.5 py-2">
@@ -34,6 +34,7 @@ function MarketTile({ item, onSelect, isWatchlisted, onToggleWatchlist, size = "
       <button
         onClick={e => { e.stopPropagation(); onToggleWatchlist(); }}
         className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-white/90 flex items-center justify-center"
+        aria-label={isWatchlisted ? "Remove from watchlist" : "Add to watchlist"}
       >
         <Heart className="w-3 h-3" style={{ fill: isWatchlisted ? "#dc2626" : "none", color: isWatchlisted ? "#dc2626" : "#9ca3af" }} />
       </button>
@@ -49,11 +50,12 @@ interface MarketViewProps {
   onBuy: (item: MarketItem) => void;
   onUpdateListingStatus: (id: number, status: Listing["status"]) => void;
   onRemoveListing: (id: number) => void;
+  initialTab?: "browse" | "watchlist" | "listings";
 }
 
-export function MarketView({ allCards, listings, watchlist, onToggleWatchlist, onBuy, onUpdateListingStatus, onRemoveListing }: MarketViewProps) {
+export function MarketView({ allCards, listings, watchlist, onToggleWatchlist, onBuy, onUpdateListingStatus, onRemoveListing, initialTab }: MarketViewProps) {
   const [query, setQuery] = useState("");
-  const [marketTab, setMarketTab] = useState<"browse" | "watchlist" | "listings">("browse");
+  const [marketTab, setMarketTab] = useState<"browse" | "watchlist" | "listings">(initialTab ?? "browse");
   const [selectedItem, setSelectedItem] = useState<MarketItem | null>(null);
   const [buyingItem, setBuyingItem] = useState<MarketItem | null>(null);
   const isSearching = query.trim().length > 0;
@@ -191,6 +193,7 @@ export function MarketView({ allCards, listings, watchlist, onToggleWatchlist, o
                 <button
                   onClick={() => onToggleWatchlist(spotlight.id)}
                   className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/20 flex items-center justify-center"
+                  aria-label={watchlist.includes(spotlight.id) ? "Remove from watchlist" : "Add to watchlist"}
                 >
                   <Heart className="w-4 h-4" style={{ fill: watchlist.includes(spotlight.id) ? "#dc2626" : "none", color: "#fff" }} />
                 </button>
@@ -204,7 +207,7 @@ export function MarketView({ allCards, listings, watchlist, onToggleWatchlist, o
               <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Player, year, brand…"
                 className="flex-1 bg-transparent text-sm text-gray-900 placeholder-gray-400 outline-none"
                 style={{ fontFamily: "'Google Sans', sans-serif" }} />
-              {query && <button onClick={() => setQuery("")}><X className="w-3.5 h-3.5 text-gray-400" /></button>}
+              {query && <button onClick={() => setQuery("")} aria-label="Clear search"><X className="w-3.5 h-3.5 text-gray-400" /></button>}
             </div>
           </AnimateIn>
 

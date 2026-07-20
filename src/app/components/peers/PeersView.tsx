@@ -84,7 +84,7 @@ export function PeersView({ allCards, folders, following, onToggleFollow, showTo
               className="flex-1 bg-transparent text-sm text-gray-900 placeholder-gray-400 outline-none"
               style={{ fontFamily: "'Google Sans', sans-serif" }}
             />
-            {query && <button onClick={() => setQuery("")}><X className="w-3.5 h-3.5 text-gray-400" /></button>}
+            {query && <button onClick={() => setQuery("")} aria-label="Clear search"><X className="w-3.5 h-3.5 text-gray-400" /></button>}
           </div>
         </div>
 

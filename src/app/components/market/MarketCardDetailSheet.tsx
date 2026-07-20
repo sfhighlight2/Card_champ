@@ -2,6 +2,7 @@ import { Heart } from "lucide-react";
 import { LineChart, Line, XAxis, Tooltip, ResponsiveContainer } from "recharts";
 import type { MarketItem } from "../../types";
 import { GRADER_COLOR } from "../../data/mockCards";
+import { useEscapeClose } from "../../hooks/useEscapeClose";
 
 interface MarketCardDetailSheetProps {
   item: MarketItem;
@@ -12,6 +13,7 @@ interface MarketCardDetailSheetProps {
 }
 
 export function MarketCardDetailSheet({ item, onClose, onBuy, isWatchlisted, onToggleWatchlist }: MarketCardDetailSheetProps) {
+  useEscapeClose(onClose);
   const gradeColor = GRADER_COLOR[item.grader] || "#111";
   return (
     <div className="fixed inset-0 z-[60] flex flex-col" style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(6px)" }} onClick={onClose}>
@@ -23,6 +25,7 @@ export function MarketCardDetailSheet({ item, onClose, onBuy, isWatchlisted, onT
             <button
               onClick={onToggleWatchlist}
               className="absolute top-4 right-6 w-9 h-9 rounded-full bg-gray-50 flex items-center justify-center"
+              aria-label={isWatchlisted ? "Remove from watchlist" : "Add to watchlist"}
             >
               <Heart className="w-4 h-4" style={{ fill: isWatchlisted ? "#dc2626" : "none", color: isWatchlisted ? "#dc2626" : "#9ca3af" }} />
             </button>

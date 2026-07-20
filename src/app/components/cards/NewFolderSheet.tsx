@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Folder, Check, Search, X } from "lucide-react";
 import type { Card } from "../../types";
 import { FOLDER_COLORS } from "../../data/mockCards";
+import { useEscapeClose } from "../../hooks/useEscapeClose";
 
 interface NewFolderSheetProps {
   onClose: () => void;
@@ -10,6 +11,7 @@ interface NewFolderSheetProps {
 }
 
 export function NewFolderSheet({ onClose, onCreate, allCards }: NewFolderSheetProps) {
+  useEscapeClose(onClose);
   const [step, setStep] = useState(1);
   const [name, setName] = useState("");
   const [color, setColor] = useState(FOLDER_COLORS[0]);
@@ -62,7 +64,7 @@ export function NewFolderSheet({ onClose, onCreate, allCards }: NewFolderSheetPr
             ))}
           </div>
           <span className="text-xs text-gray-400 mr-3 flex-shrink-0">{step} / {STEPS.length}</span>
-          <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 flex-shrink-0">
+          <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 flex-shrink-0" aria-label="Close">
             <X className="w-3.5 h-3.5 text-gray-500" />
           </button>
         </div>
@@ -114,7 +116,7 @@ export function NewFolderSheet({ onClose, onCreate, allCards }: NewFolderSheetPr
                 <input value={cardSearch} onChange={e => setCardSearch(e.target.value)} placeholder="Search cards…"
                   className="flex-1 bg-transparent text-sm text-gray-900 placeholder-gray-400 outline-none"
                   style={{ fontFamily: "'Google Sans', sans-serif" }} />
-                {cardSearch && <button onClick={() => setCardSearch("")}><X className="w-3.5 h-3.5 text-gray-400" /></button>}
+                {cardSearch && <button onClick={() => setCardSearch("")} aria-label="Clear search"><X className="w-3.5 h-3.5 text-gray-400" /></button>}
               </div>
               <div className="grid grid-cols-3 md:grid-cols-4 gap-2 mb-6">
                 {filteredCards.map(card => (

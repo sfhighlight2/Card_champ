@@ -1,3 +1,5 @@
+import { useEscapeClose } from "../../hooks/useEscapeClose";
+
 interface ConfirmDialogProps {
   title: string;
   message: string;
@@ -15,6 +17,7 @@ export function ConfirmDialog({
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
+  useEscapeClose(onCancel);
   return (
     <div
       className="fixed inset-0 z-[70] flex items-center justify-center px-6"

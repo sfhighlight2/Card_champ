@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { ReactNode } from "react";
 import { X, Link, Mail, MessageCircle, Check, Share2, ChevronRight } from "lucide-react";
+import { useEscapeClose } from "../../hooks/useEscapeClose";
 
 interface ShareTarget {
   label: string;
@@ -16,6 +17,7 @@ interface ShareSheetProps {
 }
 
 export function ShareSheet({ title, subtitle, onClose }: ShareSheetProps) {
+  useEscapeClose(onClose);
   const [copied, setCopied] = useState(false);
 
   const copy = () => {
@@ -68,7 +70,7 @@ export function ShareSheet({ title, subtitle, onClose }: ShareSheetProps) {
               <p className="text-sm font-semibold text-gray-900">{title}</p>
               <p className="text-xs text-gray-400 mt-0.5">{subtitle}</p>
             </div>
-            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100">
+            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100" aria-label="Close">
               <X className="w-4 h-4 text-gray-500" />
             </button>
           </div>

@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { ChevronLeft, Download, Upload, RotateCcw, Trophy, LogOut } from "lucide-react";
+import { ChevronLeft, Download, Upload, RotateCcw, Trophy, LogOut, Sun, Moon, Monitor } from "lucide-react";
 import type { Card, FolderType, Listing, Profile } from "../../types";
 import { buildBackup, downloadBackup, parseBackupFile } from "../../lib/backup";
 import type { BackupData } from "../../lib/backup";
 import { ConfirmDialog } from "../shared/ConfirmDialog";
 import { CountUp } from "../shared/CountUp";
 import { MILESTONES } from "../../data/achievements";
+import { useEscapeClose } from "../../hooks/useEscapeClose";
 
 interface SettingsViewProps {
   onBack: () => void;
@@ -20,11 +21,14 @@ interface SettingsViewProps {
   onReset: () => void;
   seenAchievements: string[];
   onLogout: () => void;
+  theme: "light" | "dark" | "system";
+  onThemeChange: (theme: "light" | "dark" | "system") => void;
 }
 
 export function SettingsView({
-  onBack, profile, onProfileChange, cards, folders, watchlist, following, listings, onRestore, onReset, seenAchievements, onLogout,
+  onBack, profile, onProfileChange, cards, folders, watchlist, following, listings, onRestore, onReset, seenAchievements, onLogout, theme, onThemeChange,
 }: SettingsViewProps) {
+  useEscapeClose(onBack);
   const [name, setName] = useState(profile.name);
   const [handle, setHandle] = useState(profile.handle);
   const [importError, setImportError] = useState("");
@@ -61,7 +65,7 @@ export function SettingsView({
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       <div className="flex items-center gap-3 px-6 pt-6 pb-4">
-        <button onClick={onBack} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100">
+        <button onClick={onBack} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100" aria-label="Back">
           <ChevronLeft className="w-4 h-4 text-gray-600" />
         </button>
         <h2 className="text-base font-semibold text-gray-900">Settings</h2>
@@ -75,6 +79,21 @@ export function SettingsView({
         <p className="text-[10px] font-medium text-gray-400 tracking-widest uppercase mb-1.5">Handle</p>
         <input value={handle} onChange={e => setHandle(e.target.value)} onBlur={saveProfile}
           className="w-full rounded-2xl bg-gray-50 px-4 py-3.5 text-sm text-gray-900 outline-none mb-8" />
+
+        <p className="text-[10px] font-medium text-gray-400 tracking-widest uppercase mb-3">Appearance</p>
+        <div className="flex items-center gap-1 p-1 rounded-2xl bg-gray-50 mb-8">
+          {([
+            { id: "light" as const, label: "Light", icon: Sun },
+            { id: "dark" as const, label: "Dark", icon: Moon },
+            { id: "system" as const, label: "System", icon: Monitor },
+          ]).map(({ id, label, icon: Icon }) => (
+            <button key={id} onClick={() => onThemeChange(id)}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold transition-colors"
+              style={{ background: theme === id ? "#111" : "transparent", color: theme === id ? "#fff" : "#888" }}>
+              <Icon className="w-3.5 h-3.5" />{label}
+            </button>
+          ))}
+        </div>
 
         <p className="text-[10px] font-medium text-gray-400 tracking-widest uppercase mb-3">Backup</p>
         <button onClick={handleExport}
@@ -115,8 +134,7 @@ export function SettingsView({
             const earned = seenAchievements.includes(m.id);
             return (
               <div key={m.id}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold"
-                style={{ background: earned ? "#111" : "#f4f4f5", color: earned ? "#fff" : "#bbb" }}>
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold ${earned ? "bg-gray-950 text-white" : "bg-gray-100 text-gray-400"}`}>
                 <Trophy className="w-3.5 h-3.5" />
                 {m.label}
               </div>

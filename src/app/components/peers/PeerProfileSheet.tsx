@@ -2,6 +2,7 @@ import { useState } from "react";
 import { X } from "lucide-react";
 import type { Card, Peer } from "../../types";
 import { DetailSheet } from "../cards/DetailSheet";
+import { useEscapeClose } from "../../hooks/useEscapeClose";
 
 interface PeerProfileSheetProps {
   peer: Peer;
@@ -12,6 +13,7 @@ interface PeerProfileSheetProps {
 }
 
 export function PeerProfileSheet({ peer, onClose, allCards, isFollowing, onToggleFollow }: PeerProfileSheetProps) {
+  useEscapeClose(onClose);
   const [selectedCard, setSelectedCard] = useState<Card | null>(null);
 
   const cardByImg = (img: string) => allCards.find(c => c.img === img) ?? null;
@@ -65,7 +67,7 @@ export function PeerProfileSheet({ peer, onClose, allCards, isFollowing, onToggl
                 <p className="text-xs text-gray-400 mt-0.5">{peer.handle} · {peer.specialty}</p>
               </div>
             </div>
-            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 flex-shrink-0">
+            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 flex-shrink-0" aria-label="Close">
               <X className="w-4 h-4 text-gray-500" />
             </button>
           </div>

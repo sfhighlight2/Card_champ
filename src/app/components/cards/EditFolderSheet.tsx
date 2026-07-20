@@ -2,6 +2,7 @@ import { useState } from "react";
 import { X, Check } from "lucide-react";
 import type { FolderType } from "../../types";
 import { FOLDER_COLORS } from "../../data/mockCards";
+import { useEscapeClose } from "../../hooks/useEscapeClose";
 
 interface EditFolderSheetProps {
   folder: FolderType;
@@ -10,6 +11,7 @@ interface EditFolderSheetProps {
 }
 
 export function EditFolderSheet({ folder, onClose, onSave }: EditFolderSheetProps) {
+  useEscapeClose(onClose);
   const [name, setName] = useState(folder.name);
   const [color, setColor] = useState(folder.color);
 
@@ -25,7 +27,7 @@ export function EditFolderSheet({ folder, onClose, onSave }: EditFolderSheetProp
         <div className="flex justify-center pt-3 md:hidden"><div className="w-8 h-1 rounded-full bg-gray-200" /></div>
         <div className="flex items-center justify-between px-6 pt-4 pb-2">
           <h2 className="text-lg font-semibold text-gray-900">Edit folder</h2>
-          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100">
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100" aria-label="Close">
             <X className="w-4 h-4 text-gray-500" />
           </button>
         </div>

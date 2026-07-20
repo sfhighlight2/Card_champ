@@ -1,33 +1,45 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { useLocation, useNavigate } from "react-router";
 import {
-  Grid3X3, List, Scan, X, Plus, Share2, Search, TrendingUp, Users, LayoutGrid, Tag, Settings as SettingsIcon, ChevronDown, Folder, ArrowUpDown, Check, SlidersHorizontal,
+  Grid3X3, List, Scan, X, Plus, Share2, Search, TrendingUp, TrendingDown, Users, LayoutGrid, Tag, Settings as SettingsIcon, ChevronDown, Folder, ArrowUpDown, Check, SlidersHorizontal, CheckSquare, Trash2, FolderPlus,
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import type { AuthState, Card, FolderType, Listing, MainTab, MarketItem, Profile } from "./types";
 import { ALL_CARDS, DEFAULT_FOLDERS, GRADE_LABELS } from "./data/mockCards";
+import { MARKET_ITEMS } from "./data/mockMarket";
 import { MILESTONES } from "./data/achievements";
 import { profilePic } from "./data/cardImages";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import type { BackupData } from "./lib/backup";
 import { LoginScreen } from "./components/auth/LoginScreen";
-import { InsightsView } from "./components/cards/InsightsView";
+import { BulkAddToFolderSheet } from "./components/cards/BulkAddToFolderSheet";
 import { CardTile } from "./components/cards/CardTile";
 import { CardListRow } from "./components/cards/CardListRow";
 import { DetailSheet } from "./components/cards/DetailSheet";
-import { ScanCardSheet } from "./components/cards/ScanCardSheet";
 import { EditCardSheet } from "./components/cards/EditCardSheet";
 import { NewFolderSheet } from "./components/cards/NewFolderSheet";
 import { EditFolderSheet } from "./components/cards/EditFolderSheet";
 import { FolderDetailView } from "./components/cards/FolderDetailView";
-import { MarketView } from "./components/market/MarketView";
 import { SellFlow } from "./components/market/SellFlow";
-import { PeersView } from "./components/peers/PeersView";
-import { SettingsView } from "./components/settings/SettingsView";
 import { ShareFlow } from "./components/shared/ShareFlow";
 import { ConfirmDialog } from "./components/shared/ConfirmDialog";
 import { AnimateIn } from "./components/shared/AnimateIn";
 import { CountUp } from "./components/shared/CountUp";
+
+// Code-split: these pull in recharts (~charts) and @zxing/library (barcode
+// scanning) which most sessions never touch on first paint, plus the two
+// full route-level views — keeping them out of the main bundle.
+const InsightsView = lazy(() => import("./components/cards/InsightsView").then(m => ({ default: m.InsightsView })));
+const ScanCardSheet = lazy(() => import("./components/cards/ScanCardSheet").then(m => ({ default: m.ScanCardSheet })));
+const MarketView = lazy(() => import("./components/market/MarketView").then(m => ({ default: m.MarketView })));
+const PeersView = lazy(() => import("./components/peers/PeersView").then(m => ({ default: m.PeersView })));
+const SettingsView = lazy(() => import("./components/settings/SettingsView").then(m => ({ default: m.SettingsView })));
+
+const LOADING_FALLBACK = (
+  <div className="flex-1 flex items-center justify-center py-20">
+    <div className="w-2 h-2 rounded-full bg-gray-300 animate-pulse" />
+  </div>
+);
 
 const DEFAULT_PROFILE: Profile = { name: "Andrew Cordle", handle: "@andrewcordle", avatar: profilePic, followers: 219 };
 
@@ -59,8 +71,24 @@ export default function App() {
   const [listings, setListings] = useLocalStorage<Listing[]>("cardchamps:listings", []);
   const [auth, setAuth] = useLocalStorage<AuthState | null>("cardchamps:auth", null);
   const [seenAchievements, setSeenAchievements] = useLocalStorage<string[]>("cardchamps:achievements-seen", []);
+  const [dismissedMovers, setDismissedMovers] = useLocalStorage<string[]>("cardchamps:watchlist-banner-dismissed", []);
+  const [theme, setTheme] = useLocalStorage<"light" | "dark" | "system">("cardchamps:theme", "system");
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const apply = () => {
+      const isDark = theme === "dark" || (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+      root.classList.toggle("dark", isDark);
+    };
+    apply();
+    if (theme !== "system") return;
+    const mql = window.matchMedia("(prefers-color-scheme: dark)");
+    mql.addEventListener("change", apply);
+    return () => mql.removeEventListener("change", apply);
+  }, [theme]);
 
   const [view, setView] = useState<"grid" | "list">("grid");
+  const [shopInitialTab, setShopInitialTab] = useState<"browse" | "watchlist" | "listings" | undefined>(undefined);
   const [selected, setSelected] = useState<Card | null>(null);
   const [showNewFolder, setShowNewFolder] = useState(false);
   const [showScan, setShowScan] = useState(false);
@@ -73,10 +101,20 @@ export default function App() {
   const [sortMenuOpen, setSortMenuOpen] = useState(false);
   const [filterAuto, setFilterAuto] = useState(false);
   const [filterGems, setFilterGems] = useState(false);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedCardIds, setSelectedCardIds] = useState<number[]>([]);
+  const [bulkPickingFolder, setBulkPickingFolder] = useState(false);
+  const [confirmingBulkDelete, setConfirmingBulkDelete] = useState(false);
   const [toast, setToast] = useState("");
   const [editingCard, setEditingCard] = useState<Card | null>(null);
   const [editingFolder, setEditingFolder] = useState<FolderType | null>(null);
   const [confirmingDeleteFolder, setConfirmingDeleteFolder] = useState<FolderType | null>(null);
+
+  useEffect(() => {
+    setSelectMode(false);
+    setSelectedCardIds([]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cardsSubView]);
 
   useEffect(() => {
     setOpenFolder(null);
@@ -88,7 +126,12 @@ export default function App() {
     setShowShare(false);
     setShowSell(false);
     setShowNewFolder(false);
+    setSelectMode(false);
+    setSelectedCardIds([]);
+    setBulkPickingFolder(false);
+    setConfirmingBulkDelete(false);
     setSortMenuOpen(false);
+    if (location.pathname !== "/shop") setShopInitialTab(undefined);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname]);
 
@@ -101,6 +144,12 @@ export default function App() {
   const displayedCards = cardQuery
     ? cards.filter(c => c.player.toLowerCase().includes(cardQuery.toLowerCase()) || c.year.includes(cardQuery) || c.team.toLowerCase().includes(cardQuery.toLowerCase()))
     : cards;
+
+  const watchlistMovers = MARKET_ITEMS.filter(item => watchlist.includes(item.id) && Math.abs(item.change) >= 5)
+    .sort((a, b) => Math.abs(b.change) - Math.abs(a.change));
+  const topMover = watchlistMovers[0];
+  const moverSignature = topMover ? `${topMover.id}:${topMover.change}` : null;
+  const showMoverBanner = !!topMover && !!moverSignature && !dismissedMovers.includes(moverSignature);
 
   const filtersActive = filterAuto || filterGems;
   const visibleCards = (() => {
@@ -175,6 +224,29 @@ export default function App() {
     setFolders(prev => prev.map(f => ({ ...f, cardIds: f.cardIds.filter(cid => cid !== id) })));
     setListings(prev => prev.filter(l => l.cardId !== id));
     if (card) showToast(`Deleted ${card.player}`);
+  };
+
+  const toggleCardSelect = (id: number) => {
+    setSelectedCardIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  const handleBulkDeleteCards = (ids: number[]) => {
+    const idSet = new Set(ids);
+    setCards(prev => prev.filter(c => !idSet.has(c.id)));
+    setFolders(prev => prev.map(f => ({ ...f, cardIds: f.cardIds.filter(cid => !idSet.has(cid)) })));
+    setListings(prev => prev.filter(l => !idSet.has(l.cardId)));
+    showToast(`Deleted ${ids.length} card${ids.length !== 1 ? "s" : ""}`);
+    setSelectMode(false);
+    setSelectedCardIds([]);
+  };
+
+  const handleBulkAddToFolder = (folderId: number, ids: number[]) => {
+    const folder = folders.find(f => f.id === folderId);
+    setFolders(prev => prev.map(f => f.id === folderId ? { ...f, cardIds: Array.from(new Set([...f.cardIds, ...ids])) } : f));
+    if (folder) showToast(`Added ${ids.length} card${ids.length !== 1 ? "s" : ""} to ${folder.name}`);
+    setBulkPickingFolder(false);
+    setSelectMode(false);
+    setSelectedCardIds([]);
   };
 
   const handleUpdateFolder = (updated: FolderType) => {
@@ -271,20 +343,24 @@ export default function App() {
     return (
       <div className="min-h-screen w-full flex justify-center bg-white" style={{ fontFamily: "'Google Sans', sans-serif" }}>
         <div className="relative w-full max-w-[430px] md:max-w-2xl flex flex-col min-h-screen bg-white overflow-hidden">
-          <SettingsView
-            onBack={() => navigate("/")}
-            profile={profile}
-            onProfileChange={setProfile}
-            cards={cards}
-            folders={folders}
-            watchlist={watchlist}
-            following={following}
-            listings={listings}
-            onRestore={handleRestore}
-            onReset={handleReset}
-            seenAchievements={seenAchievements}
-            onLogout={handleLogout}
-          />
+          <Suspense fallback={LOADING_FALLBACK}>
+            <SettingsView
+              onBack={() => navigate("/")}
+              profile={profile}
+              onProfileChange={setProfile}
+              cards={cards}
+              folders={folders}
+              watchlist={watchlist}
+              following={following}
+              listings={listings}
+              onRestore={handleRestore}
+              onReset={handleReset}
+              seenAchievements={seenAchievements}
+              onLogout={handleLogout}
+              theme={theme}
+              onThemeChange={setTheme}
+            />
+          </Suspense>
         </div>
       </div>
     );
@@ -295,7 +371,7 @@ export default function App() {
       <div className="relative w-full max-w-[430px] md:max-w-2xl lg:max-w-5xl flex flex-col min-h-screen bg-white overflow-hidden">
 
         {!openFolder && (
-          <button onClick={() => navigate("/settings")} className="absolute top-6 right-6 w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 z-10">
+          <button onClick={() => navigate("/settings")} className="absolute top-6 right-6 w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 z-10" aria-label="Settings">
             <SettingsIcon className="w-4 h-4 text-gray-500" />
           </button>
         )}
@@ -340,6 +416,26 @@ export default function App() {
           })}
         </div>
 
+        {showMoverBanner && topMover && (
+          <div className={`mx-7 mb-4 flex items-center gap-3 px-4 py-3 rounded-2xl ${topMover.change > 0 ? "bg-emerald-50" : "bg-red-50"}`}>
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: topMover.change > 0 ? "#10b981" : "#ef4444" }}>
+              {topMover.change > 0 ? <TrendingUp className="w-4 h-4 text-white" /> : <TrendingDown className="w-4 h-4 text-white" />}
+            </div>
+            <button onClick={() => { setShopInitialTab("watchlist"); navigate("/shop"); }} className="flex-1 text-left min-w-0">
+              <p className="text-xs font-semibold text-gray-900 truncate">
+                {topMover.player} is {topMover.change > 0 ? "up" : "down"} {Math.abs(topMover.change)}%
+              </p>
+              <p className="text-[11px] text-gray-500">
+                On your watchlist{watchlistMovers.length > 1 ? ` · +${watchlistMovers.length - 1} more moved` : ""}
+              </p>
+            </button>
+            <button onClick={() => moverSignature && setDismissedMovers(prev => [...prev, moverSignature])}
+              className="flex-shrink-0 w-6 h-6 flex items-center justify-center" aria-label="Dismiss">
+              <X className="w-3.5 h-3.5 text-gray-400" />
+            </button>
+          </div>
+        )}
+
         {mainTab === "cards" && (
           <>
             {cardsSubView !== "insights" && (
@@ -353,14 +449,22 @@ export default function App() {
                     className="flex-1 bg-transparent text-sm text-gray-900 placeholder-gray-400 outline-none"
                     style={{ fontFamily: "'Google Sans', sans-serif" }}
                   />
-                  {cardQuery && <button onClick={() => setCardQuery("")}><X className="w-3 h-3 text-gray-400" /></button>}
+                  {cardQuery && <button onClick={() => setCardQuery("")} aria-label="Clear search"><X className="w-3 h-3 text-gray-400" /></button>}
                 </div>
                 <div className="flex gap-1">
                   {(["grid", "list"] as const).map(v => (
-                    <button key={v} onClick={() => setView(v)} className="w-7 h-7 flex items-center justify-center rounded-lg transition-colors" style={{ background: view === v ? "#111" : "transparent" }}>
+                    <button key={v} onClick={() => setView(v)} className="w-7 h-7 flex items-center justify-center rounded-lg transition-colors" style={{ background: view === v ? "#111" : "transparent" }}
+                      aria-label={v === "grid" ? "Grid view" : "List view"}>
                       {v === "grid" ? <Grid3X3 className="w-3.5 h-3.5" style={{ color: view === v ? "#fff" : "#ccc" }} /> : <List className="w-3.5 h-3.5" style={{ color: view === v ? "#fff" : "#ccc" }} />}
                     </button>
                   ))}
+                  {cardsSubView === "cards" && cards.length > 0 && (
+                    <button onClick={() => { setSelectMode(v => !v); setSelectedCardIds([]); }}
+                      className="w-7 h-7 flex items-center justify-center rounded-lg transition-colors" style={{ background: selectMode ? "#111" : "transparent" }}
+                      aria-label={selectMode ? "Exit select mode" : "Select cards"}>
+                      <CheckSquare className="w-3.5 h-3.5" style={{ color: selectMode ? "#fff" : "#ccc" }} />
+                    </button>
+                  )}
                 </div>
               </div>
             )}
@@ -440,23 +544,35 @@ export default function App() {
                   </div>
                 ) : view === "grid" ? (
                   <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                    {visibleCards.map((card, i) => <CardTile key={card.id} card={card} index={i} onClick={() => setSelected(card)} />)}
+                    {visibleCards.map((card, i) => (
+                      <CardTile key={card.id} card={card} index={i}
+                        onClick={() => selectMode ? toggleCardSelect(card.id) : setSelected(card)}
+                        selectMode={selectMode} selected={selectedCardIds.includes(card.id)} />
+                    ))}
                   </div>
                 ) : (
                   <div className="flex flex-col divide-y divide-gray-50">
-                    {visibleCards.map(card => <CardListRow key={card.id} card={card} onClick={() => setSelected(card)} />)}
+                    {visibleCards.map(card => (
+                      <CardListRow key={card.id} card={card}
+                        onClick={() => selectMode ? toggleCardSelect(card.id) : setSelected(card)}
+                        selectMode={selectMode} selected={selectedCardIds.includes(card.id)} />
+                    ))}
                   </div>
                 )}
               </div>
             )}
 
-            {cardsSubView === "insights" && <InsightsView cards={cards} />}
+            {cardsSubView === "insights" && (
+              <Suspense fallback={LOADING_FALLBACK}>
+                <InsightsView cards={cards} />
+              </Suspense>
+            )}
 
             {cardsSubView === "folders" && (
               <div className="flex-1 px-7 overflow-y-auto" style={{ scrollbarWidth: "none", paddingBottom: "110px" }}>
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-xs text-gray-400">{folders.length} folder{folders.length !== 1 ? "s" : ""}</p>
-                  <button onClick={() => setShowNewFolder(true)}
+                  <button onClick={() => setShowNewFolder(true)} aria-label="New folder"
                     className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors focus:outline-none">
                     <Plus className="w-4 h-4 text-gray-500" />
                   </button>
@@ -520,39 +636,62 @@ export default function App() {
         )}
 
         {mainTab === "shop" && (
-          <MarketView
-            allCards={cards}
-            listings={listings}
-            watchlist={watchlist}
-            onToggleWatchlist={handleToggleWatchlist}
-            onBuy={handleBuy}
-            onUpdateListingStatus={handleUpdateListingStatus}
-            onRemoveListing={handleRemoveListing}
-          />
+          <Suspense fallback={LOADING_FALLBACK}>
+            <MarketView
+              allCards={cards}
+              listings={listings}
+              watchlist={watchlist}
+              onToggleWatchlist={handleToggleWatchlist}
+              onBuy={handleBuy}
+              onUpdateListingStatus={handleUpdateListingStatus}
+              onRemoveListing={handleRemoveListing}
+              initialTab={shopInitialTab}
+            />
+          </Suspense>
         )}
         {mainTab === "peers" && (
-          <PeersView
-            allCards={cards}
-            folders={folders}
-            following={following}
-            onToggleFollow={handleToggleFollow}
-            showToast={showToast}
-          />
+          <Suspense fallback={LOADING_FALLBACK}>
+            <PeersView
+              allCards={cards}
+              folders={folders}
+              following={following}
+              onToggleFollow={handleToggleFollow}
+              showToast={showToast}
+            />
+          </Suspense>
         )}
 
-        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 flex gap-2 px-4 py-2.5 rounded-full bg-white z-40" style={{ boxShadow: "0 8px 32px rgba(0,0,0,0.12)" }}>
-          {[
-            { label: "Scan",  icon: <Scan className="w-4 h-4" />,   active: showScan,  onClick: () => setShowScan(true)  },
-            { label: "Share", icon: <Share2 className="w-4 h-4" />, active: showShare, onClick: () => setShowShare(true) },
-            { label: "Sell",  icon: <Tag className="w-4 h-4" />,    active: showSell,  onClick: () => setShowSell(true)  },
-          ].map(btn => (
-            <button key={btn.label} onClick={btn.onClick}
-              className="flex items-center gap-1.5 px-4 py-2.5 rounded-full text-sm font-semibold active:opacity-70 transition-all"
-              style={{ background: btn.active ? "#111" : "transparent", color: btn.active ? "#fff" : "#374151", border: btn.active ? "none" : "1px solid #e5e7eb" }}>
-              {btn.icon}{btn.label}
+        {selectMode ? (
+          <div className="fixed bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-2 px-3 py-2.5 rounded-full bg-gray-950 z-40" style={{ boxShadow: "0 8px 32px rgba(0,0,0,0.2)" }}>
+            <button onClick={() => { setSelectMode(false); setSelectedCardIds([]); }}
+              className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 flex-shrink-0" aria-label="Cancel selection">
+              <X className="w-4 h-4 text-white" />
             </button>
-          ))}
-        </div>
+            <span className="text-xs font-semibold text-white/70 px-1 whitespace-nowrap">{selectedCardIds.length} selected</span>
+            <button onClick={() => setBulkPickingFolder(true)} disabled={selectedCardIds.length === 0}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-semibold text-white disabled:opacity-40 transition-opacity">
+              <FolderPlus className="w-4 h-4" />Add
+            </button>
+            <button onClick={() => setConfirmingBulkDelete(true)} disabled={selectedCardIds.length === 0}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-semibold text-red-400 disabled:opacity-40 transition-opacity">
+              <Trash2 className="w-4 h-4" />Delete
+            </button>
+          </div>
+        ) : (
+          <div className="fixed bottom-8 left-1/2 -translate-x-1/2 flex gap-2 px-4 py-2.5 rounded-full bg-white z-40" style={{ boxShadow: "0 8px 32px rgba(0,0,0,0.12)" }}>
+            {[
+              { label: "Scan",  icon: <Scan className="w-4 h-4" />,   active: showScan,  onClick: () => setShowScan(true)  },
+              { label: "Share", icon: <Share2 className="w-4 h-4" />, active: showShare, onClick: () => setShowShare(true) },
+              { label: "Sell",  icon: <Tag className="w-4 h-4" />,    active: showSell,  onClick: () => setShowSell(true)  },
+            ].map(btn => (
+              <button key={btn.label} onClick={btn.onClick}
+                className="flex items-center gap-1.5 px-4 py-2.5 rounded-full text-sm font-semibold active:opacity-70 transition-all"
+                style={{ background: btn.active ? "#111" : "transparent", color: btn.active ? "#fff" : "#374151", border: btn.active ? "none" : "1px solid #e5e7eb" }}>
+                {btn.icon}{btn.label}
+              </button>
+            ))}
+          </div>
+        )}
 
         {toast && (
           <div className="absolute bottom-28 left-1/2 -translate-x-1/2 px-4 py-2.5 rounded-full bg-gray-950 text-white text-xs font-semibold shadow-lg whitespace-nowrap z-50">
@@ -577,7 +716,11 @@ export default function App() {
           onCreate={handleCreateFolder}
         />
       )}
-      {showScan && <ScanCardSheet onClose={() => setShowScan(false)} onAdd={handleAddCard} />}
+      {showScan && (
+        <Suspense fallback={LOADING_FALLBACK}>
+          <ScanCardSheet onClose={() => setShowScan(false)} onAdd={handleAddCard} />
+        </Suspense>
+      )}
       {showShare && <ShareFlow onClose={() => setShowShare(false)} allCards={cards} folders={folders} />}
       {showSell && <SellFlow onClose={() => setShowSell(false)} allCards={cards} onCreate={handleCreateListing} />}
       {editingCard && (
@@ -601,6 +744,23 @@ export default function App() {
           confirmLabel="Delete"
           onConfirm={() => { handleDeleteFolder(confirmingDeleteFolder); setConfirmingDeleteFolder(null); }}
           onCancel={() => setConfirmingDeleteFolder(null)}
+        />
+      )}
+      {bulkPickingFolder && (
+        <BulkAddToFolderSheet
+          folders={folders}
+          count={selectedCardIds.length}
+          onClose={() => setBulkPickingFolder(false)}
+          onPick={folderId => handleBulkAddToFolder(folderId, selectedCardIds)}
+        />
+      )}
+      {confirmingBulkDelete && (
+        <ConfirmDialog
+          title={`Delete ${selectedCardIds.length} card${selectedCardIds.length !== 1 ? "s" : ""}?`}
+          message="This removes the selected cards from your collection, any folders, and any active listings."
+          confirmLabel="Delete"
+          onConfirm={() => { handleBulkDeleteCards(selectedCardIds); setConfirmingBulkDelete(false); }}
+          onCancel={() => setConfirmingBulkDelete(false)}
         />
       )}
     </div>

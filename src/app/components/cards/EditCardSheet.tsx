@@ -2,6 +2,7 @@ import { useState } from "react";
 import { X, Check } from "lucide-react";
 import type { Card } from "../../types";
 import { GRADER_COLOR, GRADERS, GRADES, GRADE_LABELS } from "../../data/mockCards";
+import { useEscapeClose } from "../../hooks/useEscapeClose";
 
 interface EditCardSheetProps {
   card: Card;
@@ -10,6 +11,7 @@ interface EditCardSheetProps {
 }
 
 export function EditCardSheet({ card, onClose, onSave }: EditCardSheetProps) {
+  useEscapeClose(onClose);
   const [player, setPlayer] = useState(card.player);
   const [year, setYear] = useState(card.year);
   const [brand, setBrand] = useState(card.brand);
@@ -48,7 +50,7 @@ export function EditCardSheet({ card, onClose, onSave }: EditCardSheetProps) {
         <div className="flex justify-center pt-3 md:hidden"><div className="w-8 h-1 rounded-full bg-gray-200" /></div>
         <div className="flex items-center justify-between px-6 pt-4 pb-2">
           <h2 className="text-lg font-semibold text-gray-900">Edit card</h2>
-          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100">
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100" aria-label="Close">
             <X className="w-4 h-4 text-gray-500" />
           </button>
         </div>

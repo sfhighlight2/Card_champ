@@ -2,6 +2,7 @@ import { useState } from "react";
 import { X, Search, Check } from "lucide-react";
 import type { Card, Listing } from "../../types";
 import { GRADER_COLOR } from "../../data/mockCards";
+import { useEscapeClose } from "../../hooks/useEscapeClose";
 
 const SELL_PLATFORMS = ["eBay", "Fanatics", "COMC", "MySlabs", "StockX"];
 
@@ -12,6 +13,7 @@ interface SellFlowProps {
 }
 
 export function SellFlow({ onClose, allCards, onCreate }: SellFlowProps) {
+  useEscapeClose(onClose);
   const [step, setStep] = useState(1);
   const [selectedCard, setSelectedCard] = useState<Card | null>(null);
   const [platform, setPlatform] = useState("eBay");
@@ -71,7 +73,7 @@ export function SellFlow({ onClose, allCards, onCreate }: SellFlowProps) {
             {STEPS.map((_, i) => <div key={i} className="flex-1 h-1 rounded-full transition-all duration-300" style={{ background: step > i ? "#111" : "#f0f0f0" }} />)}
           </div>
           <span className="text-xs text-gray-400 mr-3">{step}/{STEPS.length}</span>
-          <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100">
+          <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100" aria-label="Close">
             <X className="w-3.5 h-3.5 text-gray-500" />
           </button>
         </div>
@@ -87,7 +89,7 @@ export function SellFlow({ onClose, allCards, onCreate }: SellFlowProps) {
                 <input value={cardSearch} onChange={e => setCardSearch(e.target.value)} placeholder="Search cards…"
                   className="flex-1 bg-transparent text-sm text-gray-900 placeholder-gray-400 outline-none"
                   style={{ fontFamily: "'Google Sans', sans-serif" }} />
-                {cardSearch && <button onClick={() => setCardSearch("")}><X className="w-3.5 h-3.5 text-gray-400" /></button>}
+                {cardSearch && <button onClick={() => setCardSearch("")} aria-label="Clear search"><X className="w-3.5 h-3.5 text-gray-400" /></button>}
               </div>
               <div className="grid grid-cols-3 md:grid-cols-4 gap-2 mb-5">
                 {filteredCards.map(card => (
@@ -168,7 +170,7 @@ export function SellFlow({ onClose, allCards, onCreate }: SellFlowProps) {
               <h2 className="text-xl font-semibold text-gray-900 mb-1">Review your listing</h2>
               <p className="text-sm text-gray-400 mb-5">Everything looks good?</p>
 
-              <div className="rounded-2xl overflow-hidden mb-5" style={{ background: "#f7f7f7" }}>
+              <div className="rounded-2xl overflow-hidden mb-5 bg-gray-50">
                 <div className="h-1 w-full" style={{ background: GRADER_COLOR[selectedCard.grader] || "#111" }} />
                 <div className="flex items-center gap-4 p-4">
                   {selectedCard.img
