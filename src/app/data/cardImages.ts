@@ -15,9 +15,11 @@ import loganPaul from "@/imports/logan_paul.jpg";
 import barbaraCorcoran from "@/imports/barbara_corcoran.jpeg";
 import garyVee from "@/imports/gary_vee.png";
 import kevinOLeary from "@/imports/kevin_o_leary.png";
+import cardChampsLogo from "@/imports/cardChampsLogo.png";
 
 export {
   card1, card2, card3, card4, card5, card6,
   card7, card8, card9, card10, card11, card12,
   profilePic, loganPaul, barbaraCorcoran, garyVee, kevinOLeary,
+  cardChampsLogo,
 };

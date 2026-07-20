@@ -1,11 +1,12 @@
 import { useState, type FormEvent } from "react";
-import { CreditCard, Mail, Lock, Eye, EyeOff, User } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, User } from "lucide-react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Checkbox } from "../ui/checkbox";
 import { Separator } from "../ui/separator";
 import { AnimateIn } from "../shared/AnimateIn";
+import { cardChampsLogo } from "../../data/cardImages";
 
 interface LoginScreenProps {
   onSignIn: (email: string) => void;
@@ -37,14 +38,12 @@ export function LoginScreen({ onSignIn, onSignUp, onGuest }: LoginScreenProps) {
   };
 
   return (
-    <div className="flex-1 flex flex-col justify-center px-8 py-10">
+    <div className="flex-1 flex flex-col justify-center px-8 py-6">
       <AnimateIn>
-        <div className="flex flex-col items-center mb-8">
-          <div className="w-14 h-14 rounded-2xl bg-gray-950 flex items-center justify-center mb-4">
-            <CreditCard className="w-6 h-6 text-white" />
-          </div>
-          <h1 className="text-2xl font-semibold text-gray-900">Card Champs</h1>
-          <p className="text-sm text-gray-400 mt-1">
+        <div className="flex flex-col items-center mb-5">
+          <img src={cardChampsLogo} alt="Card Champs" className="w-36 h-auto mb-2" draggable={false} />
+          <h1 className="sr-only">Card Champs</h1>
+          <p className="text-sm text-gray-400">
             {mode === "signin" ? "Welcome back, collector." : "Start building your collection."}
           </p>
         </div>
