@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router";
 import {
-  Grid3X3, List, Scan, X, Plus, Share2, Search, TrendingUp, Users, LayoutGrid, Tag, Settings as SettingsIcon, ChevronDown, Folder,
+  Grid3X3, List, Scan, X, Plus, Share2, Search, TrendingUp, Users, LayoutGrid, Tag, Settings as SettingsIcon, ChevronDown, Folder, ArrowUpDown, Check, SlidersHorizontal,
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import type { AuthState, Card, FolderType, Listing, MainTab, MarketItem, Profile } from "./types";
@@ -11,6 +11,7 @@ import { profilePic } from "./data/cardImages";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import type { BackupData } from "./lib/backup";
 import { LoginScreen } from "./components/auth/LoginScreen";
+import { InsightsView } from "./components/cards/InsightsView";
 import { CardTile } from "./components/cards/CardTile";
 import { CardListRow } from "./components/cards/CardListRow";
 import { DetailSheet } from "./components/cards/DetailSheet";
@@ -29,6 +30,15 @@ import { AnimateIn } from "./components/shared/AnimateIn";
 import { CountUp } from "./components/shared/CountUp";
 
 const DEFAULT_PROFILE: Profile = { name: "Andrew Cordle", handle: "@andrewcordle", avatar: profilePic, followers: 219 };
+
+type SortKey = "recent" | "value-desc" | "value-asc" | "name" | "year";
+const SORT_OPTIONS: { key: SortKey; label: string }[] = [
+  { key: "recent", label: "Recently added" },
+  { key: "value-desc", label: "Value: high to low" },
+  { key: "value-asc", label: "Value: low to high" },
+  { key: "name", label: "Player name" },
+  { key: "year", label: "Year" },
+];
 
 function hexToRgba(hex: string, alpha: number): string {
   let h = hex.replace("#", "");
@@ -58,7 +68,11 @@ export default function App() {
   const [showSell, setShowSell] = useState(false);
   const [openFolder, setOpenFolder] = useState<FolderType | null>(null);
   const [cardQuery, setCardQuery] = useState("");
-  const [cardsSubView, setCardsSubView] = useState<"cards" | "folders">("cards");
+  const [cardsSubView, setCardsSubView] = useState<"cards" | "folders" | "insights">("cards");
+  const [sortBy, setSortBy] = useState<SortKey>("recent");
+  const [sortMenuOpen, setSortMenuOpen] = useState(false);
+  const [filterAuto, setFilterAuto] = useState(false);
+  const [filterGems, setFilterGems] = useState(false);
   const [toast, setToast] = useState("");
   const [editingCard, setEditingCard] = useState<Card | null>(null);
   const [editingFolder, setEditingFolder] = useState<FolderType | null>(null);
@@ -74,6 +88,7 @@ export default function App() {
     setShowShare(false);
     setShowSell(false);
     setShowNewFolder(false);
+    setSortMenuOpen(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname]);
 
@@ -86,6 +101,22 @@ export default function App() {
   const displayedCards = cardQuery
     ? cards.filter(c => c.player.toLowerCase().includes(cardQuery.toLowerCase()) || c.year.includes(cardQuery) || c.team.toLowerCase().includes(cardQuery.toLowerCase()))
     : cards;
+
+  const filtersActive = filterAuto || filterGems;
+  const visibleCards = (() => {
+    let list = displayedCards;
+    if (filterAuto) list = list.filter(c => c.autograph);
+    if (filterGems) list = list.filter(c => c.grade === "10" || c.grade === "9.5");
+    const sorted = [...list];
+    switch (sortBy) {
+      case "value-desc": sorted.sort((a, b) => b.value - a.value); break;
+      case "value-asc": sorted.sort((a, b) => a.value - b.value); break;
+      case "name": sorted.sort((a, b) => a.player.localeCompare(b.player)); break;
+      case "year": sorted.sort((a, b) => a.year.localeCompare(b.year)); break;
+      case "recent": sorted.sort((a, b) => b.id - a.id); break;
+    }
+    return sorted;
+  })();
 
   const goTab = (tab: MainTab) => navigate(tab === "cards" ? "/" : `/${tab}`);
 
@@ -311,36 +342,73 @@ export default function App() {
 
         {mainTab === "cards" && (
           <>
-            <div className="flex items-center justify-between px-7 mb-2">
-              <div className="flex-1 flex items-center gap-2 mr-2 rounded-xl bg-gray-100 px-3 py-2">
-                <Search className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
-                <input
-                  value={cardQuery}
-                  onChange={e => setCardQuery(e.target.value)}
-                  placeholder="Search cards…"
-                  className="flex-1 bg-transparent text-sm text-gray-900 placeholder-gray-400 outline-none"
-                  style={{ fontFamily: "'Google Sans', sans-serif" }}
-                />
-                {cardQuery && <button onClick={() => setCardQuery("")}><X className="w-3 h-3 text-gray-400" /></button>}
+            {cardsSubView !== "insights" && (
+              <div className="flex items-center justify-between px-7 mb-2">
+                <div className="flex-1 flex items-center gap-2 mr-2 rounded-xl bg-gray-100 px-3 py-2">
+                  <Search className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                  <input
+                    value={cardQuery}
+                    onChange={e => setCardQuery(e.target.value)}
+                    placeholder="Search cards…"
+                    className="flex-1 bg-transparent text-sm text-gray-900 placeholder-gray-400 outline-none"
+                    style={{ fontFamily: "'Google Sans', sans-serif" }}
+                  />
+                  {cardQuery && <button onClick={() => setCardQuery("")}><X className="w-3 h-3 text-gray-400" /></button>}
+                </div>
+                <div className="flex gap-1">
+                  {(["grid", "list"] as const).map(v => (
+                    <button key={v} onClick={() => setView(v)} className="w-7 h-7 flex items-center justify-center rounded-lg transition-colors" style={{ background: view === v ? "#111" : "transparent" }}>
+                      {v === "grid" ? <Grid3X3 className="w-3.5 h-3.5" style={{ color: view === v ? "#fff" : "#ccc" }} /> : <List className="w-3.5 h-3.5" style={{ color: view === v ? "#fff" : "#ccc" }} />}
+                    </button>
+                  ))}
+                </div>
               </div>
-              <div className="flex gap-1">
-                {(["grid", "list"] as const).map(v => (
-                  <button key={v} onClick={() => setView(v)} className="w-7 h-7 flex items-center justify-center rounded-lg transition-colors" style={{ background: view === v ? "#111" : "transparent" }}>
-                    {v === "grid" ? <Grid3X3 className="w-3.5 h-3.5" style={{ color: view === v ? "#fff" : "#ccc" }} /> : <List className="w-3.5 h-3.5" style={{ color: view === v ? "#fff" : "#ccc" }} />}
-                  </button>
-                ))}
-              </div>
-            </div>
+            )}
 
             <div className="flex items-center gap-1 px-7 mb-4">
-              {(["cards", "folders"] as const).map(s => (
+              {(["cards", "folders", "insights"] as const).map(s => (
                 <button key={s} onClick={() => setCardsSubView(s)}
                   className="px-4 py-1.5 rounded-full text-xs font-semibold capitalize transition-colors"
                   style={{ background: cardsSubView === s ? "#111" : "transparent", color: cardsSubView === s ? "#fff" : "#bbb" }}>
-                  {s === "cards" ? "Cards" : "Folders"}
+                  {s === "cards" ? "Cards" : s === "folders" ? "Folders" : "Insights"}
                 </button>
               ))}
             </div>
+
+            {cardsSubView === "cards" && cards.length > 0 && (
+              <div className="flex items-center justify-between px-7 mb-3">
+                <div className="relative">
+                  <button onClick={() => setSortMenuOpen(o => !o)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gray-100 text-xs font-semibold text-gray-700">
+                    <ArrowUpDown className="w-3 h-3" />
+                    {SORT_OPTIONS.find(o => o.key === sortBy)?.label}
+                  </button>
+                  {sortMenuOpen && (
+                    <div className="absolute top-9 left-0 z-20 w-52 rounded-2xl bg-white py-1.5 shadow-lg border border-gray-100">
+                      {SORT_OPTIONS.map(o => (
+                        <button key={o.key} onClick={() => { setSortBy(o.key); setSortMenuOpen(false); }}
+                          className="w-full flex items-center justify-between px-4 py-2.5 text-xs font-medium text-gray-700 hover:bg-gray-50 text-left">
+                          {o.label}
+                          {sortBy === o.key && <Check className="w-3.5 h-3.5 text-gray-900" />}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <button onClick={() => setFilterAuto(v => !v)}
+                    className="px-3 py-1.5 rounded-full text-xs font-semibold transition-colors"
+                    style={{ background: filterAuto ? "#111" : "#f3f4f6", color: filterAuto ? "#fff" : "#6b7280" }}>
+                    Autos
+                  </button>
+                  <button onClick={() => setFilterGems(v => !v)}
+                    className="px-3 py-1.5 rounded-full text-xs font-semibold transition-colors"
+                    style={{ background: filterGems ? "#111" : "#f3f4f6", color: filterGems ? "#fff" : "#6b7280" }}>
+                    Gem/Mint+
+                  </button>
+                </div>
+              </div>
+            )}
 
             {cardsSubView === "cards" && (
               <div className="flex-1 px-7 pb-10 overflow-y-auto" style={{ scrollbarWidth: "none", paddingBottom: "110px" }}>
@@ -356,17 +424,33 @@ export default function App() {
                       <Scan className="w-4 h-4" /> Scan your first card
                     </button>
                   </div>
+                ) : visibleCards.length === 0 ? (
+                  <div className="flex flex-col items-center text-center pt-16">
+                    <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mb-4">
+                      <SlidersHorizontal className="w-7 h-7 text-gray-400" />
+                    </div>
+                    <p className="text-base font-semibold text-gray-900">No matches</p>
+                    <p className="text-sm text-gray-400 mt-1 max-w-[240px]">No cards match your current search or filters.</p>
+                    {filtersActive && (
+                      <button onClick={() => { setFilterAuto(false); setFilterGems(false); }}
+                        className="mt-4 px-4 py-2 rounded-full bg-gray-100 text-xs font-semibold text-gray-700">
+                        Clear filters
+                      </button>
+                    )}
+                  </div>
                 ) : view === "grid" ? (
                   <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                    {displayedCards.map((card, i) => <CardTile key={card.id} card={card} index={i} onClick={() => setSelected(card)} />)}
+                    {visibleCards.map((card, i) => <CardTile key={card.id} card={card} index={i} onClick={() => setSelected(card)} />)}
                   </div>
                 ) : (
                   <div className="flex flex-col divide-y divide-gray-50">
-                    {displayedCards.map(card => <CardListRow key={card.id} card={card} onClick={() => setSelected(card)} />)}
+                    {visibleCards.map(card => <CardListRow key={card.id} card={card} onClick={() => setSelected(card)} />)}
                   </div>
                 )}
               </div>
             )}
+
+            {cardsSubView === "insights" && <InsightsView cards={cards} />}
 
             {cardsSubView === "folders" && (
               <div className="flex-1 px-7 overflow-y-auto" style={{ scrollbarWidth: "none", paddingBottom: "110px" }}>
@@ -480,8 +564,8 @@ export default function App() {
       {selected && (
         <DetailSheet
           onClose={() => setSelected(null)}
-          cards={displayedCards}
-          initialIndex={displayedCards.findIndex(c => c.id === selected.id)}
+          cards={visibleCards}
+          initialIndex={visibleCards.findIndex(c => c.id === selected.id)}
           onEdit={card => { setSelected(null); setEditingCard(card); }}
           onDelete={handleDeleteCard}
         />
