@@ -73,12 +73,14 @@ export default function App() {
   const [seenAchievements, setSeenAchievements] = useLocalStorage<string[]>("cardchamps:achievements-seen", []);
   const [dismissedMovers, setDismissedMovers] = useLocalStorage<string[]>("cardchamps:watchlist-banner-dismissed", []);
   const [theme, setTheme] = useLocalStorage<"light" | "dark" | "system">("cardchamps:theme", "system");
+  const [isDark, setIsDark] = useState(false);
 
   useEffect(() => {
     const root = document.documentElement;
     const apply = () => {
-      const isDark = theme === "dark" || (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
-      root.classList.toggle("dark", isDark);
+      const dark = theme === "dark" || (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+      root.classList.toggle("dark", dark);
+      setIsDark(dark);
     };
     apply();
     if (theme !== "system") return;
@@ -333,7 +335,7 @@ export default function App() {
     return (
       <div className="min-h-screen w-full flex justify-center bg-white" style={{ fontFamily: "'Google Sans', sans-serif" }}>
         <div className="relative w-full max-w-[430px] md:max-w-2xl flex flex-col min-h-screen bg-white overflow-hidden">
-          <LoginScreen onSignIn={handleSignIn} onSignUp={handleSignUp} onGuest={handleGuest} />
+          <LoginScreen onSignIn={handleSignIn} onSignUp={handleSignUp} onGuest={handleGuest} isDark={isDark} />
         </div>
       </div>
     );

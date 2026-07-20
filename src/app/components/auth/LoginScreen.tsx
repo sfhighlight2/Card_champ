@@ -6,15 +6,16 @@ import { Label } from "../ui/label";
 import { Checkbox } from "../ui/checkbox";
 import { Separator } from "../ui/separator";
 import { AnimateIn } from "../shared/AnimateIn";
-import { cardChampsLogo } from "../../data/cardImages";
+import { cardChampsLogo, cardChampsLogoDark } from "../../data/cardImages";
 
 interface LoginScreenProps {
   onSignIn: (email: string) => void;
   onSignUp: (email: string) => void;
   onGuest: () => void;
+  isDark: boolean;
 }
 
-export function LoginScreen({ onSignIn, onSignUp, onGuest }: LoginScreenProps) {
+export function LoginScreen({ onSignIn, onSignUp, onGuest, isDark }: LoginScreenProps) {
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -41,7 +42,7 @@ export function LoginScreen({ onSignIn, onSignUp, onGuest }: LoginScreenProps) {
     <div className="flex-1 flex flex-col justify-center px-8 py-6">
       <AnimateIn>
         <div className="flex flex-col items-center mb-5">
-          <img src={cardChampsLogo} alt="Card Champs" className="w-36 h-auto mb-2" draggable={false} />
+          <img src={isDark ? cardChampsLogoDark : cardChampsLogo} alt="Card Champs" className="w-36 h-auto mb-2" draggable={false} />
           <h1 className="sr-only">Card Champs</h1>
           <p className="text-sm text-gray-400">
             {mode === "signin" ? "Welcome back, collector." : "Start building your collection."}
