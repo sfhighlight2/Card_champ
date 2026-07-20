@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router";
 import {
-  Grid3X3, List, Scan, X, Plus, Share2, Search, TrendingUp, Users, LayoutGrid, Tag, Settings as SettingsIcon,
+  Grid3X3, List, Scan, X, Plus, Share2, Search, TrendingUp, Users, LayoutGrid, Tag, Settings as SettingsIcon, ChevronDown, Folder,
 } from "lucide-react";
 import type { Card, FolderType, Listing, MainTab, MarketItem, Profile } from "./types";
 import { ALL_CARDS, DEFAULT_FOLDERS, GRADE_LABELS } from "./data/mockCards";
@@ -26,6 +26,13 @@ import { AnimateIn } from "./components/shared/AnimateIn";
 import { CountUp } from "./components/shared/CountUp";
 
 const DEFAULT_PROFILE: Profile = { name: "Andrew Cordle", handle: "@andrewcordle", avatar: profilePic, followers: 219 };
+
+function hexToRgba(hex: string, alpha: number): string {
+  let h = hex.replace("#", "");
+  if (h.length === 3) h = h.split("").map(c => c + c).join("");
+  const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
 
 export default function App() {
   const location = useLocation();
@@ -68,6 +75,9 @@ export default function App() {
   const mainTab: MainTab = location.pathname === "/shop" ? "shop" : location.pathname === "/peers" ? "peers" : "cards";
   const settingsOpen = location.pathname === "/settings";
   const totalValue = cards.reduce((s, c) => s + c.value, 0);
+  const followersLabel = profile.followers >= 1000
+    ? `${Math.round(profile.followers / 100) / 10}K`
+    : `${profile.followers}`;
   const displayedCards = cardQuery
     ? cards.filter(c => c.player.toLowerCase().includes(cardQuery.toLowerCase()) || c.year.includes(cardQuery) || c.team.toLowerCase().includes(cardQuery.toLowerCase()))
     : cards;
@@ -206,42 +216,44 @@ export default function App() {
           </button>
         )}
 
-        <div className="flex flex-col items-center px-7 pt-16 pb-5 md:flex-row md:items-center md:justify-center md:gap-6 md:pt-12">
-          <div className="relative mb-3 md:mb-0">
-            <img src={profile.avatar} alt={profile.name} className="w-24 h-24 rounded-full object-cover" />
-            <div className="absolute -bottom-1 -right-1 px-2 py-0.5 rounded-full border-2 border-white flex items-center justify-center"
-              style={{ background: "linear-gradient(135deg, #c9a84c 0%, #e8c96e 50%, #b8903c 100%)" }}>
-              <span className="text-[9px] font-black text-white tracking-widest">PRO</span>
+        <div className="flex flex-col items-center px-7 pt-16 pb-5">
+          <div className="relative mb-5">
+            <img src={profile.avatar} alt={profile.name} className="w-32 h-32 rounded-full object-cover" />
+            <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2">
+              <div className="flex items-center gap-1 px-2.5 py-1 rounded-full border-2 border-white bg-gray-950 shadow-sm">
+                <Users className="w-3 h-3 text-white/80" />
+                <span className="text-[11px] font-bold text-white leading-none">{followersLabel}</span>
+              </div>
+              <div className="px-2.5 py-1 rounded-full border-2 border-white shadow-sm"
+                style={{ background: "linear-gradient(135deg, #c9a84c 0%, #e8c96e 50%, #b8903c 100%)" }}>
+                <span className="text-[11px] font-black text-white tracking-widest leading-none">PRO</span>
+              </div>
             </div>
           </div>
-          <div className="flex flex-col items-center md:items-start">
-            <h1 className="text-xl font-semibold text-gray-900 leading-none">{profile.name}</h1>
-            <div className="flex items-center gap-2 mt-1.5">
-              <span className="text-sm text-gray-400">{profile.handle}</span>
-              <span className="text-gray-300 text-xs">·</span>
-              <span className="text-sm text-gray-500 font-medium">{profile.followers} <span className="text-gray-400 font-normal">followers</span></span>
-            </div>
-            <div className="flex items-center gap-2 mt-1.5">
-              <p className="text-base text-gray-400">
-                <CountUp to={cards.length} duration={1000} suffix=" cards" /> · Value $<CountUp to={totalValue} duration={1000} />
-              </p>
-            </div>
-          </div>
+          <h1 className="text-2xl font-semibold text-gray-900 leading-none">{profile.handle}</h1>
+          <p className="text-base text-gray-400 mt-2">
+            <CountUp to={cards.length} duration={1000} suffix=" cards" /> · $<CountUp to={totalValue} duration={1000} />
+          </p>
         </div>
 
-        <div className="flex items-center justify-center gap-1 px-7 mb-5">
+        <div className="flex items-center justify-center gap-4 px-7 mb-5">
           {([
             { id: "cards", label: "Cards", icon: LayoutGrid },
             { id: "shop", label: "Shop", icon: TrendingUp },
             { id: "peers", label: "Peers", icon: Users },
-          ] as { id: MainTab; label: string; icon: typeof LayoutGrid }[]).map(({ id, label, icon: Icon }) => (
-            <button key={id} onClick={() => goTab(id)}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-semibold transition-colors"
-              style={{ background: mainTab === id ? "#111" : "transparent", color: mainTab === id ? "#fff" : "#bbb" }}>
-              <Icon className="w-3 h-3" />
-              {label}
-            </button>
-          ))}
+          ] as { id: MainTab; label: string; icon: typeof LayoutGrid }[]).map(({ id, label, icon: Icon }) => {
+            const active = mainTab === id;
+            return (
+              <button key={id} onClick={() => goTab(id)}
+                className={`flex items-center gap-2 text-base font-semibold transition-colors ${
+                  active ? "pl-5 pr-4 py-3 rounded-full bg-gray-950 text-white" : "text-gray-400"
+                }`}>
+                <Icon className="w-4 h-4" />
+                {label}
+                {active && <ChevronDown className="w-4 h-4" />}
+              </button>
+            );
+          })}
         </div>
 
         {mainTab === "cards" && (
@@ -300,34 +312,37 @@ export default function App() {
                     <Plus className="w-4 h-4 text-gray-500" />
                   </button>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   {folders.map((folder, fi) => {
                     const folderValue = cards.filter(c => folder.cardIds.includes(c.id)).reduce((s, c) => s + c.value, 0);
                     const previewCards = cards.filter(c => folder.cardIds.includes(c.id)).slice(0, 3);
                     const offsets = [
-                      { rotate: "-10deg", translate: "-18px, 4px", z: 0 },
-                      { rotate: "-3deg",  translate: "-4px, 2px",  z: 1 },
-                      { rotate: "6deg",   translate: "12px, 0px",  z: 2 },
+                      { rotate: "-8deg", translate: "-26px, 6px", z: 0 },
+                      { rotate: "-2deg", translate: "-4px, 0px", z: 1 },
+                      { rotate: "7deg",  translate: "22px, 4px", z: 2 },
                     ];
                     return (
                       <AnimateIn key={folder.id} delay={fi * 80}>
-                        <button onClick={() => setOpenFolder(folder)} className="rounded-2xl overflow-hidden focus:outline-none w-full" style={{ background: folder.color }}>
-                          <div className="relative w-full flex items-center justify-center overflow-hidden" style={{ height: "90px", background: `linear-gradient(160deg, ${folder.color} 0%, ${folder.color}cc 40%, #ffffff 100%)` }}>
-                            {folder.thumbnail
-                              ? <img src={folder.thumbnail} alt="" className="w-full h-full" style={{ objectFit: "contain" }} draggable={false} />
-                              : previewCards.length > 0
-                                ? previewCards.map((card, i) => (
-                                    <img key={card.id} src={card.img} alt="" draggable={false} className="absolute"
-                                      style={{ width: 62, objectFit: "contain", background: "#f4f4f5", borderRadius: 3, boxShadow: "0 2px 8px rgba(0,0,0,0.3)", transform: `rotate(${offsets[i].rotate}) translate(${offsets[i].translate})`, zIndex: offsets[i].z }} />
-                                  ))
-                                : null
-                            }
-                          </div>
-                          <div className="px-3 py-2.5" style={{ background: "rgba(0,0,0,0.18)" }}>
-                            <p className="text-xs font-semibold text-white leading-tight truncate">{folder.name}</p>
-                            <div className="flex items-center justify-between mt-0.5">
-                              <p className="text-[10px] text-white/60">{folder.cardIds.length} cards · eBay</p>
-                              <p className="text-xs font-semibold text-white">${folderValue.toLocaleString()}</p>
+                        <button onClick={() => setOpenFolder(folder)} className="relative w-full text-left focus:outline-none pt-2.5">
+                          {/* Folder tab */}
+                          <div className="absolute top-0 left-4 w-16 h-5 rounded-t-xl" style={{ background: hexToRgba(folder.color, 0.18) }} />
+                          {/* Card body */}
+                          <div className="relative rounded-3xl p-3" style={{ background: hexToRgba(folder.color, 0.1) }}>
+                            <div className="relative rounded-2xl flex items-center justify-center overflow-hidden" style={{ height: 150, background: "rgba(255,255,255,0.6)" }}>
+                              {folder.thumbnail
+                                ? <img src={folder.thumbnail} alt="" className="w-full h-full" style={{ objectFit: "contain" }} draggable={false} />
+                                : previewCards.length > 0
+                                  ? previewCards.map((card, i) => (
+                                      <img key={card.id} src={card.img} alt="" draggable={false} className="absolute"
+                                        style={{ width: 92, objectFit: "contain", background: "#fff", borderRadius: 4, boxShadow: "0 4px 14px rgba(0,0,0,0.18)", transform: `rotate(${offsets[i].rotate}) translate(${offsets[i].translate})`, zIndex: offsets[i].z }} />
+                                    ))
+                                  : <Folder className="w-8 h-8" style={{ color: hexToRgba(folder.color, 0.5) }} />
+                              }
+                            </div>
+                            <p className="text-sm font-bold text-gray-900 leading-tight truncate mt-3">{folder.name}</p>
+                            <div className="flex items-center justify-between mt-1">
+                              <p className="text-xs text-gray-400">{folder.cardIds.length} cards</p>
+                              <p className="text-sm font-bold" style={{ color: folder.color }}>${folderValue.toLocaleString()}</p>
                             </div>
                           </div>
                         </button>

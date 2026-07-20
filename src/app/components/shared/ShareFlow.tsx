@@ -1,9 +1,11 @@
 import { useState } from "react";
-import { X, Check, Share2, Link, Mail, MessageCircle, ChevronRight, Folder } from "lucide-react";
-import type { Card, FolderType } from "../../types";
+import { X, Check, Share2, Link, Mail, MessageCircle, ChevronRight, ChevronLeft, Folder, Send } from "lucide-react";
+import type { Card, FolderType, Peer } from "../../types";
 import { GRADER_COLOR } from "../../data/mockCards";
+import { PEERS } from "../../data/mockPeers";
 
 const SHARE_PLATFORMS = [
+  { id: "dm",    label: "Direct message", sub: "Send to a collector you follow", icon: <Send className="w-4 h-4 text-violet-500" /> },
   { id: "link",  label: "Copy Link",   sub: "Anyone with the link can view", icon: <Link className="w-4 h-4 text-gray-600" /> },
   { id: "msg",   label: "Messages",    sub: "iMessage or SMS",               icon: <MessageCircle className="w-4 h-4 text-green-500" /> },
   { id: "mail",  label: "Email",       sub: "Share as an email",             icon: <Mail className="w-4 h-4 text-blue-500" /> },
@@ -23,6 +25,8 @@ export function ShareFlow({ onClose, allCards, folders }: ShareFlowProps) {
   const [selectedCard, setSelectedCard] = useState<Card | null>(null);
   const [copied, setCopied] = useState(false);
   const [done, setDone] = useState(false);
+  const [dmPicking, setDmPicking] = useState(false);
+  const [dmRecipient, setDmRecipient] = useState<Peer | null>(null);
 
   const shareTitle = type === "collection" ? "Andrew's Collection"
     : type === "folder" ? selectedFolder?.name ?? ""
@@ -62,11 +66,13 @@ export function ShareFlow({ onClose, allCards, folders }: ShareFlowProps) {
             </div>
           )}
 
-          <p className="text-white/70 text-xs font-medium tracking-widest uppercase mb-2">Shared</p>
+          <p className="text-white/70 text-xs font-medium tracking-widest uppercase mb-2">{dmRecipient ? "Sent" : "Shared"}</p>
           <h2 className="text-2xl font-bold text-white mb-2 leading-tight">
-            {type === "card" ? `Look at this card!` : type === "folder" ? `Check out ${selectedFolder?.name}!` : "Look at my collection!"}
+            {dmRecipient
+              ? `Sent to ${dmRecipient.name}!`
+              : type === "card" ? `Look at this card!` : type === "folder" ? `Check out ${selectedFolder?.name}!` : "Look at my collection!"}
           </h2>
-          <p className="text-white/70 text-sm mb-8">{shareSubtitle}</p>
+          <p className="text-white/70 text-sm mb-8">{dmRecipient ? shareTitle : shareSubtitle}</p>
 
           <button onClick={onClose} className="w-full py-3.5 rounded-2xl font-semibold text-sm mb-3"
             style={{ background: "rgba(255,255,255,0.25)", color: "#fff" }}>
@@ -160,7 +166,7 @@ export function ShareFlow({ onClose, allCards, folders }: ShareFlowProps) {
             </>
           )}
 
-          {step === 2 && (
+          {step === 2 && !dmPicking && (
             <>
               <h2 className="text-xl font-semibold text-gray-900 mb-1">Share via</h2>
               <div className="rounded-2xl bg-gray-50 px-4 py-3 mb-5">
@@ -168,7 +174,7 @@ export function ShareFlow({ onClose, allCards, folders }: ShareFlowProps) {
                 <p className="text-xs text-gray-400 mt-0.5">{shareSubtitle}</p>
               </div>
               {SHARE_PLATFORMS.map((p, i) => (
-                <button key={p.id} onClick={() => { if (p.id === "link") shareViaLink(); else setDone(true); }}
+                <button key={p.id} onClick={() => { if (p.id === "dm") setDmPicking(true); else if (p.id === "link") shareViaLink(); else setDone(true); }}
                   className="w-full flex items-center gap-4 py-3.5 text-left"
                   style={{ borderBottom: i < SHARE_PLATFORMS.length - 1 ? "1px solid #f4f4f5" : "none" }}>
                   <div className="w-9 h-9 rounded-2xl bg-gray-50 flex items-center justify-center flex-shrink-0">
@@ -184,7 +190,35 @@ export function ShareFlow({ onClose, allCards, folders }: ShareFlowProps) {
             </>
           )}
 
-          {step === 2 && <button onClick={() => setStep(1)} className="w-full mt-4 py-2.5 text-sm text-gray-400">← Back</button>}
+          {step === 2 && dmPicking && (
+            <>
+              <h2 className="text-xl font-semibold text-gray-900 mb-1">Send to</h2>
+              <p className="text-sm text-gray-400 mb-4">Pick a collector to direct message.</p>
+              {PEERS.map((peer, i) => (
+                <button key={peer.handle} onClick={() => { setDmRecipient(peer); setDone(true); }}
+                  className="w-full flex items-center gap-3 py-3 text-left"
+                  style={{ borderBottom: i < PEERS.length - 1 ? "1px solid #f4f4f5" : "none" }}>
+                  <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex-shrink-0">
+                    <img src={peer.avatar} alt={peer.name} className="w-full h-full" style={{ objectFit: "cover", objectPosition: "top center" }} draggable={false} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-900 truncate">{peer.name}</p>
+                    <p className="text-[11px] text-gray-400">{peer.handle}</p>
+                  </div>
+                  <Send className="w-4 h-4 text-violet-500 flex-shrink-0" />
+                </button>
+              ))}
+            </>
+          )}
+
+          {step === 2 && (
+            <button
+              onClick={() => (dmPicking ? setDmPicking(false) : setStep(1))}
+              className="w-full mt-4 py-2.5 text-sm text-gray-400 flex items-center justify-center gap-1"
+            >
+              <ChevronLeft className="w-3.5 h-3.5" />Back
+            </button>
+          )}
         </div>
       </div>
     </div>
