@@ -3,11 +3,14 @@ import { useLocation, useNavigate } from "react-router";
 import {
   Grid3X3, List, Scan, X, Plus, Share2, Search, TrendingUp, Users, LayoutGrid, Tag, Settings as SettingsIcon, ChevronDown, Folder,
 } from "lucide-react";
-import type { Card, FolderType, Listing, MainTab, MarketItem, Profile } from "./types";
+import confetti from "canvas-confetti";
+import type { AuthState, Card, FolderType, Listing, MainTab, MarketItem, Profile } from "./types";
 import { ALL_CARDS, DEFAULT_FOLDERS, GRADE_LABELS } from "./data/mockCards";
+import { MILESTONES } from "./data/achievements";
 import { profilePic } from "./data/cardImages";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import type { BackupData } from "./lib/backup";
+import { LoginScreen } from "./components/auth/LoginScreen";
 import { CardTile } from "./components/cards/CardTile";
 import { CardListRow } from "./components/cards/CardListRow";
 import { DetailSheet } from "./components/cards/DetailSheet";
@@ -44,6 +47,8 @@ export default function App() {
   const [watchlist, setWatchlist] = useLocalStorage<number[]>("cardchamps:watchlist", []);
   const [following, setFollowing] = useLocalStorage<string[]>("cardchamps:following", []);
   const [listings, setListings] = useLocalStorage<Listing[]>("cardchamps:listings", []);
+  const [auth, setAuth] = useLocalStorage<AuthState | null>("cardchamps:auth", null);
+  const [seenAchievements, setSeenAchievements] = useLocalStorage<string[]>("cardchamps:achievements-seen", []);
 
   const [view, setView] = useState<"grid" | "list">("grid");
   const [selected, setSelected] = useState<Card | null>(null);
@@ -87,6 +92,41 @@ export default function App() {
   const showToast = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(""), 2000);
+  };
+
+  useEffect(() => {
+    if (!auth?.loggedIn) return;
+    const ctx = { cardCount: cards.length, folderCount: folders.length, listingCount: listings.length, watchlistCount: watchlist.length };
+    const newlyEarned = MILESTONES.filter(m => m.check(ctx) && !seenAchievements.includes(m.id));
+    if (newlyEarned.length === 0) return;
+    setSeenAchievements(prev => [...prev, ...newlyEarned.map(m => m.id)]);
+    showToast(`🏆 ${newlyEarned[0].label}`);
+    confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auth?.loggedIn, cards.length, folders.length, listings.length, watchlist.length]);
+
+  const handleSignIn = (email: string) => {
+    setAuth({ email, loggedIn: true, isGuest: false });
+  };
+
+  const handleSignUp = (email: string) => {
+    const uname = email.split("@")[0] || "collector";
+    setCards([]);
+    setFolders([]);
+    setWatchlist([]);
+    setFollowing([]);
+    setListings([]);
+    setSeenAchievements([]);
+    setProfile({ name: uname, handle: `@${uname}`, avatar: profilePic, followers: 0 });
+    setAuth({ email, loggedIn: true, isGuest: false });
+  };
+
+  const handleGuest = () => {
+    setAuth({ email: "", loggedIn: true, isGuest: true });
+  };
+
+  const handleLogout = () => {
+    setAuth(null);
   };
 
   const handleAddCard = (newCard: Card) => {
@@ -181,9 +221,20 @@ export default function App() {
     setWatchlist([]);
     setFollowing([]);
     setListings([]);
+    setSeenAchievements([]);
     setOpenFolder(null);
     showToast("Data reset");
   };
+
+  if (!auth?.loggedIn) {
+    return (
+      <div className="min-h-screen w-full flex justify-center bg-white" style={{ fontFamily: "'Google Sans', sans-serif" }}>
+        <div className="relative w-full max-w-[430px] md:max-w-2xl flex flex-col min-h-screen bg-white overflow-hidden">
+          <LoginScreen onSignIn={handleSignIn} onSignUp={handleSignUp} onGuest={handleGuest} />
+        </div>
+      </div>
+    );
+  }
 
   if (settingsOpen) {
     return (
@@ -200,6 +251,8 @@ export default function App() {
             listings={listings}
             onRestore={handleRestore}
             onReset={handleReset}
+            seenAchievements={seenAchievements}
+            onLogout={handleLogout}
           />
         </div>
       </div>
@@ -291,7 +344,19 @@ export default function App() {
 
             {cardsSubView === "cards" && (
               <div className="flex-1 px-7 pb-10 overflow-y-auto" style={{ scrollbarWidth: "none", paddingBottom: "110px" }}>
-                {view === "grid" ? (
+                {cards.length === 0 ? (
+                  <div className="flex flex-col items-center text-center pt-16">
+                    <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mb-4">
+                      <Scan className="w-7 h-7 text-gray-400" />
+                    </div>
+                    <p className="text-base font-semibold text-gray-900">No cards yet</p>
+                    <p className="text-sm text-gray-400 mt-1 mb-5 max-w-[240px]">Scan a slab or add a card to start building your collection.</p>
+                    <button onClick={() => setShowScan(true)}
+                      className="flex items-center gap-2 px-5 py-3 rounded-full bg-gray-950 text-white text-sm font-semibold">
+                      <Scan className="w-4 h-4" /> Scan your first card
+                    </button>
+                  </div>
+                ) : view === "grid" ? (
                   <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
                     {displayedCards.map((card, i) => <CardTile key={card.id} card={card} index={i} onClick={() => setSelected(card)} />)}
                   </div>

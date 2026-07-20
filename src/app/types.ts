@@ -99,3 +99,9 @@ export interface Profile {
 }
 
 export type MainTab = "cards" | "shop" | "peers";
+
+export interface AuthState {
+  email: string;
+  loggedIn: boolean;
+  isGuest: boolean;
+}

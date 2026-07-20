@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { ChevronLeft, Download, Upload, RotateCcw } from "lucide-react";
+import { ChevronLeft, Download, Upload, RotateCcw, Trophy, LogOut } from "lucide-react";
 import type { Card, FolderType, Listing, Profile } from "../../types";
 import { buildBackup, downloadBackup, parseBackupFile } from "../../lib/backup";
 import type { BackupData } from "../../lib/backup";
 import { ConfirmDialog } from "../shared/ConfirmDialog";
+import { CountUp } from "../shared/CountUp";
+import { MILESTONES } from "../../data/achievements";
 
 interface SettingsViewProps {
   onBack: () => void;
@@ -16,10 +18,12 @@ interface SettingsViewProps {
   listings: Listing[];
   onRestore: (data: BackupData) => void;
   onReset: () => void;
+  seenAchievements: string[];
+  onLogout: () => void;
 }
 
 export function SettingsView({
-  onBack, profile, onProfileChange, cards, folders, watchlist, following, listings, onRestore, onReset,
+  onBack, profile, onProfileChange, cards, folders, watchlist, following, listings, onRestore, onReset, seenAchievements, onLogout,
 }: SettingsViewProps) {
   const [name, setName] = useState(profile.name);
   const [handle, setHandle] = useState(profile.handle);
@@ -102,7 +106,35 @@ export function SettingsView({
         />
         {importError && <p className="text-xs text-red-500 mb-2">{importError}</p>}
 
-        <p className="text-[10px] font-medium text-gray-400 tracking-widest uppercase mb-3 mt-8">Danger Zone</p>
+        <p className="text-[10px] font-medium text-gray-400 tracking-widest uppercase mb-3 mt-8">Achievements</p>
+        <p className="text-sm text-gray-500 mb-3">
+          <CountUp to={seenAchievements.length} duration={800} /> of {MILESTONES.length} earned
+        </p>
+        <div className="flex flex-wrap gap-2 mb-8">
+          {MILESTONES.map(m => {
+            const earned = seenAchievements.includes(m.id);
+            return (
+              <div key={m.id}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold"
+                style={{ background: earned ? "#111" : "#f4f4f5", color: earned ? "#fff" : "#bbb" }}>
+                <Trophy className="w-3.5 h-3.5" />
+                {m.label}
+              </div>
+            );
+          })}
+        </div>
+
+        <p className="text-[10px] font-medium text-gray-400 tracking-widest uppercase mb-3">Account</p>
+        <button onClick={onLogout}
+          className="w-full flex items-center gap-3 py-3.5 px-4 rounded-2xl bg-gray-50 mb-8 text-left">
+          <LogOut className="w-4 h-4 text-gray-500" />
+          <div>
+            <p className="text-sm font-semibold text-gray-900">Log out</p>
+            <p className="text-xs text-gray-400">Return to the sign-in screen</p>
+          </div>
+        </button>
+
+        <p className="text-[10px] font-medium text-gray-400 tracking-widest uppercase mb-3">Danger Zone</p>
         <button onClick={() => setConfirmingReset(true)}
           className="w-full flex items-center gap-3 py-3.5 px-4 rounded-2xl bg-red-50 text-left">
           <RotateCcw className="w-4 h-4 text-red-500" />
