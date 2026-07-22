@@ -70,6 +70,7 @@ export interface Peer {
   topCards: string[];
   snapshot: string[];
   specialty: string;
+  chasing: string;
 }
 
 export interface SuggestedPeer {
@@ -96,6 +97,10 @@ export interface Profile {
   handle: string;
   avatar: string;
   followers: number;
+  bio?: string;
+  tags?: string[];
+  collectingSince?: string;
+  chasing?: string;
 }
 
 export type MainTab = "collection" | "community" | "connections";
@@ -112,6 +117,20 @@ export interface CommunityComment {
   body: string;
   createdAt: number;
   likes: number;
+}
+
+export const ME = "__me__";
+
+export interface DirectMessage {
+  id: number;
+  senderHandle: string;
+  body: string;
+  createdAt: number;
+}
+
+export interface MessageThread {
+  peerHandle: string;
+  messages: DirectMessage[];
 }
 
 export interface CommunityPost {

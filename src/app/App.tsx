@@ -1,21 +1,25 @@
 import { useState, useEffect, lazy, Suspense } from "react";
 import { useLocation, useNavigate } from "react-router";
 import {
-  Grid3X3, List, Scan, X, Plus, Share2, Search, TrendingUp, TrendingDown, Users, UserPlus, LayoutGrid, Tag, ChevronDown, ChevronLeft, Folder, ArrowUpDown, Check, SlidersHorizontal, CheckSquare, Trash2, FolderPlus, Menu as MenuIcon, Crown, Triangle,
+  Grid3X3, List, Scan, X, Plus, Share2, Search, TrendingUp, TrendingDown, Users, UserPlus, LayoutGrid, Tag, ChevronDown, ChevronLeft, Folder, ArrowUpDown, Check, SlidersHorizontal, CheckSquare, Trash2, FolderPlus, Menu as MenuIcon, Crown, Triangle, MessageCircle,
 } from "lucide-react";
 import confetti from "canvas-confetti";
-import type { AuthState, Card, CommunityComment, CommunityPost, FolderType, Listing, MainTab, MarketItem, Profile } from "./types";
+import type { AuthState, Card, CommunityComment, CommunityPost, DirectMessage, FolderType, Listing, MainTab, MarketItem, MessageThread, Profile } from "./types";
+import { ME } from "./types";
 import { ALL_CARDS, DEFAULT_FOLDERS, GRADE_LABELS } from "./data/mockCards";
 import { MARKET_ITEMS } from "./data/mockMarket";
 import { MOCK_POSTS } from "./data/mockPosts";
+import { MOCK_THREADS } from "./data/mockThreads";
 import { MILESTONES } from "./data/achievements";
 import { profilePic } from "./data/cardImages";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import type { BackupData } from "./lib/backup";
 import { computeLevel, TIER_GRADIENTS, TIER_LABELS, momentumColor } from "./lib/level";
 import { computePortfolioChangePct } from "./lib/portfolio";
+import { formatCompact } from "./lib/format";
 import { LoginScreen } from "./components/auth/LoginScreen";
 import { AppMenu } from "./components/shared/AppMenu";
+import { LevelRingAvatar } from "./components/shared/LevelRingAvatar";
 import { BulkAddToFolderSheet } from "./components/cards/BulkAddToFolderSheet";
 import { CardTile } from "./components/cards/CardTile";
 import { CardListRow } from "./components/cards/CardListRow";
@@ -41,6 +45,10 @@ const SettingsView = lazy(() => import("./components/settings/SettingsView").the
 const CommunityView = lazy(() => import("./components/community/CommunityView").then(m => ({ default: m.CommunityView })));
 const NewPostSheet = lazy(() => import("./components/community/NewPostSheet").then(m => ({ default: m.NewPostSheet })));
 const ThreadView = lazy(() => import("./components/community/ThreadView").then(m => ({ default: m.ThreadView })));
+const MessagesView = lazy(() => import("./components/messages/MessagesView").then(m => ({ default: m.MessagesView })));
+const ChatView = lazy(() => import("./components/messages/ChatView").then(m => ({ default: m.ChatView })));
+const ProfileView = lazy(() => import("./components/profile/ProfileView").then(m => ({ default: m.ProfileView })));
+const EditProfileSheet = lazy(() => import("./components/profile/EditProfileSheet").then(m => ({ default: m.EditProfileSheet })));
 
 const LOADING_FALLBACK = (
   <div className="flex-1 flex items-center justify-center py-20">
@@ -48,7 +56,13 @@ const LOADING_FALLBACK = (
   </div>
 );
 
-const DEFAULT_PROFILE: Profile = { name: "Andrew Cordle", handle: "@andrewcordle", avatar: profilePic, followers: 219 };
+const DEFAULT_PROFILE: Profile = {
+  name: "Andrew Cordle", handle: "@andrewcordle", avatar: profilePic, followers: 219,
+  bio: "Collector since 2018. Focused on vintage baseball and modern graded rookies.",
+  tags: ["Baseball", "Graded", "Vintage", "Rookies", "Yankees"],
+  collectingSince: "2018",
+  chasing: "Mickey Mantle 1952 Topps PSA 10",
+};
 
 type SortKey = "recent" | "value-desc" | "value-asc" | "name" | "year";
 const SORT_OPTIONS: { key: SortKey; label: string }[] = [
@@ -77,6 +91,7 @@ export default function App() {
   const [following, setFollowing] = useLocalStorage<string[]>("cardchamps:following", []);
   const [listings, setListings] = useLocalStorage<Listing[]>("cardchamps:listings", []);
   const [posts, setPosts] = useLocalStorage<CommunityPost[]>("cardchamps:posts", MOCK_POSTS);
+  const [threads, setThreads] = useLocalStorage<MessageThread[]>("cardchamps:threads", MOCK_THREADS);
   const [auth, setAuth] = useLocalStorage<AuthState | null>("cardchamps:auth", null);
   const [seenAchievements, setSeenAchievements] = useLocalStorage<string[]>("cardchamps:achievements-seen", []);
   const [dismissedMovers, setDismissedMovers] = useLocalStorage<string[]>("cardchamps:watchlist-banner-dismissed", []);
@@ -106,6 +121,8 @@ export default function App() {
   const [showSell, setShowSell] = useState(false);
   const [showNewPost, setShowNewPost] = useState(false);
   const [viewingPostId, setViewingPostId] = useState<number | null>(null);
+  const [activeChatHandle, setActiveChatHandle] = useState<string | null>(null);
+  const [editingProfile, setEditingProfile] = useState(false);
   const [openFolder, setOpenFolder] = useState<FolderType | null>(null);
   const [cardQuery, setCardQuery] = useState("");
   const [cardsSubView, setCardsSubView] = useState<"cards" | "folders" | "insights">("cards");
@@ -140,6 +157,8 @@ export default function App() {
     setShowSell(false);
     setShowNewPost(false);
     setViewingPostId(null);
+    setActiveChatHandle(null);
+    setEditingProfile(false);
     setShowNewFolder(false);
     setSelectMode(false);
     setSelectedCardIds([]);
@@ -154,12 +173,15 @@ export default function App() {
   const mainTab: MainTab = location.pathname === "/community" ? "community" : location.pathname === "/connections" ? "connections" : "collection";
   const settingsOpen = location.pathname === "/settings";
   const marketplaceOpen = location.pathname === "/marketplace";
+  const profileOpen = location.pathname === "/profile";
+  const messagesOpen = location.pathname === "/messages";
+  const activeThread = activeChatHandle
+    ? threads.find(t => t.peerHandle === activeChatHandle) ?? { peerHandle: activeChatHandle, messages: [] }
+    : null;
   const totalValue = cards.reduce((s, c) => s + c.value, 0);
   const changePct = computePortfolioChangePct(cards);
   const levelInfo = computeLevel(seenAchievements.length);
-  const followersLabel = profile.followers >= 1000
-    ? `${Math.round(profile.followers / 100) / 10}K`
-    : `${profile.followers}`;
+  const followersLabel = formatCompact(profile.followers);
   const displayedCards = cardQuery
     ? cards.filter(c => c.player.toLowerCase().includes(cardQuery.toLowerCase()) || c.year.includes(cardQuery) || c.team.toLowerCase().includes(cardQuery.toLowerCase()))
     : cards;
@@ -375,6 +397,17 @@ export default function App() {
     setPosts(prev => prev.map(p => p.id === postId ? { ...p, comments: [...p.comments, comment] } : p));
   };
 
+  const handleSendMessage = (peerHandle: string, text: string) => {
+    const message: DirectMessage = { id: Date.now(), senderHandle: ME, body: text, createdAt: Date.now() };
+    setThreads(prev => {
+      const existing = prev.find(t => t.peerHandle === peerHandle);
+      if (existing) return prev.map(t => t.peerHandle === peerHandle ? { ...t, messages: [...t.messages, message] } : t);
+      return [...prev, { peerHandle, messages: [message] }];
+    });
+  };
+
+  const openChat = (peerHandle: string) => setActiveChatHandle(peerHandle);
+
   const handleUpdateListingStatus = (id: number, status: Listing["status"]) => {
     setListings(prev => prev.map(l => l.id === id ? { ...l, status } : l));
     showToast(status === "sold" ? "Marked as sold" : "Listing updated");
@@ -472,6 +505,42 @@ export default function App() {
     );
   }
 
+  if (profileOpen) {
+    return (
+      <div className="min-h-screen w-full flex justify-center bg-white" style={{ fontFamily: "'Google Sans', sans-serif" }}>
+        <div className="relative w-full max-w-[430px] md:max-w-2xl flex flex-col min-h-screen bg-white overflow-hidden">
+          <Suspense fallback={LOADING_FALLBACK}>
+            <ProfileView
+              profile={profile}
+              cards={cards}
+              levelInfo={levelInfo}
+              changePct={changePct}
+              onBack={() => navigate("/")}
+              onEdit={() => setEditingProfile(true)}
+            />
+          </Suspense>
+          {editingProfile && (
+            <Suspense fallback={LOADING_FALLBACK}>
+              <EditProfileSheet profile={profile} onClose={() => setEditingProfile(false)} onSave={updated => { setProfile(updated); setEditingProfile(false); showToast("Profile updated"); }} />
+            </Suspense>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (messagesOpen) {
+    return (
+      <div className="min-h-screen w-full flex justify-center bg-white" style={{ fontFamily: "'Google Sans', sans-serif" }}>
+        <div className="relative w-full max-w-[430px] md:max-w-2xl flex flex-col min-h-screen bg-white overflow-hidden">
+          <Suspense fallback={LOADING_FALLBACK}>
+            <MessagesView threads={threads} profile={profile} onBack={() => navigate("/")} onOpenChat={openChat} />
+          </Suspense>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen w-full flex justify-center bg-white" style={{ fontFamily: "'Google Sans', sans-serif" }}>
       <div className="relative w-full max-w-[430px] md:max-w-2xl lg:max-w-5xl flex flex-col min-h-screen bg-white overflow-hidden">
@@ -483,22 +552,8 @@ export default function App() {
         )}
 
         <div className="flex flex-col items-center px-7 pt-16 pb-5">
-          <div className="relative mb-3" style={{ width: 128, height: 128 }}>
-            <svg width={128} height={128} viewBox="0 0 128 128" className="absolute inset-0 -rotate-90">
-              <circle cx="64" cy="64" r="60" fill="none" stroke="#f0f0f0" strokeWidth="4" />
-              <circle
-                cx="64" cy="64" r="60" fill="none" stroke="url(#levelRingGradient)" strokeWidth="4" strokeLinecap="round"
-                strokeDasharray={2 * Math.PI * 60}
-                strokeDashoffset={2 * Math.PI * 60 * (1 - levelInfo.xpFraction)}
-                style={{ transition: "stroke-dashoffset 0.6s ease-out" }}
-              />
-              <defs>
-                <linearGradient id="levelRingGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#c9a84c" /><stop offset="100%" stopColor="#e8c96e" />
-                </linearGradient>
-              </defs>
-            </svg>
-            <img src={profile.avatar} alt={profile.name} className="absolute rounded-full object-cover" style={{ top: 8, left: 8, width: 112, height: 112 }} />
+          <div className="mb-3">
+            <LevelRingAvatar avatar={profile.avatar} name={profile.name} xpFraction={levelInfo.xpFraction} />
           </div>
           <div className="flex items-center gap-1.5 mb-3">
             {levelInfo.isPro && (
@@ -780,6 +835,7 @@ export default function App() {
               folders={folders}
               following={following}
               onToggleFollow={handleToggleFollow}
+              onOpenChat={openChat}
               showToast={showToast}
             />
           </Suspense>
@@ -809,6 +865,11 @@ export default function App() {
                   { label: "Post",  icon: <Plus className="w-4 h-4" />,  active: showNewPost, onClick: () => setShowNewPost(true) },
                   { label: "Share", icon: <Share2 className="w-4 h-4" />, active: showShare,  onClick: () => setShowShare(true)   },
                 ]
+              : mainTab === "connections"
+              ? [
+                  { label: "Share",    icon: <Share2 className="w-4 h-4" />,        active: showShare, onClick: () => setShowShare(true)      },
+                  { label: "Messages", icon: <MessageCircle className="w-4 h-4" />, active: false,      onClick: () => navigate("/messages")   },
+                ]
               : [
                   { label: "Scan",  icon: <Scan className="w-4 h-4" />,   active: showScan,  onClick: () => setShowScan(true)  },
                   { label: "Share", icon: <Share2 className="w-4 h-4" />, active: showShare, onClick: () => setShowShare(true) },
@@ -835,9 +896,11 @@ export default function App() {
         <AppMenu
           onClose={() => setMenuOpen(false)}
           levelInfo={levelInfo}
+          onProfile={() => { setMenuOpen(false); navigate("/profile"); }}
           onSettings={() => { setMenuOpen(false); navigate("/settings"); }}
           onInvestmentOverview={() => { setMenuOpen(false); setCardsSubView("insights"); navigate("/"); }}
           onWatchlist={() => { setMenuOpen(false); setShopInitialTab("watchlist"); navigate("/marketplace"); }}
+          onMessages={() => { setMenuOpen(false); navigate("/messages"); }}
           onSignOut={() => { setMenuOpen(false); handleLogout(); }}
         />
       )}
@@ -880,6 +943,16 @@ export default function App() {
             onToggleLike={() => handleTogglePostLike(viewingPost.id)}
             onToggleDislike={() => handleTogglePostDislike(viewingPost.id)}
             onAddComment={text => handleAddComment(viewingPost.id, text)}
+          />
+        </Suspense>
+      )}
+      {activeThread && (
+        <Suspense fallback={LOADING_FALLBACK}>
+          <ChatView
+            thread={activeThread}
+            profile={profile}
+            onBack={() => setActiveChatHandle(null)}
+            onSend={text => handleSendMessage(activeThread.peerHandle, text)}
           />
         </Suspense>
       )}

@@ -15,21 +15,23 @@ interface MenuItem {
 interface AppMenuProps {
   onClose: () => void;
   levelInfo: LevelInfo;
+  onProfile: () => void;
   onSettings: () => void;
   onInvestmentOverview: () => void;
   onWatchlist: () => void;
+  onMessages: () => void;
   onSignOut: () => void;
 }
 
 export function AppMenu({
-  onClose, levelInfo, onSettings, onInvestmentOverview, onWatchlist, onSignOut,
+  onClose, levelInfo, onProfile, onSettings, onInvestmentOverview, onWatchlist, onMessages, onSignOut,
 }: AppMenuProps) {
   useEscapeClose(onClose);
   const [comingSoon, setComingSoon] = useState<string | null>(null);
   const stub = (label: string) => () => setComingSoon(label);
 
   const account: MenuItem[] = [
-    { icon: Eye, label: "Profile", onClick: stub("Profile") },
+    { icon: Eye, label: "Profile", onClick: onProfile },
     { icon: Wallet, label: "Wallet", onClick: stub("Wallet") },
     { icon: Settings, label: "Settings", onClick: onSettings },
   ];
@@ -38,7 +40,7 @@ export function AppMenu({
     { icon: Star, label: "Watchlist", onClick: onWatchlist },
   ];
   const social: MenuItem[] = [
-    { icon: Send, label: "Messages", onClick: stub("Messages") },
+    { icon: Send, label: "Messages", onClick: onMessages },
     { icon: Bell, label: "Notifications", onClick: stub("Notifications") },
   ];
   const discover: MenuItem[] = [

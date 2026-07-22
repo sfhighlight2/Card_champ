@@ -9,21 +9,25 @@ export const PEERS: Peer[] = [
     name: "Logan Paul", handle: "@loganpaul", cards: 142, value: 284000, avatar: loganPaul, badge: "Top Collector", verified: true,
     topCards: [card8, card7, card2], snapshot: [card8, card7, card2, card9, card1, card3],
     specialty: "Yankees · Modern",
+    chasing: "Mickey Mantle Topps PSA 10 — the white whale",
   },
   {
     name: "Barbara Corcoran", handle: "@barbaracorcoran", cards: 67, value: 93000, avatar: barbaraCorcoran, badge: "Top Collector", verified: false,
     topCards: [card2, card8, card11], snapshot: [card2, card8, card11, card4, card6, card5],
     specialty: "HOF · Vintage",
+    chasing: "Full 1952 Topps set in PSA 7 or better",
   },
   {
     name: "Gary Vee", handle: "@garyvee", cards: 318, value: 520000, avatar: garyVee, badge: "Top Collector", verified: true,
     topCards: [card8, card2, card7], snapshot: [card8, card2, card7, card9, card3, card12],
     specialty: "Graded · Investment",
+    chasing: "Jordan rookie BGS 9.5+ and any pre-war HOF graded 8+",
   },
   {
     name: "Kevin O'Leary", handle: "@kevinoleary", cards: 89, value: 176000, avatar: kevinOLeary, badge: "Trending", verified: false,
     topCards: [card7, card8, card2], snapshot: [card7, card8, card2, card11, card4, card10],
     specialty: "ROI · Rare Finds",
+    chasing: "PSA 10 Bo Jackson Topps Traded",
   },
 ];
 
