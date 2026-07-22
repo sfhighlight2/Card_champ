@@ -105,3 +105,26 @@ export interface AuthState {
   loggedIn: boolean;
   isGuest: boolean;
 }
+
+export interface CommunityComment {
+  id: number;
+  authorHandle: string;
+  body: string;
+  createdAt: number;
+  likes: number;
+}
+
+export interface CommunityPost {
+  id: number;
+  authorHandle: string;
+  topic: string;
+  hot: boolean;
+  body: string;
+  cardImage?: string;
+  createdAt: number;
+  likes: number;
+  dislikes: number;
+  likedByMe?: boolean;
+  dislikedByMe?: boolean;
+  comments: CommunityComment[];
+}

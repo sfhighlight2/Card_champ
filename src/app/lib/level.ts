@@ -42,3 +42,10 @@ export const TIER_LABELS: Record<Tier, string> = {
 export function momentumColor(changePct: number): string {
   return changePct >= 0 ? "#10b981" : "#ef4444";
 }
+
+// Small tier badge shown next to an author's name in Community — only
+// gold/platinum tiers earn a visible badge, matching how PRO already only
+// shows once the profile header's own tier reaches that level.
+export function tierBadgeLabel(tier: Tier): "PRO" | "HOF" | null {
+  return tier === "platinum" ? "HOF" : tier === "gold" ? "PRO" : null;
+}

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { computeLevel, MAX_LEVEL } from "./level";
+import { computeLevel, MAX_LEVEL, tierBadgeLabel } from "./level";
 
 describe("computeLevel", () => {
   it("matches the design reference: 3 achievements -> level 3/10", () => {
@@ -34,5 +34,16 @@ describe("computeLevel", () => {
     [9, "platinum"], [10, "platinum"],
   ] as const)("tier for level %i is %s", (n, tier) => {
     expect(computeLevel(n).tier).toBe(tier);
+  });
+});
+
+describe("tierBadgeLabel", () => {
+  it("shows no badge for bronze or silver", () => {
+    expect(tierBadgeLabel("bronze")).toBeNull();
+    expect(tierBadgeLabel("silver")).toBeNull();
+  });
+  it("shows PRO for gold, HOF for platinum", () => {
+    expect(tierBadgeLabel("gold")).toBe("PRO");
+    expect(tierBadgeLabel("platinum")).toBe("HOF");
   });
 });

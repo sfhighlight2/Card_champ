@@ -4,9 +4,10 @@ import {
   Grid3X3, List, Scan, X, Plus, Share2, Search, TrendingUp, TrendingDown, Users, UserPlus, LayoutGrid, Tag, ChevronDown, ChevronLeft, Folder, ArrowUpDown, Check, SlidersHorizontal, CheckSquare, Trash2, FolderPlus, Menu as MenuIcon, Crown, Triangle,
 } from "lucide-react";
 import confetti from "canvas-confetti";
-import type { AuthState, Card, FolderType, Listing, MainTab, MarketItem, Profile } from "./types";
+import type { AuthState, Card, CommunityComment, CommunityPost, FolderType, Listing, MainTab, MarketItem, Profile } from "./types";
 import { ALL_CARDS, DEFAULT_FOLDERS, GRADE_LABELS } from "./data/mockCards";
 import { MARKET_ITEMS } from "./data/mockMarket";
+import { MOCK_POSTS } from "./data/mockPosts";
 import { MILESTONES } from "./data/achievements";
 import { profilePic } from "./data/cardImages";
 import { useLocalStorage } from "./hooks/useLocalStorage";
@@ -37,6 +38,9 @@ const ScanCardSheet = lazy(() => import("./components/cards/ScanCardSheet").then
 const MarketView = lazy(() => import("./components/market/MarketView").then(m => ({ default: m.MarketView })));
 const PeersView = lazy(() => import("./components/peers/PeersView").then(m => ({ default: m.PeersView })));
 const SettingsView = lazy(() => import("./components/settings/SettingsView").then(m => ({ default: m.SettingsView })));
+const CommunityView = lazy(() => import("./components/community/CommunityView").then(m => ({ default: m.CommunityView })));
+const NewPostSheet = lazy(() => import("./components/community/NewPostSheet").then(m => ({ default: m.NewPostSheet })));
+const ThreadView = lazy(() => import("./components/community/ThreadView").then(m => ({ default: m.ThreadView })));
 
 const LOADING_FALLBACK = (
   <div className="flex-1 flex items-center justify-center py-20">
@@ -72,6 +76,7 @@ export default function App() {
   const [watchlist, setWatchlist] = useLocalStorage<number[]>("cardchamps:watchlist", []);
   const [following, setFollowing] = useLocalStorage<string[]>("cardchamps:following", []);
   const [listings, setListings] = useLocalStorage<Listing[]>("cardchamps:listings", []);
+  const [posts, setPosts] = useLocalStorage<CommunityPost[]>("cardchamps:posts", MOCK_POSTS);
   const [auth, setAuth] = useLocalStorage<AuthState | null>("cardchamps:auth", null);
   const [seenAchievements, setSeenAchievements] = useLocalStorage<string[]>("cardchamps:achievements-seen", []);
   const [dismissedMovers, setDismissedMovers] = useLocalStorage<string[]>("cardchamps:watchlist-banner-dismissed", []);
@@ -99,6 +104,8 @@ export default function App() {
   const [showScan, setShowScan] = useState(false);
   const [showShare, setShowShare] = useState(false);
   const [showSell, setShowSell] = useState(false);
+  const [showNewPost, setShowNewPost] = useState(false);
+  const [viewingPostId, setViewingPostId] = useState<number | null>(null);
   const [openFolder, setOpenFolder] = useState<FolderType | null>(null);
   const [cardQuery, setCardQuery] = useState("");
   const [cardsSubView, setCardsSubView] = useState<"cards" | "folders" | "insights">("cards");
@@ -131,6 +138,8 @@ export default function App() {
     setShowScan(false);
     setShowShare(false);
     setShowSell(false);
+    setShowNewPost(false);
+    setViewingPostId(null);
     setShowNewFolder(false);
     setSelectMode(false);
     setSelectedCardIds([]);
@@ -184,16 +193,19 @@ export default function App() {
     setTimeout(() => setToast(""), 2000);
   };
 
+  const myPostCount = posts.filter(p => p.authorHandle === profile.handle).length;
+  const viewingPost = viewingPostId !== null ? posts.find(p => p.id === viewingPostId) ?? null : null;
+
   useEffect(() => {
     if (!auth?.loggedIn) return;
-    const ctx = { cardCount: cards.length, folderCount: folders.length, listingCount: listings.length, watchlistCount: watchlist.length };
+    const ctx = { cardCount: cards.length, folderCount: folders.length, listingCount: listings.length, watchlistCount: watchlist.length, postCount: myPostCount };
     const newlyEarned = MILESTONES.filter(m => m.check(ctx) && !seenAchievements.includes(m.id));
     if (newlyEarned.length === 0) return;
     setSeenAchievements(prev => [...prev, ...newlyEarned.map(m => m.id)]);
     showToast(`🏆 ${newlyEarned[0].label}`);
     confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [auth?.loggedIn, cards.length, folders.length, listings.length, watchlist.length]);
+  }, [auth?.loggedIn, cards.length, folders.length, listings.length, watchlist.length, myPostCount]);
 
   const handleSignIn = (email: string) => {
     setAuth({ email, loggedIn: true, isGuest: false });
@@ -307,6 +319,62 @@ export default function App() {
     showToast("Listed for sale");
   };
 
+  const handleCreatePost = (topic: string, body: string) => {
+    const newPost: CommunityPost = {
+      id: Date.now(),
+      authorHandle: profile.handle,
+      topic,
+      hot: false,
+      body,
+      createdAt: Date.now(),
+      likes: 0,
+      dislikes: 0,
+      comments: [],
+    };
+    setPosts(prev => [newPost, ...prev]);
+    setShowNewPost(false);
+    showToast("Posted to Community");
+  };
+
+  const handleTogglePostLike = (id: number) => {
+    setPosts(prev => prev.map(p => {
+      if (p.id !== id) return p;
+      const likedByMe = !p.likedByMe;
+      return {
+        ...p,
+        likedByMe,
+        likes: p.likes + (likedByMe ? 1 : -1),
+        dislikedByMe: likedByMe ? false : p.dislikedByMe,
+        dislikes: likedByMe && p.dislikedByMe ? p.dislikes - 1 : p.dislikes,
+      };
+    }));
+  };
+
+  const handleTogglePostDislike = (id: number) => {
+    setPosts(prev => prev.map(p => {
+      if (p.id !== id) return p;
+      const dislikedByMe = !p.dislikedByMe;
+      return {
+        ...p,
+        dislikedByMe,
+        dislikes: p.dislikes + (dislikedByMe ? 1 : -1),
+        likedByMe: dislikedByMe ? false : p.likedByMe,
+        likes: dislikedByMe && p.likedByMe ? p.likes - 1 : p.likes,
+      };
+    }));
+  };
+
+  const handleAddComment = (postId: number, text: string) => {
+    const comment: CommunityComment = {
+      id: Date.now(),
+      authorHandle: profile.handle,
+      body: text,
+      createdAt: Date.now(),
+      likes: 0,
+    };
+    setPosts(prev => prev.map(p => p.id === postId ? { ...p, comments: [...p.comments, comment] } : p));
+  };
+
   const handleUpdateListingStatus = (id: number, status: Listing["status"]) => {
     setListings(prev => prev.map(l => l.id === id ? { ...l, status } : l));
     showToast(status === "sold" ? "Marked as sold" : "Listing updated");
@@ -334,6 +402,7 @@ export default function App() {
     setWatchlist([]);
     setFollowing([]);
     setListings([]);
+    setPosts(MOCK_POSTS);
     setSeenAchievements([]);
     setOpenFolder(null);
     showToast("Data reset");
@@ -694,13 +763,15 @@ export default function App() {
         )}
 
         {mainTab === "community" && (
-          <div className="flex-1 flex flex-col items-center justify-center text-center px-10 pb-20">
-            <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mb-4">
-              <Users className="w-7 h-7 text-gray-400" />
-            </div>
-            <p className="text-base font-semibold text-gray-900">Community is on its way</p>
-            <p className="text-sm text-gray-400 mt-1 max-w-[260px]">Posts, threads, and comments with other collectors are coming next.</p>
-          </div>
+          <Suspense fallback={LOADING_FALLBACK}>
+            <CommunityView
+              posts={posts}
+              profile={profile}
+              myTier={levelInfo.tier}
+              onOpenPost={post => setViewingPostId(post.id)}
+              showToast={showToast}
+            />
+          </Suspense>
         )}
         {mainTab === "connections" && (
           <Suspense fallback={LOADING_FALLBACK}>
@@ -732,11 +803,18 @@ export default function App() {
           </div>
         ) : (
           <div className="fixed bottom-8 left-1/2 -translate-x-1/2 flex gap-2 px-4 py-2.5 rounded-full bg-white z-40" style={{ boxShadow: "0 8px 32px rgba(0,0,0,0.12)" }}>
-            {[
-              { label: "Scan",  icon: <Scan className="w-4 h-4" />,   active: showScan,  onClick: () => setShowScan(true)  },
-              { label: "Share", icon: <Share2 className="w-4 h-4" />, active: showShare, onClick: () => setShowShare(true) },
-              { label: "Sell",  icon: <Tag className="w-4 h-4" />,    active: showSell,  onClick: () => setShowSell(true)  },
-            ].map(btn => (
+            {(mainTab === "community"
+              ? [
+                  { label: "Scan",  icon: <Scan className="w-4 h-4" />,  active: showScan,    onClick: () => setShowScan(true)    },
+                  { label: "Post",  icon: <Plus className="w-4 h-4" />,  active: showNewPost, onClick: () => setShowNewPost(true) },
+                  { label: "Share", icon: <Share2 className="w-4 h-4" />, active: showShare,  onClick: () => setShowShare(true)   },
+                ]
+              : [
+                  { label: "Scan",  icon: <Scan className="w-4 h-4" />,   active: showScan,  onClick: () => setShowScan(true)  },
+                  { label: "Share", icon: <Share2 className="w-4 h-4" />, active: showShare, onClick: () => setShowShare(true) },
+                  { label: "Sell",  icon: <Tag className="w-4 h-4" />,    active: showSell,  onClick: () => setShowSell(true)  },
+                ]
+            ).map(btn => (
               <button key={btn.label} onClick={btn.onClick}
                 className="flex items-center gap-1.5 px-4 py-2.5 rounded-full text-sm font-semibold active:opacity-70 transition-all"
                 style={{ background: btn.active ? "#111" : "transparent", color: btn.active ? "#fff" : "#374151", border: btn.active ? "none" : "1px solid #e5e7eb" }}>
@@ -787,6 +865,24 @@ export default function App() {
       )}
       {showShare && <ShareFlow onClose={() => setShowShare(false)} allCards={cards} folders={folders} />}
       {showSell && <SellFlow onClose={() => setShowSell(false)} allCards={cards} onCreate={handleCreateListing} />}
+      {showNewPost && (
+        <Suspense fallback={LOADING_FALLBACK}>
+          <NewPostSheet onClose={() => setShowNewPost(false)} onCreate={handleCreatePost} />
+        </Suspense>
+      )}
+      {viewingPost && (
+        <Suspense fallback={LOADING_FALLBACK}>
+          <ThreadView
+            post={viewingPost}
+            profile={profile}
+            myTier={levelInfo.tier}
+            onClose={() => setViewingPostId(null)}
+            onToggleLike={() => handleTogglePostLike(viewingPost.id)}
+            onToggleDislike={() => handleTogglePostDislike(viewingPost.id)}
+            onAddComment={text => handleAddComment(viewingPost.id, text)}
+          />
+        </Suspense>
+      )}
       {editingCard && (
         <EditCardSheet
           card={editingCard}
