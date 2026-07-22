@@ -98,7 +98,7 @@ export interface Profile {
   followers: number;
 }
 
-export type MainTab = "cards" | "shop" | "peers";
+export type MainTab = "collection" | "community" | "connections";
 
 export interface AuthState {
   email: string;

@@ -3,6 +3,7 @@ import { TrendingUp, TrendingDown, Award, PenLine, Layers } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import type { Card } from "../../types";
 import { GRADER_COLOR } from "../../data/mockCards";
+import { computePortfolioChangePct } from "../../lib/portfolio";
 import { CountUp } from "../shared/CountUp";
 import { AnimateIn } from "../shared/AnimateIn";
 
@@ -32,7 +33,7 @@ export function InsightsView({ cards }: InsightsViewProps) {
   const { totalValue, startValue, changePct, trend, byGrader, movers, autos, gems, avgValue } = useMemo(() => {
     const totalValue = cards.reduce((s, c) => s + c.value, 0);
     const startValue = cards.reduce((s, c) => s + c.value / (1 + c.change / 100), 0);
-    const changePct = startValue > 0 ? ((totalValue - startValue) / startValue) * 100 : 0;
+    const changePct = computePortfolioChangePct(cards);
 
     const graderMap = new Map<string, number>();
     for (const c of cards) graderMap.set(c.grader, (graderMap.get(c.grader) ?? 0) + c.value);

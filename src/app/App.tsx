@@ -1,7 +1,7 @@
 import { useState, useEffect, lazy, Suspense } from "react";
 import { useLocation, useNavigate } from "react-router";
 import {
-  Grid3X3, List, Scan, X, Plus, Share2, Search, TrendingUp, TrendingDown, Users, LayoutGrid, Tag, Settings as SettingsIcon, ChevronDown, Folder, ArrowUpDown, Check, SlidersHorizontal, CheckSquare, Trash2, FolderPlus,
+  Grid3X3, List, Scan, X, Plus, Share2, Search, TrendingUp, TrendingDown, Users, UserPlus, LayoutGrid, Tag, ChevronDown, ChevronLeft, Folder, ArrowUpDown, Check, SlidersHorizontal, CheckSquare, Trash2, FolderPlus, Menu as MenuIcon, Crown, Triangle,
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import type { AuthState, Card, FolderType, Listing, MainTab, MarketItem, Profile } from "./types";
@@ -11,7 +11,10 @@ import { MILESTONES } from "./data/achievements";
 import { profilePic } from "./data/cardImages";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import type { BackupData } from "./lib/backup";
+import { computeLevel, TIER_GRADIENTS, TIER_LABELS, momentumColor } from "./lib/level";
+import { computePortfolioChangePct } from "./lib/portfolio";
 import { LoginScreen } from "./components/auth/LoginScreen";
+import { AppMenu } from "./components/shared/AppMenu";
 import { BulkAddToFolderSheet } from "./components/cards/BulkAddToFolderSheet";
 import { CardTile } from "./components/cards/CardTile";
 import { CardListRow } from "./components/cards/CardListRow";
@@ -111,6 +114,7 @@ export default function App() {
   const [editingCard, setEditingCard] = useState<Card | null>(null);
   const [editingFolder, setEditingFolder] = useState<FolderType | null>(null);
   const [confirmingDeleteFolder, setConfirmingDeleteFolder] = useState<FolderType | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     setSelectMode(false);
@@ -133,13 +137,17 @@ export default function App() {
     setBulkPickingFolder(false);
     setConfirmingBulkDelete(false);
     setSortMenuOpen(false);
-    if (location.pathname !== "/shop") setShopInitialTab(undefined);
+    setMenuOpen(false);
+    if (location.pathname !== "/marketplace") setShopInitialTab(undefined);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname]);
 
-  const mainTab: MainTab = location.pathname === "/shop" ? "shop" : location.pathname === "/peers" ? "peers" : "cards";
+  const mainTab: MainTab = location.pathname === "/community" ? "community" : location.pathname === "/connections" ? "connections" : "collection";
   const settingsOpen = location.pathname === "/settings";
+  const marketplaceOpen = location.pathname === "/marketplace";
   const totalValue = cards.reduce((s, c) => s + c.value, 0);
+  const changePct = computePortfolioChangePct(cards);
+  const levelInfo = computeLevel(seenAchievements.length);
   const followersLabel = profile.followers >= 1000
     ? `${Math.round(profile.followers / 100) / 10}K`
     : `${profile.followers}`;
@@ -169,7 +177,7 @@ export default function App() {
     return sorted;
   })();
 
-  const goTab = (tab: MainTab) => navigate(tab === "cards" ? "/" : `/${tab}`);
+  const goTab = (tab: MainTab) => navigate(tab === "collection" ? "/" : `/${tab}`);
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -368,41 +376,89 @@ export default function App() {
     );
   }
 
+  if (marketplaceOpen) {
+    return (
+      <div className="min-h-screen w-full flex justify-center bg-white" style={{ fontFamily: "'Google Sans', sans-serif" }}>
+        <div className="relative w-full max-w-[430px] md:max-w-2xl flex flex-col min-h-screen bg-white overflow-hidden">
+          <div className="flex items-center gap-3 px-6 pt-6 pb-2 flex-shrink-0">
+            <button onClick={() => navigate("/")} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100" aria-label="Back">
+              <ChevronLeft className="w-4 h-4 text-gray-600" />
+            </button>
+            <h2 className="text-base font-semibold text-gray-900">Marketplace</h2>
+          </div>
+          <Suspense fallback={LOADING_FALLBACK}>
+            <MarketView
+              allCards={cards}
+              listings={listings}
+              watchlist={watchlist}
+              onToggleWatchlist={handleToggleWatchlist}
+              onBuy={handleBuy}
+              onUpdateListingStatus={handleUpdateListingStatus}
+              onRemoveListing={handleRemoveListing}
+              initialTab={shopInitialTab}
+            />
+          </Suspense>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen w-full flex justify-center bg-white" style={{ fontFamily: "'Google Sans', sans-serif" }}>
       <div className="relative w-full max-w-[430px] md:max-w-2xl lg:max-w-5xl flex flex-col min-h-screen bg-white overflow-hidden">
 
         {!openFolder && (
-          <button onClick={() => navigate("/settings")} className="absolute top-6 right-6 w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 z-10" aria-label="Settings">
-            <SettingsIcon className="w-4 h-4 text-gray-500" />
+          <button onClick={() => setMenuOpen(true)} className="absolute top-6 right-6 w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 z-10" aria-label="Menu">
+            <MenuIcon className="w-4 h-4 text-gray-500" />
           </button>
         )}
 
         <div className="flex flex-col items-center px-7 pt-16 pb-5">
-          <div className="relative mb-5">
-            <img src={profile.avatar} alt={profile.name} className="w-32 h-32 rounded-full object-cover" />
-            <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2">
-              <div className="flex items-center gap-1 px-2.5 py-1 rounded-full border-2 border-white bg-gray-950 shadow-sm">
-                <Users className="w-3 h-3 text-white/80" />
-                <span className="text-[11px] font-bold text-white leading-none">{followersLabel}</span>
-              </div>
-              <div className="px-2.5 py-1 rounded-full border-2 border-white shadow-sm"
-                style={{ background: "linear-gradient(135deg, #c9a84c 0%, #e8c96e 50%, #b8903c 100%)" }}>
-                <span className="text-[11px] font-black text-white tracking-widest leading-none">PRO</span>
-              </div>
+          <div className="relative mb-3" style={{ width: 128, height: 128 }}>
+            <svg width={128} height={128} viewBox="0 0 128 128" className="absolute inset-0 -rotate-90">
+              <circle cx="64" cy="64" r="60" fill="none" stroke="#f0f0f0" strokeWidth="4" />
+              <circle
+                cx="64" cy="64" r="60" fill="none" stroke="url(#levelRingGradient)" strokeWidth="4" strokeLinecap="round"
+                strokeDasharray={2 * Math.PI * 60}
+                strokeDashoffset={2 * Math.PI * 60 * (1 - levelInfo.xpFraction)}
+                style={{ transition: "stroke-dashoffset 0.6s ease-out" }}
+              />
+              <defs>
+                <linearGradient id="levelRingGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#c9a84c" /><stop offset="100%" stopColor="#e8c96e" />
+                </linearGradient>
+              </defs>
+            </svg>
+            <img src={profile.avatar} alt={profile.name} className="absolute rounded-full object-cover" style={{ top: 8, left: 8, width: 112, height: 112 }} />
+          </div>
+          <div className="flex items-center gap-1.5 mb-3">
+            {levelInfo.isPro && (
+              <span className="text-xs font-black tracking-widest mr-0.5" style={{ color: "#c9a84c" }}>PRO</span>
+            )}
+            <div className="w-7 h-7 rounded-full flex items-center justify-center border-2 border-white shadow-sm" style={{ background: TIER_GRADIENTS[levelInfo.tier] }} title={`${TIER_LABELS[levelInfo.tier]} tier`}>
+              <Crown className="w-3.5 h-3.5 text-white" />
             </div>
+            <div className="w-7 h-7 rounded-full flex items-center justify-center border-2 border-white shadow-sm -ml-2.5" style={{ background: momentumColor(changePct) }} title={changePct >= 0 ? "Portfolio trending up" : "Portfolio trending down"}>
+              <Triangle className="w-3 h-3 text-white" fill="white" style={{ transform: changePct < 0 ? "rotate(180deg)" : undefined }} />
+            </div>
+            <span className="text-xs font-semibold text-gray-400 ml-1">{levelInfo.level}/{levelInfo.maxLevel}</span>
           </div>
           <h1 className="text-2xl font-semibold text-gray-900 leading-none">{profile.handle}</h1>
-          <p className="text-base text-gray-400 mt-2">
-            <CountUp to={cards.length} duration={1000} suffix=" cards" /> · $<CountUp to={totalValue} duration={1000} />
+          <p className="text-base text-gray-400 mt-2 flex items-center gap-1.5 flex-wrap justify-center">
+            <span><CountUp to={cards.length} duration={1000} suffix=" cards" /> · $<CountUp to={totalValue} duration={1000} /></span>
+            <span className={`text-sm font-semibold inline-flex items-center gap-0.5 ${changePct >= 0 ? "text-emerald-500" : "text-red-400"}`}>
+              {changePct >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+              {Math.abs(changePct).toFixed(1)}%
+            </span>
+            <span>· {followersLabel} followers</span>
           </p>
         </div>
 
         <div className="flex items-center justify-center gap-4 px-7 mb-5">
           {([
-            { id: "cards", label: "Cards", icon: LayoutGrid },
-            { id: "shop", label: "Shop", icon: TrendingUp },
-            { id: "peers", label: "Peers", icon: Users },
+            { id: "collection", label: "Collection", icon: LayoutGrid },
+            { id: "community", label: "Community", icon: Users },
+            { id: "connections", label: "Connections", icon: UserPlus },
           ] as { id: MainTab; label: string; icon: typeof LayoutGrid }[]).map(({ id, label, icon: Icon }) => {
             const active = mainTab === id;
             return (
@@ -423,7 +479,7 @@ export default function App() {
             <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: topMover.change > 0 ? "#10b981" : "#ef4444" }}>
               {topMover.change > 0 ? <TrendingUp className="w-4 h-4 text-white" /> : <TrendingDown className="w-4 h-4 text-white" />}
             </div>
-            <button onClick={() => { setShopInitialTab("watchlist"); navigate("/shop"); }} className="flex-1 text-left min-w-0">
+            <button onClick={() => { setShopInitialTab("watchlist"); navigate("/marketplace"); }} className="flex-1 text-left min-w-0">
               <p className="text-xs font-semibold text-gray-900 truncate">
                 {topMover.player} is {topMover.change > 0 ? "up" : "down"} {Math.abs(topMover.change)}%
               </p>
@@ -438,7 +494,7 @@ export default function App() {
           </div>
         )}
 
-        {mainTab === "cards" && (
+        {mainTab === "collection" && (
           <>
             {cardsSubView !== "insights" && (
               <div className="flex items-center justify-between px-7 mb-2">
@@ -637,21 +693,16 @@ export default function App() {
           </div>
         )}
 
-        {mainTab === "shop" && (
-          <Suspense fallback={LOADING_FALLBACK}>
-            <MarketView
-              allCards={cards}
-              listings={listings}
-              watchlist={watchlist}
-              onToggleWatchlist={handleToggleWatchlist}
-              onBuy={handleBuy}
-              onUpdateListingStatus={handleUpdateListingStatus}
-              onRemoveListing={handleRemoveListing}
-              initialTab={shopInitialTab}
-            />
-          </Suspense>
+        {mainTab === "community" && (
+          <div className="flex-1 flex flex-col items-center justify-center text-center px-10 pb-20">
+            <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mb-4">
+              <Users className="w-7 h-7 text-gray-400" />
+            </div>
+            <p className="text-base font-semibold text-gray-900">Community is on its way</p>
+            <p className="text-sm text-gray-400 mt-1 max-w-[260px]">Posts, threads, and comments with other collectors are coming next.</p>
+          </div>
         )}
-        {mainTab === "peers" && (
+        {mainTab === "connections" && (
           <Suspense fallback={LOADING_FALLBACK}>
             <PeersView
               allCards={cards}
@@ -701,6 +752,17 @@ export default function App() {
           </div>
         )}
       </div>
+
+      {menuOpen && (
+        <AppMenu
+          onClose={() => setMenuOpen(false)}
+          levelInfo={levelInfo}
+          onSettings={() => { setMenuOpen(false); navigate("/settings"); }}
+          onInvestmentOverview={() => { setMenuOpen(false); setCardsSubView("insights"); navigate("/"); }}
+          onWatchlist={() => { setMenuOpen(false); setShopInitialTab("watchlist"); navigate("/marketplace"); }}
+          onSignOut={() => { setMenuOpen(false); handleLogout(); }}
+        />
+      )}
 
       {selected && (
         <DetailSheet
