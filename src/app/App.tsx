@@ -1,7 +1,7 @@
 import { useState, useEffect, lazy, Suspense } from "react";
 import { useLocation, useNavigate } from "react-router";
 import {
-  Grid3X3, List, Scan, X, Plus, Share2, Search, TrendingUp, TrendingDown, Users, UserPlus, LayoutGrid, Tag, ChevronDown, ChevronLeft, Folder, ArrowUpDown, Check, SlidersHorizontal, CheckSquare, Trash2, FolderPlus, Menu as MenuIcon, Crown, Triangle, MessageCircle, Eye, EyeOff,
+  Scan, X, Plus, Share2, Search, TrendingUp, TrendingDown, Users, UserPlus, LayoutGrid, Tag, ChevronLeft, Folder, SlidersHorizontal, Trash2, FolderPlus, Menu as MenuIcon, MessageCircle,
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import type { AuthState, Card, CommunityComment, CommunityPost, DirectMessage, FolderType, Listing, MainTab, MarketItem, MessageThread, Profile } from "./types";
@@ -14,13 +14,16 @@ import { MILESTONES } from "./data/achievements";
 import { profilePic } from "./data/cardImages";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import type { BackupData } from "./lib/backup";
-import { computeLevel, TIER_GRADIENTS, TIER_LABELS, momentumColor } from "./lib/level";
+import { computeLevel } from "./lib/level";
 import { computePortfolioChangePct } from "./lib/portfolio";
 import { formatCompact } from "./lib/format";
 import { LoginScreen } from "./components/auth/LoginScreen";
 import { AppMenu } from "./components/shared/AppMenu";
 import { LevelRingAvatar } from "./components/shared/LevelRingAvatar";
 import { Money } from "./components/shared/Money";
+import { TierMedallions } from "./components/shared/TierMedallions";
+import { CollectionDropdown } from "./components/shared/CollectionDropdown";
+import { CollectionFilterMenu } from "./components/shared/CollectionFilterMenu";
 import { BulkAddToFolderSheet } from "./components/cards/BulkAddToFolderSheet";
 import { CardTile } from "./components/cards/CardTile";
 import { CardListRow } from "./components/cards/CardListRow";
@@ -65,11 +68,13 @@ const DEFAULT_PROFILE: Profile = {
   chasing: "Mickey Mantle 1952 Topps PSA 10",
 };
 
-type SortKey = "recent" | "value-desc" | "value-asc" | "name" | "year";
+type SortKey = "recent" | "oldest" | "value-desc" | "value-asc" | "gain-desc" | "name" | "year";
 const SORT_OPTIONS: { key: SortKey; label: string }[] = [
   { key: "recent", label: "Recently added" },
-  { key: "value-desc", label: "Value: high to low" },
-  { key: "value-asc", label: "Value: low to high" },
+  { key: "oldest", label: "Oldest added" },
+  { key: "value-desc", label: "Highest value" },
+  { key: "value-asc", label: "Lowest value" },
+  { key: "gain-desc", label: "Highest gain" },
   { key: "name", label: "Player name" },
   { key: "year", label: "Year" },
 ];
@@ -130,7 +135,6 @@ export default function App() {
   const [cardQuery, setCardQuery] = useState("");
   const [cardsSubView, setCardsSubView] = useState<"cards" | "folders" | "insights">("cards");
   const [sortBy, setSortBy] = useState<SortKey>("recent");
-  const [sortMenuOpen, setSortMenuOpen] = useState(false);
   const [filterAuto, setFilterAuto] = useState(false);
   const [filterGems, setFilterGems] = useState(false);
   const [selectMode, setSelectMode] = useState(false);
@@ -167,7 +171,6 @@ export default function App() {
     setSelectedCardIds([]);
     setBulkPickingFolder(false);
     setConfirmingBulkDelete(false);
-    setSortMenuOpen(false);
     setMenuOpen(false);
     if (location.pathname !== "/marketplace") { setShopInitialTab(undefined); setShopInitialQuery(undefined); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -204,12 +207,28 @@ export default function App() {
     switch (sortBy) {
       case "value-desc": sorted.sort((a, b) => b.value - a.value); break;
       case "value-asc": sorted.sort((a, b) => a.value - b.value); break;
+      case "gain-desc": sorted.sort((a, b) => b.change - a.change); break;
       case "name": sorted.sort((a, b) => a.player.localeCompare(b.player)); break;
       case "year": sorted.sort((a, b) => a.year.localeCompare(b.year)); break;
+      case "oldest": sorted.sort((a, b) => a.id - b.id); break;
       case "recent": sorted.sort((a, b) => b.id - a.id); break;
     }
     return sorted;
   })();
+
+  const displayedFolders = cardQuery
+    ? folders.filter(f => f.name.toLowerCase().includes(cardQuery.toLowerCase()))
+    : folders;
+
+  const handleClearFilters = () => {
+    setSortBy("recent");
+    setFilterAuto(false);
+    setFilterGems(false);
+    setView("grid");
+    setHideValues(false);
+    setSelectMode(false);
+    setSelectedCardIds([]);
+  };
 
   const goTab = (tab: MainTab) => navigate(tab === "collection" ? "/" : `/${tab}`);
 
@@ -562,21 +581,12 @@ export default function App() {
           </button>
         )}
 
-        <div className="flex flex-col items-center px-7 pt-16 pb-5">
-          <div className="mb-3">
+        <div className="flex flex-col items-center px-7 pt-14 pb-4">
+          <div className="relative mb-8">
             <LevelRingAvatar avatar={profile.avatar} name={profile.name} xpFraction={levelInfo.xpFraction} />
-          </div>
-          <div className="flex items-center gap-1.5 mb-3">
-            {levelInfo.isPro && (
-              <span className="text-xs font-black tracking-widest mr-0.5" style={{ color: "#c9a84c" }}>PRO</span>
-            )}
-            <div className="w-7 h-7 rounded-full flex items-center justify-center border-2 border-white shadow-sm" style={{ background: TIER_GRADIENTS[levelInfo.tier] }} title={`${TIER_LABELS[levelInfo.tier]} tier`}>
-              <Crown className="w-3.5 h-3.5 text-white" />
+            <div className="absolute left-1/2 -translate-x-1/2" style={{ bottom: -22 }}>
+              <TierMedallions levelInfo={levelInfo} />
             </div>
-            <div className="w-7 h-7 rounded-full flex items-center justify-center border-2 border-white shadow-sm -ml-2.5" style={{ background: momentumColor(changePct) }} title={changePct >= 0 ? "Portfolio trending up" : "Portfolio trending down"}>
-              <Triangle className="w-3 h-3 text-white" fill="white" style={{ transform: changePct < 0 ? "rotate(180deg)" : undefined }} />
-            </div>
-            <span className="text-xs font-semibold text-gray-400 ml-1">{levelInfo.level}/{levelInfo.maxLevel}</span>
           </div>
           <h1 className="text-2xl font-semibold text-gray-900 leading-none">{profile.handle}</h1>
           <p className="text-base text-gray-400 mt-2 flex items-center gap-1.5 flex-wrap justify-center">
@@ -593,8 +603,13 @@ export default function App() {
         </div>
 
         <div className="flex items-center justify-center gap-4 px-7 mb-5">
+          <CollectionDropdown
+            active={mainTab === "collection"}
+            value={cardsSubView}
+            onChange={setCardsSubView}
+            onActivate={() => navigate("/")}
+          />
           {([
-            { id: "collection", label: "Collection", icon: LayoutGrid },
             { id: "community", label: "Community", icon: Users },
             { id: "connections", label: "Connections", icon: UserPlus },
           ] as { id: MainTab; label: string; icon: typeof LayoutGrid }[]).map(({ id, label, icon: Icon }) => {
@@ -606,7 +621,6 @@ export default function App() {
                 }`}>
                 <Icon className="w-4 h-4" />
                 {label}
-                {active && <ChevronDown className="w-4 h-4" />}
               </button>
             );
           })}
@@ -634,83 +648,46 @@ export default function App() {
 
         {mainTab === "collection" && (
           <>
-            {cardsSubView !== "insights" && (
-              <div className="flex items-center justify-between px-7 mb-2">
-                <div className="flex-1 flex items-center gap-2 mr-2 rounded-xl bg-gray-100 px-3 py-2">
-                  <Search className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
-                  <input
-                    value={cardQuery}
-                    onChange={e => setCardQuery(e.target.value)}
-                    placeholder="Search cards…"
-                    className="flex-1 bg-transparent text-sm text-gray-900 placeholder-gray-400 outline-none"
-                    style={{ fontFamily: "'Google Sans', sans-serif" }}
-                  />
-                  {cardQuery && <button onClick={() => setCardQuery("")} aria-label="Clear search"><X className="w-3 h-3 text-gray-400" /></button>}
+            {cardsSubView === "cards" && (
+              <div className="flex items-center gap-2 px-7 mb-4">
+                <div className="flex-1 flex items-center gap-2 rounded-2xl bg-gray-100 px-4 py-2.5">
+                  <Search className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                  <input value={cardQuery} onChange={e => setCardQuery(e.target.value)} placeholder="Search cards…"
+                    className="flex-1 bg-transparent text-sm text-gray-900 placeholder-gray-400 outline-none" style={{ fontFamily: "'Google Sans', sans-serif" }} />
+                  {cardQuery && <button onClick={() => setCardQuery("")} aria-label="Clear search"><X className="w-3.5 h-3.5 text-gray-400" /></button>}
                 </div>
-                <div className="flex gap-1">
-                  <button onClick={() => setHideValues(v => !v)} className="w-7 h-7 flex items-center justify-center rounded-lg transition-colors"
-                    aria-label={hideValues ? "Show values" : "Hide values"}>
-                    {hideValues ? <EyeOff className="w-3.5 h-3.5 text-gray-400" /> : <Eye className="w-3.5 h-3.5 text-gray-400" />}
-                  </button>
-                  {(["grid", "list"] as const).map(v => (
-                    <button key={v} onClick={() => setView(v)} className="w-7 h-7 flex items-center justify-center rounded-lg transition-colors" style={{ background: view === v ? "#111" : "transparent" }}
-                      aria-label={v === "grid" ? "Grid view" : "List view"}>
-                      {v === "grid" ? <Grid3X3 className="w-3.5 h-3.5" style={{ color: view === v ? "#fff" : "#ccc" }} /> : <List className="w-3.5 h-3.5" style={{ color: view === v ? "#fff" : "#ccc" }} />}
-                    </button>
-                  ))}
-                  {cardsSubView === "cards" && cards.length > 0 && (
-                    <button onClick={() => { setSelectMode(v => !v); setSelectedCardIds([]); }}
-                      className="w-7 h-7 flex items-center justify-center rounded-lg transition-colors" style={{ background: selectMode ? "#111" : "transparent" }}
-                      aria-label={selectMode ? "Exit select mode" : "Select cards"}>
-                      <CheckSquare className="w-3.5 h-3.5" style={{ color: selectMode ? "#fff" : "#ccc" }} />
-                    </button>
-                  )}
-                </div>
+                <CollectionFilterMenu
+                  sortOptions={SORT_OPTIONS}
+                  sortBy={sortBy}
+                  onSortChange={k => setSortBy(k as SortKey)}
+                  filterAuto={filterAuto}
+                  onToggleAuto={setFilterAuto}
+                  filterGems={filterGems}
+                  onToggleGems={setFilterGems}
+                  view={view}
+                  onViewChange={setView}
+                  selectMode={selectMode}
+                  onToggleSelect={v => { setSelectMode(v); setSelectedCardIds([]); }}
+                  selectAvailable={cards.length > 0}
+                  hideValues={hideValues}
+                  onToggleHideValues={setHideValues}
+                  onClearAll={handleClearFilters}
+                />
               </div>
             )}
 
-            <div className="flex items-center gap-1 px-7 mb-4">
-              {(["cards", "folders", "insights"] as const).map(s => (
-                <button key={s} onClick={() => setCardsSubView(s)}
-                  className="px-4 py-1.5 rounded-full text-xs font-semibold capitalize transition-colors"
-                  style={{ background: cardsSubView === s ? "#111" : "transparent", color: cardsSubView === s ? "#fff" : "#bbb" }}>
-                  {s === "cards" ? "Cards" : s === "folders" ? "Folders" : "Insights"}
+            {cardsSubView === "folders" && (
+              <div className="flex items-center gap-2 px-7 mb-4">
+                <div className="flex-1 flex items-center gap-2 rounded-2xl bg-gray-100 px-4 py-2.5">
+                  <Search className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                  <input value={cardQuery} onChange={e => setCardQuery(e.target.value)} placeholder="Search folders…"
+                    className="flex-1 bg-transparent text-sm text-gray-900 placeholder-gray-400 outline-none" style={{ fontFamily: "'Google Sans', sans-serif" }} />
+                  {cardQuery && <button onClick={() => setCardQuery("")} aria-label="Clear search"><X className="w-3.5 h-3.5 text-gray-400" /></button>}
+                </div>
+                <button onClick={() => setShowNewFolder(true)} aria-label="New folder"
+                  className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 flex-shrink-0">
+                  <Plus className="w-4 h-4 text-gray-500" />
                 </button>
-              ))}
-            </div>
-
-            {cardsSubView === "cards" && cards.length > 0 && (
-              <div className="flex items-center justify-between px-7 mb-3">
-                <div className="relative">
-                  <button onClick={() => setSortMenuOpen(o => !o)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gray-100 text-xs font-semibold text-gray-700">
-                    <ArrowUpDown className="w-3 h-3" />
-                    {SORT_OPTIONS.find(o => o.key === sortBy)?.label}
-                  </button>
-                  {sortMenuOpen && (
-                    <div className="absolute top-9 left-0 z-20 w-52 rounded-2xl bg-white py-1.5 shadow-lg border border-gray-100">
-                      {SORT_OPTIONS.map(o => (
-                        <button key={o.key} onClick={() => { setSortBy(o.key); setSortMenuOpen(false); }}
-                          className="w-full flex items-center justify-between px-4 py-2.5 text-xs font-medium text-gray-700 hover:bg-gray-50 text-left">
-                          {o.label}
-                          {sortBy === o.key && <Check className="w-3.5 h-3.5 text-gray-900" />}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <button onClick={() => setFilterAuto(v => !v)}
-                    className="px-3 py-1.5 rounded-full text-xs font-semibold transition-colors"
-                    style={{ background: filterAuto ? "#111" : "#f3f4f6", color: filterAuto ? "#fff" : "#6b7280" }}>
-                    Autos
-                  </button>
-                  <button onClick={() => setFilterGems(v => !v)}
-                    className="px-3 py-1.5 rounded-full text-xs font-semibold transition-colors"
-                    style={{ background: filterGems ? "#111" : "#f3f4f6", color: filterGems ? "#fff" : "#6b7280" }}>
-                    Gem/Mint+
-                  </button>
-                </div>
               </div>
             )}
 
@@ -770,15 +747,18 @@ export default function App() {
 
             {cardsSubView === "folders" && (
               <div className="flex-1 px-7 overflow-y-auto" style={{ scrollbarWidth: "none", paddingBottom: "110px" }}>
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-xs text-gray-400">{folders.length} folder{folders.length !== 1 ? "s" : ""}</p>
-                  <button onClick={() => setShowNewFolder(true)} aria-label="New folder"
-                    className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors focus:outline-none">
-                    <Plus className="w-4 h-4 text-gray-500" />
-                  </button>
-                </div>
+                <p className="text-xs text-gray-400 mb-3">{displayedFolders.length} folder{displayedFolders.length !== 1 ? "s" : ""}</p>
+                {displayedFolders.length === 0 && (
+                  <div className="flex flex-col items-center text-center pt-12">
+                    <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mb-4">
+                      <Folder className="w-7 h-7 text-gray-400" />
+                    </div>
+                    <p className="text-base font-semibold text-gray-900">{cardQuery ? "No folders found" : "No folders yet"}</p>
+                    <p className="text-sm text-gray-400 mt-1 max-w-[240px]">{cardQuery ? "Try a different search." : "Tap + to create your first folder."}</p>
+                  </div>
+                )}
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {folders.map((folder, fi) => {
+                  {displayedFolders.map((folder, fi) => {
                     const folderValue = cards.filter(c => folder.cardIds.includes(c.id)).reduce((s, c) => s + c.value, 0);
                     const previewCards = cards.filter(c => folder.cardIds.includes(c.id)).slice(0, 3);
                     const offsets = [
