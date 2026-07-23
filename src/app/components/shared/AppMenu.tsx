@@ -1,6 +1,6 @@
 import { useState } from "react";
 import {
-  X, Eye, Wallet, Settings, TrendingUp, Star, Send, Bell, MapPin, Megaphone, Trophy, LogOut, ChevronRight,
+  X, Eye, Wallet, Settings, TrendingUp, Store, Star, Send, Bell, MapPin, Megaphone, Trophy, LogOut, ChevronRight,
 } from "lucide-react";
 import type { LevelInfo } from "../../lib/level";
 import { TIER_GRADIENTS, TIER_LABELS, MAX_LEVEL } from "../../lib/level";
@@ -19,12 +19,13 @@ interface AppMenuProps {
   onSettings: () => void;
   onInvestmentOverview: () => void;
   onWatchlist: () => void;
+  onMarketplace: () => void;
   onMessages: () => void;
   onSignOut: () => void;
 }
 
 export function AppMenu({
-  onClose, levelInfo, onProfile, onSettings, onInvestmentOverview, onWatchlist, onMessages, onSignOut,
+  onClose, levelInfo, onProfile, onSettings, onInvestmentOverview, onWatchlist, onMarketplace, onMessages, onSignOut,
 }: AppMenuProps) {
   useEscapeClose(onClose);
   const [comingSoon, setComingSoon] = useState<string | null>(null);
@@ -36,6 +37,7 @@ export function AppMenu({
     { icon: Settings, label: "Settings", onClick: onSettings },
   ];
   const portfolio: MenuItem[] = [
+    { icon: Store, label: "Marketplace", onClick: onMarketplace },
     { icon: TrendingUp, label: "Investment Overview", onClick: onInvestmentOverview },
     { icon: Star, label: "Watchlist", onClick: onWatchlist },
   ];

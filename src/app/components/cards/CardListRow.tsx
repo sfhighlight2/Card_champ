@@ -1,15 +1,17 @@
 import { ChevronRight } from "lucide-react";
 import type { Card } from "../../types";
 import { GRADER_COLOR } from "../../data/mockCards";
+import { Money } from "../shared/Money";
 
 interface CardListRowProps {
   card: Card;
   onClick: () => void;
   selectMode?: boolean;
   selected?: boolean;
+  hideValues?: boolean;
 }
 
-export function CardListRow({ card, onClick, selectMode = false, selected = false }: CardListRowProps) {
+export function CardListRow({ card, onClick, selectMode = false, selected = false, hideValues = false }: CardListRowProps) {
   return (
     <button onClick={onClick} className="w-full flex items-center gap-3.5 py-2.5 focus:outline-none" style={{ opacity: selectMode && !selected ? 0.55 : 1 }}>
       {selectMode && (
@@ -30,7 +32,7 @@ export function CardListRow({ card, onClick, selectMode = false, selected = fals
         <span className="text-xs font-bold px-2 py-0.5 rounded-full text-white" style={{ background: GRADER_COLOR[card.grader] || "#111" }}>
           {card.grader} {card.grade}
         </span>
-        <span className="text-sm font-semibold text-gray-800">${card.value.toLocaleString()}</span>
+        <span className="text-sm font-semibold text-gray-800"><Money value={card.value} hidden={hideValues} /></span>
       </div>
       {!selectMode && <ChevronRight className="w-3.5 h-3.5 text-gray-300 flex-shrink-0" />}
     </button>

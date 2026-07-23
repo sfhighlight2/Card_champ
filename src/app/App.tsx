@@ -1,7 +1,7 @@
 import { useState, useEffect, lazy, Suspense } from "react";
 import { useLocation, useNavigate } from "react-router";
 import {
-  Grid3X3, List, Scan, X, Plus, Share2, Search, TrendingUp, TrendingDown, Users, UserPlus, LayoutGrid, Tag, ChevronDown, ChevronLeft, Folder, ArrowUpDown, Check, SlidersHorizontal, CheckSquare, Trash2, FolderPlus, Menu as MenuIcon, Crown, Triangle, MessageCircle,
+  Grid3X3, List, Scan, X, Plus, Share2, Search, TrendingUp, TrendingDown, Users, UserPlus, LayoutGrid, Tag, ChevronDown, ChevronLeft, Folder, ArrowUpDown, Check, SlidersHorizontal, CheckSquare, Trash2, FolderPlus, Menu as MenuIcon, Crown, Triangle, MessageCircle, Eye, EyeOff,
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import type { AuthState, Card, CommunityComment, CommunityPost, DirectMessage, FolderType, Listing, MainTab, MarketItem, MessageThread, Profile } from "./types";
@@ -20,6 +20,7 @@ import { formatCompact } from "./lib/format";
 import { LoginScreen } from "./components/auth/LoginScreen";
 import { AppMenu } from "./components/shared/AppMenu";
 import { LevelRingAvatar } from "./components/shared/LevelRingAvatar";
+import { Money } from "./components/shared/Money";
 import { BulkAddToFolderSheet } from "./components/cards/BulkAddToFolderSheet";
 import { CardTile } from "./components/cards/CardTile";
 import { CardListRow } from "./components/cards/CardListRow";
@@ -96,6 +97,7 @@ export default function App() {
   const [seenAchievements, setSeenAchievements] = useLocalStorage<string[]>("cardchamps:achievements-seen", []);
   const [dismissedMovers, setDismissedMovers] = useLocalStorage<string[]>("cardchamps:watchlist-banner-dismissed", []);
   const [theme, setTheme] = useLocalStorage<"light" | "dark" | "system">("cardchamps:theme", "system");
+  const [hideValues, setHideValues] = useLocalStorage<boolean>("cardchamps:privacy", false);
   const [isDark, setIsDark] = useState(false);
 
   useEffect(() => {
@@ -114,6 +116,7 @@ export default function App() {
 
   const [view, setView] = useState<"grid" | "list">("grid");
   const [shopInitialTab, setShopInitialTab] = useState<"browse" | "watchlist" | "listings" | undefined>(undefined);
+  const [shopInitialQuery, setShopInitialQuery] = useState<string | undefined>(undefined);
   const [selected, setSelected] = useState<Card | null>(null);
   const [showNewFolder, setShowNewFolder] = useState(false);
   const [showScan, setShowScan] = useState(false);
@@ -166,7 +169,7 @@ export default function App() {
     setConfirmingBulkDelete(false);
     setSortMenuOpen(false);
     setMenuOpen(false);
-    if (location.pathname !== "/marketplace") setShopInitialTab(undefined);
+    if (location.pathname !== "/marketplace") { setShopInitialTab(undefined); setShopInitialQuery(undefined); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname]);
 
@@ -408,6 +411,13 @@ export default function App() {
 
   const openChat = (peerHandle: string) => setActiveChatHandle(peerHandle);
 
+  const handleShopCard = (card: Card) => {
+    setSelected(null);
+    setShopInitialTab("browse");
+    setShopInitialQuery(card.player);
+    navigate("/marketplace");
+  };
+
   const handleUpdateListingStatus = (id: number, status: Listing["status"]) => {
     setListings(prev => prev.map(l => l.id === id ? { ...l, status } : l));
     showToast(status === "sold" ? "Marked as sold" : "Listing updated");
@@ -498,6 +508,7 @@ export default function App() {
               onUpdateListingStatus={handleUpdateListingStatus}
               onRemoveListing={handleRemoveListing}
               initialTab={shopInitialTab}
+              initialQuery={shopInitialQuery}
             />
           </Suspense>
         </div>
@@ -569,7 +580,10 @@ export default function App() {
           </div>
           <h1 className="text-2xl font-semibold text-gray-900 leading-none">{profile.handle}</h1>
           <p className="text-base text-gray-400 mt-2 flex items-center gap-1.5 flex-wrap justify-center">
-            <span><CountUp to={cards.length} duration={1000} suffix=" cards" /> · $<CountUp to={totalValue} duration={1000} /></span>
+            <span>
+              <CountUp to={cards.length} duration={1000} suffix=" cards" /> ·{" "}
+              {hideValues ? <Money value={totalValue} hidden /> : <>$<CountUp to={totalValue} duration={1000} /></>}
+            </span>
             <span className={`text-sm font-semibold inline-flex items-center gap-0.5 ${changePct >= 0 ? "text-emerald-500" : "text-red-400"}`}>
               {changePct >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
               {Math.abs(changePct).toFixed(1)}%
@@ -634,6 +648,10 @@ export default function App() {
                   {cardQuery && <button onClick={() => setCardQuery("")} aria-label="Clear search"><X className="w-3 h-3 text-gray-400" /></button>}
                 </div>
                 <div className="flex gap-1">
+                  <button onClick={() => setHideValues(v => !v)} className="w-7 h-7 flex items-center justify-center rounded-lg transition-colors"
+                    aria-label={hideValues ? "Show values" : "Hide values"}>
+                    {hideValues ? <EyeOff className="w-3.5 h-3.5 text-gray-400" /> : <Eye className="w-3.5 h-3.5 text-gray-400" />}
+                  </button>
                   {(["grid", "list"] as const).map(v => (
                     <button key={v} onClick={() => setView(v)} className="w-7 h-7 flex items-center justify-center rounded-lg transition-colors" style={{ background: view === v ? "#111" : "transparent" }}
                       aria-label={v === "grid" ? "Grid view" : "List view"}>
@@ -737,7 +755,7 @@ export default function App() {
                     {visibleCards.map(card => (
                       <CardListRow key={card.id} card={card}
                         onClick={() => selectMode ? toggleCardSelect(card.id) : setSelected(card)}
-                        selectMode={selectMode} selected={selectedCardIds.includes(card.id)} />
+                        selectMode={selectMode} selected={selectedCardIds.includes(card.id)} hideValues={hideValues} />
                     ))}
                   </div>
                 )}
@@ -789,7 +807,7 @@ export default function App() {
                             <p className="text-sm font-bold text-gray-900 leading-tight truncate mt-3">{folder.name}</p>
                             <div className="flex items-center justify-between mt-1">
                               <p className="text-xs text-gray-400">{folder.cardIds.length} cards</p>
-                              <p className="text-sm font-bold" style={{ color: folder.color }}>${folderValue.toLocaleString()}</p>
+                              <p className="text-sm font-bold" style={{ color: folder.color }}><Money value={folderValue} hidden={hideValues} /></p>
                             </div>
                           </div>
                         </button>
@@ -900,6 +918,7 @@ export default function App() {
           onSettings={() => { setMenuOpen(false); navigate("/settings"); }}
           onInvestmentOverview={() => { setMenuOpen(false); setCardsSubView("insights"); navigate("/"); }}
           onWatchlist={() => { setMenuOpen(false); setShopInitialTab("watchlist"); navigate("/marketplace"); }}
+          onMarketplace={() => { setMenuOpen(false); setShopInitialTab("browse"); navigate("/marketplace"); }}
           onMessages={() => { setMenuOpen(false); navigate("/messages"); }}
           onSignOut={() => { setMenuOpen(false); handleLogout(); }}
         />
@@ -912,6 +931,7 @@ export default function App() {
           initialIndex={visibleCards.findIndex(c => c.id === selected.id)}
           onEdit={card => { setSelected(null); setEditingCard(card); }}
           onDelete={handleDeleteCard}
+          onShop={handleShopCard}
         />
       )}
       {showNewFolder && (

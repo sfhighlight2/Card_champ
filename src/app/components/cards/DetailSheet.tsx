@@ -17,9 +17,10 @@ interface DetailSheetProps {
   initialIndex?: number;
   onEdit?: (card: Card) => void;
   onDelete?: (id: number) => void;
+  onShop?: (card: Card) => void;
 }
 
-export function DetailSheet({ card, onClose, isPeer = false, cards = [], initialIndex = 0, onEdit, onDelete }: DetailSheetProps) {
+export function DetailSheet({ card, onClose, isPeer = false, cards = [], initialIndex = 0, onEdit, onDelete, onShop }: DetailSheetProps) {
   useEscapeClose(onClose);
   const [idx, setIdx] = useState(initialIndex);
   const current = cards.length > 0 ? cards[idx] : card!;
@@ -207,7 +208,9 @@ export function DetailSheet({ card, onClose, isPeer = false, cards = [], initial
               <button onClick={() => setSharing(true)} className="flex-1 py-3.5 rounded-2xl bg-gray-950 text-white text-sm font-semibold flex items-center justify-center gap-1.5">
                 <Share2 className="w-3.5 h-3.5" />Share
               </button>
-              <button className="flex-1 py-3.5 rounded-2xl border border-gray-200 text-gray-700 text-sm font-semibold">Shop</button>
+              {onShop && (
+                <button onClick={() => onShop(current)} className="flex-1 py-3.5 rounded-2xl border border-gray-200 text-gray-700 text-sm font-semibold">Shop</button>
+              )}
             </div>
             </AnimateIn>
           </div>
