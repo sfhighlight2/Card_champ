@@ -17,10 +17,14 @@ import garyVee from "@/imports/gary_vee.png";
 import kevinOLeary from "@/imports/kevin_o_leary.png";
 import cardChampsLogo from "@/imports/cardChampsLogo.png";
 import cardChampsLogoDark from "@/imports/cardChampsLogoDark.png";
+import badgePro from "@/imports/badgePro.png";
+import badgeBronze from "@/imports/badgeBronze.png";
+import badgeHof from "@/imports/badgeHof.png";
 
 export {
   card1, card2, card3, card4, card5, card6,
   card7, card8, card9, card10, card11, card12,
   profilePic, loganPaul, barbaraCorcoran, garyVee, kevinOLeary,
   cardChampsLogo, cardChampsLogoDark,
+  badgePro, badgeBronze, badgeHof,
 };
