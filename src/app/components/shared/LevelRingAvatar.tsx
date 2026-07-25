@@ -9,10 +9,10 @@ interface LevelRingAvatarProps {
 }
 
 const TIER_STOPS: Record<"bronze" | "silver" | "gold" | "platinum", { start: string; end: string }> = {
-  bronze: { start: "#b5793f", end: "#d99f5f" },
-  silver: { start: "#9ca3af", end: "#e5e7eb" },
-  gold: { start: "#c9a84c", end: "#e8c96e" },
-  platinum: { start: "#7c8ce0", end: "#b5a6f7" },
+  bronze: { start: "#a05a2c", end: "#e09e67" },
+  silver: { start: "#71717a", end: "#e4e4e7" },
+  gold: { start: "#b45309", end: "#f59e0b" },
+  platinum: { start: "#6366f1", end: "#a5b4fc" },
 };
 
 // Shared by the profile header, Profile detail page, and Peers list so the XP ring
@@ -36,16 +36,16 @@ export function LevelRingAvatar({ avatar, name, size = 128, xpFraction, tier }: 
 
   return (
     <div className="relative" style={{ width: size, height: size }}>
-      <style>{`@keyframes levelRingGlow { 0%,100%{opacity:0.8} 50%{opacity:1} }`}</style>
+      <style>{`@keyframes levelRingGlow { 0%,100%{opacity:0.85} 50%{opacity:1} }`}</style>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="absolute inset-0 -rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#f0f0f0" strokeWidth="4" />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#f4f4f5" strokeWidth="4.5" />
         <circle
-          cx={size / 2} cy={size / 2} r={r} fill="none" stroke={`url(#${gradientId})`} strokeWidth="4" strokeLinecap="round"
+          cx={size / 2} cy={size / 2} r={r} fill="none" stroke={`url(#${gradientId})`} strokeWidth="4.5" strokeLinecap="round"
           strokeDasharray={c} strokeDashoffset={c * (1 - fill)}
           style={{
             transition: "stroke-dashoffset 1s cubic-bezier(0.22,1,0.36,1)",
             animation: "levelRingGlow 2.6s ease-in-out infinite",
-            filter: `drop-shadow(0 0 3px ${tier === "platinum" ? "rgba(124,140,224,0.55)" : tier === "silver" ? "rgba(156,163,175,0.55)" : tier === "bronze" ? "rgba(181,121,63,0.55)" : "rgba(201,168,76,0.55)"})`,
+            filter: `drop-shadow(0 0 3px ${tier === "platinum" ? "rgba(99,102,241,0.45)" : tier === "silver" ? "rgba(113,113,122,0.45)" : tier === "bronze" ? "rgba(160,90,44,0.45)" : "rgba(180,83,9,0.45)"})`,
           }}
         />
         <defs>
@@ -56,7 +56,10 @@ export function LevelRingAvatar({ avatar, name, size = 128, xpFraction, tier }: 
       </svg>
       <img
         src={avatar} alt={name} className="absolute rounded-full object-cover"
-        style={{ top: inset, left: inset, width: size - inset * 2, height: size - inset * 2 }}
+        style={{
+          top: inset, left: inset, width: size - inset * 2, height: size - inset * 2,
+          boxShadow: "0 0 0 3px #fff, 0 4px 12px rgba(0,0,0,0.12)",
+        }}
         draggable={false}
       />
     </div>

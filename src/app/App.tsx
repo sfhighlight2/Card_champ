@@ -1,7 +1,7 @@
 import { useState, useEffect, lazy, Suspense } from "react";
 import { useLocation, useNavigate } from "react-router";
 import {
-  Scan, X, Plus, Share2, Search, TrendingUp, TrendingDown, Users, UserPlus, LayoutGrid, Tag, ChevronLeft, Folder, SlidersHorizontal, Trash2, FolderPlus, Menu as MenuIcon, MessageCircle,
+  Scan, X, Plus, Share2, Search, TrendingUp, TrendingDown, Users, UserPlus, LayoutGrid, Tag, ChevronLeft, ChevronUp, ChevronDown, Folder, SlidersHorizontal, Trash2, FolderPlus, Menu as MenuIcon, MessageCircle,
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import type { AuthState, Card, CommunityComment, CommunityPost, DirectMessage, FolderType, Listing, MainTab, MarketItem, MessageThread, Profile } from "./types";
@@ -581,28 +581,32 @@ export default function App() {
           </button>
         )}
 
-        <div className="flex flex-col items-center px-7 pt-14 pb-4">
+        <div className="flex flex-col items-center px-7 pt-14 pb-3">
           <div className="relative mb-8">
             <LevelRingAvatar avatar={profile.avatar} name={profile.name} xpFraction={levelInfo.xpFraction} />
             <div className="absolute left-1/2 -translate-x-1/2" style={{ bottom: -22 }}>
               <TierMedallions levelInfo={levelInfo} />
             </div>
           </div>
-          <h1 className="text-2xl font-semibold text-gray-900 leading-none">{profile.handle}</h1>
-          <p className="text-base text-gray-400 mt-2 flex items-center gap-1.5 flex-wrap justify-center">
+          <h1 className="text-2xl font-bold text-gray-900 leading-none tracking-tight">{profile.handle}</h1>
+          <p className="text-[15px] font-medium text-slate-500 mt-2 flex items-center gap-1.5 flex-wrap justify-center">
             <span>
-              <CountUp to={cards.length} duration={1000} suffix=" cards" /> ·{" "}
+              <CountUp to={cards.length} duration={1000} suffix=" cards" />
+            </span>
+            <span className="text-gray-300">·</span>
+            <span className="font-bold text-gray-900">
               {hideValues ? <Money value={totalValue} hidden /> : <>$<CountUp to={totalValue} duration={1000} /></>}
             </span>
-            <span className={`text-sm font-semibold inline-flex items-center gap-0.5 ${changePct >= 0 ? "text-emerald-500" : "text-red-400"}`}>
-              {changePct >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+            <span className={`font-bold inline-flex items-center gap-0.5 ${changePct >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+              {changePct >= 0 ? <ChevronUp className="w-3.5 h-3.5 stroke-[2.5]" /> : <ChevronDown className="w-3.5 h-3.5 stroke-[2.5]" />}
               {Math.abs(changePct).toFixed(1)}%
             </span>
-            <span>· {followersLabel} followers</span>
+            <span className="text-gray-300">·</span>
+            <span>{followersLabel} followers</span>
           </p>
         </div>
 
-        <div className="flex items-center justify-center gap-2 md:gap-4 px-7 mb-5">
+        <div className="flex items-center justify-center gap-5 px-6 mb-4">
           <CollectionDropdown
             active={mainTab === "collection"}
             value={cardsSubView}
@@ -616,11 +620,11 @@ export default function App() {
             const active = mainTab === id;
             return (
               <button key={id} onClick={() => goTab(id)}
-                className={`flex items-center gap-1.5 md:gap-2 text-sm md:text-base font-semibold transition-colors ${
-                  active ? "pl-3.5 pr-3 py-2 md:pl-5 md:pr-4 md:py-3 rounded-full bg-gray-950 text-white" : "text-gray-400"
+                className={`flex items-center gap-1.5 md:gap-2 text-sm md:text-[15px] font-semibold transition-all ${
+                  active ? "pl-4 pr-3.5 py-2.5 rounded-full bg-[#0d0d11] text-white font-bold shadow-sm" : "text-slate-400 hover:text-slate-600"
                 }`}>
-                <Icon className="w-3.5 h-3.5 md:w-4 md:h-4" />
-                {label}
+                <Icon className="w-4 h-4 flex-shrink-0 text-slate-400" />
+                <span>{label}</span>
               </button>
             );
           })}
@@ -652,7 +656,7 @@ export default function App() {
               <div className="flex items-center gap-2 px-7 mb-4">
                 <div className="flex-1 flex items-center gap-2 rounded-2xl bg-gray-100 px-4 py-2.5">
                   <Search className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                  <input value={cardQuery} onChange={e => setCardQuery(e.target.value)} placeholder="Search cards…"
+                  <input value={cardQuery} onChange={e => setCardQuery(e.target.value)} placeholder="Search..."
                     className="flex-1 bg-transparent text-sm text-gray-900 placeholder-gray-400 outline-none" style={{ fontFamily: "'Google Sans', sans-serif" }} />
                   {cardQuery && <button onClick={() => setCardQuery("")} aria-label="Clear search"><X className="w-3.5 h-3.5 text-gray-400" /></button>}
                 </div>
