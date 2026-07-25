@@ -41,7 +41,7 @@ export function TierMedallions({ levelInfo, size = 52 }: { levelInfo: LevelInfo;
         </div>
         <div
           className="relative flex-shrink-0 rounded-full overflow-hidden"
-          style={{ width: size, height: size, zIndex: 1, marginLeft: -size * 0.2, boxShadow: "0 0 0 3px #fff, 0 4px 10px rgba(0,0,0,0.18)" }}
+          style={{ width: size, height: size, zIndex: 1, marginLeft: -size * 0.08, boxShadow: "0 0 0 3px #fff, 0 4px 10px rgba(0,0,0,0.18)" }}
         >
           <img
             src={badgeBronze}
