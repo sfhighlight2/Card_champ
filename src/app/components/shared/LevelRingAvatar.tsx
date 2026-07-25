@@ -5,12 +5,20 @@ interface LevelRingAvatarProps {
   name: string;
   size?: number;
   xpFraction: number;
+  tier?: "bronze" | "silver" | "gold" | "platinum";
 }
 
-// Shared by the profile header and the Profile detail page so the XP ring
+const TIER_STOPS: Record<"bronze" | "silver" | "gold" | "platinum", { start: string; end: string }> = {
+  bronze: { start: "#b5793f", end: "#d99f5f" },
+  silver: { start: "#9ca3af", end: "#e5e7eb" },
+  gold: { start: "#c9a84c", end: "#e8c96e" },
+  platinum: { start: "#7c8ce0", end: "#b5a6f7" },
+};
+
+// Shared by the profile header, Profile detail page, and Peers list so the XP ring
 // treatment stays identical in both places. The progress arc animates up
 // from empty on mount and keeps a soft breathing glow.
-export function LevelRingAvatar({ avatar, name, size = 128, xpFraction }: LevelRingAvatarProps) {
+export function LevelRingAvatar({ avatar, name, size = 128, xpFraction, tier }: LevelRingAvatarProps) {
   const gradientId = `levelRingGradient-${useId()}`;
   const r = size / 2 - 4;
   const inset = size * 0.0625;
@@ -24,6 +32,8 @@ export function LevelRingAvatar({ avatar, name, size = 128, xpFraction }: LevelR
     return () => cancelAnimationFrame(id);
   }, [xpFraction]);
 
+  const stops = TIER_STOPS[tier || "gold"];
+
   return (
     <div className="relative" style={{ width: size, height: size }}>
       <style>{`@keyframes levelRingGlow { 0%,100%{opacity:0.8} 50%{opacity:1} }`}</style>
@@ -35,12 +45,12 @@ export function LevelRingAvatar({ avatar, name, size = 128, xpFraction }: LevelR
           style={{
             transition: "stroke-dashoffset 1s cubic-bezier(0.22,1,0.36,1)",
             animation: "levelRingGlow 2.6s ease-in-out infinite",
-            filter: "drop-shadow(0 0 3px rgba(201,168,76,0.55))",
+            filter: `drop-shadow(0 0 3px ${tier === "platinum" ? "rgba(124,140,224,0.55)" : tier === "silver" ? "rgba(156,163,175,0.55)" : tier === "bronze" ? "rgba(181,121,63,0.55)" : "rgba(201,168,76,0.55)"})`,
           }}
         />
         <defs>
           <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#c9a84c" /><stop offset="100%" stopColor="#e8c96e" />
+            <stop offset="0%" stopColor={stops.start} /><stop offset="100%" stopColor={stops.end} />
           </linearGradient>
         </defs>
       </svg>
@@ -52,3 +62,4 @@ export function LevelRingAvatar({ avatar, name, size = 128, xpFraction }: LevelR
     </div>
   );
 }
+

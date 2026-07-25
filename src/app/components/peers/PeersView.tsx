@@ -7,6 +7,7 @@ import { TIER_GRADIENTS } from "../../lib/level";
 import { AnimateIn } from "../shared/AnimateIn";
 import { ShareFlow } from "../shared/ShareFlow";
 import { PeerProfileSheet } from "./PeerProfileSheet";
+import { LevelRingAvatar } from "../shared/LevelRingAvatar";
 
 interface PeersViewProps {
   allCards: Card[];
@@ -17,9 +18,16 @@ interface PeersViewProps {
   showToast: (msg: string) => void;
 }
 
-function peerRingGradient(handle: string): string {
+const PEER_XP_FRACTIONS: Record<string, number> = {
+  "@loganpaul": 0.75,
+  "@garyvee": 0.9,
+  "@barbaracorcoran": 0.45,
+  "@kevinoleary": 0.6,
+};
+
+function getPeerTier(handle: string): "bronze" | "silver" | "gold" | "platinum" {
   const badge = PEER_TIER_BADGES[handle];
-  return TIER_GRADIENTS[badge === "HOF" ? "platinum" : badge === "PRO" ? "gold" : "silver"];
+  return badge === "HOF" ? "platinum" : badge === "PRO" ? "gold" : "silver";
 }
 
 export function PeersView({ allCards, folders, following, onToggleFollow, onOpenChat, showToast }: PeersViewProps) {
@@ -59,13 +67,15 @@ export function PeersView({ allCards, folders, following, onToggleFollow, onOpen
                 className="flex flex-col items-center gap-2 focus:outline-none flex-shrink-0"
               >
                 <div className="relative">
-                  <div className="rounded-full p-[2.5px]" style={{ background: peerRingGradient(peer.handle) }}>
-                    <div className="w-16 h-16 rounded-full overflow-hidden bg-white p-0.5">
-                      <img src={peer.avatar} alt={peer.name} className="w-full h-full rounded-full" style={{ objectFit: "cover", objectPosition: "top center" }} draggable={false} />
-                    </div>
-                  </div>
+                  <LevelRingAvatar
+                    avatar={peer.avatar}
+                    name={peer.name}
+                    size={72}
+                    xpFraction={PEER_XP_FRACTIONS[peer.handle] ?? 0.5}
+                    tier={getPeerTier(peer.handle)}
+                  />
                   {peer.verified && (
-                    <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-[#b49e63] border-2 border-white flex items-center justify-center">
+                    <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-[#b49e63] border-2 border-white flex items-center justify-center z-10">
                       <svg viewBox="0 0 10 10" className="w-2.5 h-2.5" fill="none">
                         <path d="M2 5l2 2 4-4" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
