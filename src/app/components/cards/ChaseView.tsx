@@ -62,17 +62,17 @@ export function ChaseView({ chases, cards, onCreate, onUpdate, onDelete }: Chase
         </button>
       </div>
 
-      <div className="flex-1 px-7 overflow-y-auto" style={{ scrollbarWidth: "none", paddingBottom: "110px" }}>
+      <div className="flex-1 px-4 md:px-7 overflow-y-auto" style={{ scrollbarWidth: "none", paddingBottom: "110px" }}>
         <AnimateIn>
-          <div className="flex items-center gap-4 rounded-[28px] border border-emerald-200 bg-white px-4 py-4 mb-5">
+          <div className="flex items-center gap-5 rounded-[28px] border border-emerald-200 bg-white px-5 md:px-4 py-6 md:py-4 mb-6 md:mb-5">
             <ChaseMark size="sm" />
-            <p className="text-sm md:text-base font-medium text-slate-600 leading-relaxed">
+            <p className="text-[15px] md:text-base font-medium text-slate-600 leading-relaxed">
               Your chases are <span className="font-bold text-slate-700">public</span> to connections and refresh weekly.
             </p>
           </div>
         </AnimateIn>
 
-        <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-5 md:gap-5">
           {visibleChases.map((chase, index) => (
             <AnimateIn key={chase.id} delay={index * 70}>
               <ChaseCard chase={chase} onEdit={() => startEdit(chase)} onDelete={() => onDelete(chase.id)} />
@@ -83,7 +83,7 @@ export function ChaseView({ chases, cards, onCreate, onUpdate, onDelete }: Chase
         {!formOpen && (
           <button
             onClick={startNew}
-            className="mt-5 w-full h-[72px] rounded-[28px] border-2 border-dashed border-gray-200 text-gray-400 flex items-center justify-center gap-3 text-base font-bold hover:border-emerald-200 hover:text-emerald-600 transition-colors"
+            className="mt-10 md:mt-5 w-full h-[96px] md:h-[72px] rounded-[28px] border-2 border-dashed border-gray-200 text-gray-400 flex items-center justify-center gap-3 text-lg md:text-base font-bold hover:border-emerald-200 hover:text-emerald-600 transition-colors"
           >
             <Plus className="w-5 h-5" />
             New Chase
@@ -121,15 +121,15 @@ export function ChaseView({ chases, cards, onCreate, onUpdate, onDelete }: Chase
 
 function ChaseCard({ chase, onEdit, onDelete }: { chase: Chase; onEdit: () => void; onDelete: () => void }) {
   return (
-    <div className="rounded-[28px] border border-emerald-200 bg-gradient-to-br from-emerald-100 via-emerald-50 to-white px-4 py-6 shadow-sm">
-      <div className="grid grid-cols-[96px_1fr_58px] gap-4 items-center">
+    <div className="rounded-[28px] border border-emerald-200 bg-gradient-to-br from-emerald-100 via-emerald-50 to-white px-5 md:px-4 py-8 md:py-6 shadow-sm">
+      <div className="grid grid-cols-[82px_minmax(0,1fr)_58px] md:grid-cols-[96px_1fr_58px] gap-4 items-center">
         <ChaseMark size="lg" />
         <div className="min-w-0">
-          <p className="text-[11px] font-black text-emerald-600 tracking-[0.24em] uppercase mb-1.5">Chasing</p>
-          <h3 className="text-lg font-bold text-slate-950 leading-tight">{chase.title}</h3>
-          <p className="text-sm md:text-base font-medium text-slate-500 leading-relaxed mt-1.5">{chase.description}</p>
+          <p className="text-[13px] md:text-[11px] font-black text-emerald-600 tracking-[0.24em] uppercase mb-2 md:mb-1.5">Chasing</p>
+          <h3 className="text-lg md:text-lg font-bold text-slate-950 leading-tight">{chase.title}</h3>
+          <p className="text-base md:text-base font-medium text-slate-500 leading-relaxed mt-2 md:mt-1.5">{chase.description}</p>
         </div>
-        <div className="flex flex-col items-start gap-2">
+        <div className="flex flex-col items-start gap-3 md:gap-2">
           <button onClick={onEdit} className="text-sm font-bold text-gray-400 hover:text-gray-700">Edit</button>
           <button onClick={onDelete} className="text-sm font-bold text-red-400 hover:text-red-500">Remove</button>
         </div>
@@ -206,8 +206,8 @@ function ChaseForm({
 }
 
 function ChaseMark({ size }: { size: "sm" | "lg" }) {
-  const outer = size === "lg" ? "w-[70px] h-[70px]" : "w-[44px] h-[44px]";
-  const icon = size === "lg" ? "w-9 h-9" : "w-6 h-6";
+  const outer = size === "lg" ? "w-[74px] h-[74px] md:w-[70px] md:h-[70px]" : "w-[54px] h-[54px] md:w-[44px] md:h-[44px]";
+  const icon = size === "lg" ? "w-10 h-10 md:w-9 md:h-9" : "w-8 h-8 md:w-6 md:h-6";
   return (
     <div
       className={`${outer} rounded-full flex items-center justify-center flex-shrink-0 shadow-sm`}

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { LayoutGrid, ChevronDown, Check, Grid3X3, Folder, TrendingUp, Zap } from "lucide-react";
 
 export type CollectionSection = "cards" | "folders" | "insights" | "chase";
@@ -20,10 +21,30 @@ interface CollectionDropdownProps {
 export function CollectionDropdown({ active, value, onChange, onActivate }: CollectionDropdownProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
 
   useEffect(() => {
     if (!open) return;
-    const onDoc = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    const updatePosition = () => {
+      const rect = ref.current?.getBoundingClientRect();
+      if (rect) setMenuPosition({ top: rect.bottom + 8, left: rect.left });
+    };
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (!ref.current?.contains(target) && !menuRef.current?.contains(target)) setOpen(false);
+    };
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
     document.addEventListener("mousedown", onDoc);
     document.addEventListener("keydown", onKey);
@@ -36,7 +57,7 @@ export function CollectionDropdown({ active, value, onChange, onActivate }: Coll
   };
 
   return (
-    <div className="relative" ref={ref}>
+    <div className="relative flex-shrink-0" ref={ref}>
       <button
         onClick={handleClick}
         aria-haspopup="menu"
@@ -52,8 +73,13 @@ export function CollectionDropdown({ active, value, onChange, onActivate }: Coll
         <ChevronDown className={`w-3.5 h-3.5 text-white/80 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
 
-      {open && (
-        <div role="menu" className="absolute top-full left-0 mt-2 w-48 rounded-2xl bg-white py-1.5 shadow-xl border border-gray-100 z-30">
+      {open && createPortal(
+        <div
+          ref={menuRef}
+          role="menu"
+          className="fixed w-48 rounded-2xl bg-white py-1.5 shadow-xl border border-gray-100 z-50"
+          style={{ top: menuPosition.top, left: menuPosition.left }}
+        >
           {ITEMS.map(({ value: v, label, icon: Icon }) => (
             <button
               key={v}
@@ -67,7 +93,8 @@ export function CollectionDropdown({ active, value, onChange, onActivate }: Coll
               {value === v && <Check className="w-4 h-4 text-gray-900" />}
             </button>
           ))}
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );

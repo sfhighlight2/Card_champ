@@ -20,8 +20,9 @@ const TIER_STOPS: Record<"bronze" | "silver" | "gold" | "platinum", { start: str
 // from empty on mount and keeps a soft breathing glow.
 export function LevelRingAvatar({ avatar, name, size = 128, xpFraction, tier }: LevelRingAvatarProps) {
   const gradientId = `levelRingGradient-${useId()}`;
-  const r = size / 2 - 4;
-  const inset = size * 0.0625;
+  const stroke = size >= 120 ? 8 : 6;
+  const r = size / 2 - stroke / 2 - 1;
+  const inset = size * 0.07;
   const c = 2 * Math.PI * r;
 
   const [fill, setFill] = useState(0);
@@ -38,9 +39,9 @@ export function LevelRingAvatar({ avatar, name, size = 128, xpFraction, tier }: 
     <div className="relative" style={{ width: size, height: size }}>
       <style>{`@keyframes levelRingGlow { 0%,100%{opacity:0.85} 50%{opacity:1} }`}</style>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="absolute inset-0 -rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#f4f4f5" strokeWidth="4.5" />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#eef0f3" strokeWidth={stroke} />
         <circle
-          cx={size / 2} cy={size / 2} r={r} fill="none" stroke={`url(#${gradientId})`} strokeWidth="4.5" strokeLinecap="round"
+          cx={size / 2} cy={size / 2} r={r} fill="none" stroke={`url(#${gradientId})`} strokeWidth={stroke} strokeLinecap="round"
           strokeDasharray={c} strokeDashoffset={c * (1 - fill)}
           style={{
             transition: "stroke-dashoffset 1s cubic-bezier(0.22,1,0.36,1)",
@@ -65,4 +66,3 @@ export function LevelRingAvatar({ avatar, name, size = 128, xpFraction, tier }: 
     </div>
   );
 }
-
