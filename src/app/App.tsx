@@ -509,8 +509,8 @@ export default function App() {
 
   if (marketplaceOpen) {
     return (
-      <div className="h-[100dvh] w-full flex justify-center bg-white" style={{ fontFamily: "'Google Sans', sans-serif" }}>
-        <div className="relative w-full max-w-[430px] md:max-w-2xl flex flex-col h-full bg-white overflow-hidden">
+      <div className="min-h-screen w-full flex justify-center bg-white" style={{ fontFamily: "'Google Sans', sans-serif" }}>
+        <div className="relative w-full max-w-[430px] md:max-w-2xl flex flex-col min-h-screen bg-white overflow-hidden">
           <div className="flex items-center gap-3 px-6 pt-6 pb-2 flex-shrink-0">
             <button onClick={() => navigate("/")} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100" aria-label="Back">
               <ChevronLeft className="w-4 h-4 text-gray-600" />
@@ -537,8 +537,8 @@ export default function App() {
 
   if (profileOpen) {
     return (
-      <div className="h-[100dvh] w-full flex justify-center bg-white" style={{ fontFamily: "'Google Sans', sans-serif" }}>
-        <div className="relative w-full max-w-[430px] md:max-w-2xl flex flex-col h-full bg-white overflow-hidden">
+      <div className="min-h-screen w-full flex justify-center bg-white" style={{ fontFamily: "'Google Sans', sans-serif" }}>
+        <div className="relative w-full max-w-[430px] md:max-w-2xl flex flex-col min-h-screen bg-white overflow-hidden">
           <Suspense fallback={LOADING_FALLBACK}>
             <ProfileView
               profile={profile}
@@ -561,8 +561,8 @@ export default function App() {
 
   if (messagesOpen) {
     return (
-      <div className="h-[100dvh] w-full flex justify-center bg-white" style={{ fontFamily: "'Google Sans', sans-serif" }}>
-        <div className="relative w-full max-w-[430px] md:max-w-2xl flex flex-col h-full bg-white overflow-hidden">
+      <div className="min-h-screen w-full flex justify-center bg-white" style={{ fontFamily: "'Google Sans', sans-serif" }}>
+        <div className="relative w-full max-w-[430px] md:max-w-2xl flex flex-col min-h-screen bg-white overflow-hidden">
           <Suspense fallback={LOADING_FALLBACK}>
             <MessagesView threads={threads} profile={profile} onBack={() => navigate("/")} onOpenChat={openChat} />
           </Suspense>
@@ -572,8 +572,8 @@ export default function App() {
   }
 
   return (
-    <div className="h-[100dvh] w-full flex justify-center bg-white" style={{ fontFamily: "'Google Sans', sans-serif" }}>
-      <div className="relative w-full max-w-[430px] md:max-w-2xl lg:max-w-5xl flex flex-col h-full bg-white overflow-hidden">
+    <div className="min-h-screen w-full flex justify-center bg-white" style={{ fontFamily: "'Google Sans', sans-serif" }}>
+      <div className="relative w-full max-w-[430px] md:max-w-2xl lg:max-w-5xl flex flex-col min-h-screen bg-white overflow-hidden">
 
         {!openFolder && (
           <button onClick={() => setMenuOpen(true)} className="absolute top-6 right-6 w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 z-10" aria-label="Menu">
