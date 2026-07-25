@@ -602,7 +602,7 @@ export default function App() {
           </p>
         </div>
 
-        <div className="flex items-center justify-center gap-4 px-7 mb-5">
+        <div className="flex items-center justify-center gap-2 md:gap-4 px-7 mb-5">
           <CollectionDropdown
             active={mainTab === "collection"}
             value={cardsSubView}
@@ -616,10 +616,10 @@ export default function App() {
             const active = mainTab === id;
             return (
               <button key={id} onClick={() => goTab(id)}
-                className={`flex items-center gap-2 text-base font-semibold transition-colors ${
-                  active ? "pl-5 pr-4 py-3 rounded-full bg-gray-950 text-white" : "text-gray-400"
+                className={`flex items-center gap-1.5 md:gap-2 text-sm md:text-base font-semibold transition-colors ${
+                  active ? "pl-3.5 pr-3 py-2 md:pl-5 md:pr-4 md:py-3 rounded-full bg-gray-950 text-white" : "text-gray-400"
                 }`}>
-                <Icon className="w-4 h-4" />
+                <Icon className="w-3.5 h-3.5 md:w-4 md:h-4" />
                 {label}
               </button>
             );

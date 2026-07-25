@@ -40,13 +40,13 @@ export function CollectionDropdown({ active, value, onChange, onActivate }: Coll
         onClick={handleClick}
         aria-haspopup="menu"
         aria-expanded={open}
-        className={`flex items-center gap-2 font-semibold transition-colors ${
-          active ? "pl-5 pr-4 py-3 rounded-full bg-gray-950 text-white text-base" : "text-gray-400 text-base"
+        className={`flex items-center gap-1.5 md:gap-2 font-semibold transition-colors ${
+          active ? "pl-3.5 pr-3 py-2 md:pl-5 md:pr-4 md:py-3 rounded-full bg-gray-950 text-white text-sm md:text-base" : "text-gray-400 text-sm md:text-base"
         }`}
       >
-        <LayoutGrid className="w-4 h-4" />
+        <LayoutGrid className="w-3.5 h-3.5 md:w-4 md:h-4" />
         Collection
-        <ChevronDown className={`w-4 h-4 transition-transform ${open ? "rotate-180" : ""}`} />
+        <ChevronDown className={`w-3.5 h-3.5 md:w-4 md:h-4 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
 
       {open && (
