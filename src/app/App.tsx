@@ -616,7 +616,7 @@ export default function App() {
         )}
 
         <div className="flex flex-col items-center px-7 pt-14 pb-3">
-          <div className="relative mb-8">
+          <div className="relative mb-14">
             <LevelRingAvatar avatar={profile.avatar} name={profile.name} xpFraction={levelInfo.xpFraction} />
             <div className="absolute left-1/2 -translate-x-1/2" style={{ bottom: -34 }}>
               <TierMedallions levelInfo={levelInfo} />
