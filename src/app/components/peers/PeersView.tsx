@@ -1,13 +1,12 @@
-import { useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { Share2, Search, X, ChevronDown, ChevronUp, Send } from "lucide-react";
 import type { Card, FolderType, Peer } from "../../types";
 import { PEERS, SUGGESTED } from "../../data/mockPeers";
 import { PEER_TIER_BADGES } from "../../data/mockPosts";
-import { TIER_GRADIENTS } from "../../lib/level";
+import { badgeHof, badgePro } from "../../data/cardImages";
 import { AnimateIn } from "../shared/AnimateIn";
 import { ShareFlow } from "../shared/ShareFlow";
 import { PeerProfileSheet } from "./PeerProfileSheet";
-import { LevelRingAvatar } from "../shared/LevelRingAvatar";
 
 interface PeersViewProps {
   allCards: Card[];
@@ -25,10 +24,12 @@ const PEER_XP_FRACTIONS: Record<string, number> = {
   "@kevinoleary": 0.6,
 };
 
-function getPeerTier(handle: string): "bronze" | "silver" | "gold" | "platinum" {
-  const badge = PEER_TIER_BADGES[handle];
-  return badge === "HOF" ? "platinum" : badge === "PRO" ? "gold" : "silver";
-}
+const PEER_RING_COLORS: Record<string, { start: string; end: string }> = {
+  "@loganpaul": { start: "#64748b", end: "#94a3b8" },
+  "@barbaracorcoran": { start: "#c45a09", end: "#f6c57a" },
+  "@garyvee": { start: "#7c3aed", end: "#a78bfa" },
+  "@kevinoleary": { start: "#c45a09", end: "#f6c57a" },
+};
 
 export function PeersView({ allCards, folders, following, onToggleFollow, onOpenChat, showToast }: PeersViewProps) {
   const [selectedPeer, setSelectedPeer] = useState<Peer | null>(null);
@@ -57,36 +58,26 @@ export function PeersView({ allCards, folders, following, onToggleFollow, onOpen
     <>
       <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: "none", paddingBottom: "110px" }}>
 
-        <div className="mb-5">
-          <p className="text-xs font-semibold text-gray-400 tracking-widest uppercase px-6 mb-3">My Peers</p>
-          <div className="flex gap-6 px-6 justify-center flex-wrap">
+        <div className="mb-6">
+          <p className="text-xs font-semibold text-gray-400 tracking-widest uppercase px-6 mb-4">My Peers</p>
+          <div className="flex gap-6 px-6 overflow-x-auto md:justify-center" style={{ scrollbarWidth: "none" }}>
             {PEERS.map((peer, i) => (
               <AnimateIn key={i} delay={i * 80}>
               <button
                 onClick={() => setSelectedPeer(peer)}
-                className="flex flex-col items-center gap-2 focus:outline-none flex-shrink-0"
+                className="flex w-[86px] flex-col items-center gap-2 focus:outline-none flex-shrink-0"
               >
                 <div className="relative">
                   <LevelRingAvatar
                     avatar={peer.avatar}
                     name={peer.name}
-                    size={72}
-                    xpFraction={PEER_XP_FRACTIONS[peer.handle] ?? 0.5}
-                    tier={getPeerTier(peer.handle)}
+                    progress={PEER_XP_FRACTIONS[peer.handle] ?? 0.5}
+                    colors={PEER_RING_COLORS[peer.handle] ?? { start: "#64748b", end: "#94a3b8" }}
                   />
-                  {peer.verified && (
-                    <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-[#b49e63] border-2 border-white flex items-center justify-center z-10">
-                      <svg viewBox="0 0 10 10" className="w-2.5 h-2.5" fill="none">
-                        <path d="M2 5l2 2 4-4" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    </div>
-                  )}
+                  <PeerTierBadge handle={peer.handle} />
                 </div>
-                <p className="text-[10px] font-semibold text-gray-900 leading-tight text-center max-w-[64px] truncate">{peer.name.split(" ")[0]}</p>
-                <div className="flex flex-col items-center" style={{ gap: 1 }}>
-                  <p className="text-[9px] text-gray-400 leading-none">{peer.handle}</p>
-                  <p className="text-[9px] text-gray-400 leading-none">{peer.cards} cards</p>
-                </div>
+                <p className="text-sm font-bold text-gray-900 leading-tight text-center max-w-[86px] truncate">{peer.handle}</p>
+                <p className="text-xs font-bold text-gray-400 leading-none">{peer.cards} cards</p>
               </button>
               </AnimateIn>
             ))}
@@ -201,5 +192,82 @@ export function PeersView({ allCards, folders, following, onToggleFollow, onOpen
       )}
       {showShareFlow && <ShareFlow onClose={() => setShowShareFlow(false)} allCards={allCards} folders={folders} />}
     </>
+  );
+}
+
+function LevelRingAvatar({
+  avatar, name, progress, colors,
+}: {
+  avatar: string;
+  name: string;
+  progress: number;
+  colors: { start: string; end: string };
+}) {
+  const gradientId = `peerRingGradient-${useId()}`;
+  const size = 88;
+  const stroke = 6;
+  const r = size / 2 - stroke / 2 - 1;
+  const c = 2 * Math.PI * r;
+  const inset = 9;
+  const [fill, setFill] = useState(0);
+
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setFill(progress));
+    return () => cancelAnimationFrame(id);
+  }, [progress]);
+
+  return (
+    <div className="relative" style={{ width: size, height: size }}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="absolute inset-0 -rotate-90">
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#eef0f3" strokeWidth={stroke} />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          fill="none"
+          stroke={`url(#${gradientId})`}
+          strokeWidth={stroke}
+          strokeLinecap="round"
+          strokeDasharray={c}
+          strokeDashoffset={c * (1 - fill)}
+          style={{ transition: "stroke-dashoffset 1s cubic-bezier(0.22,1,0.36,1)" }}
+        />
+        <defs>
+          <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor={colors.start} />
+            <stop offset="100%" stopColor={colors.end} />
+          </linearGradient>
+        </defs>
+      </svg>
+      <img
+        src={avatar}
+        alt={name}
+        className="absolute rounded-full object-cover"
+        style={{
+          top: inset,
+          left: inset,
+          width: size - inset * 2,
+          height: size - inset * 2,
+          boxShadow: "0 0 0 3px #fff",
+        }}
+        draggable={false}
+      />
+    </div>
+  );
+}
+
+function PeerTierBadge({ handle }: { handle: string }) {
+  const badge = PEER_TIER_BADGES[handle];
+  if (!badge) return null;
+  const src = badge === "HOF" ? badgeHof : badgePro;
+  const label = badge === "HOF" ? "Hall of Fame tier" : "PRO tier";
+
+  return (
+    <div
+      className="absolute -bottom-1.5 -right-1.5 w-8 h-8 rounded-full bg-white p-0.5 z-10"
+      style={{ boxShadow: "0 3px 10px rgba(0,0,0,0.18)" }}
+    >
+      <img src={src} alt={label} title={label} className="w-full h-full rounded-full object-contain" draggable={false} />
+    </div>
   );
 }
