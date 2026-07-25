@@ -62,15 +62,15 @@ export function CollectionDropdown({ active, value, onChange, onActivate }: Coll
         onClick={handleClick}
         aria-haspopup="menu"
         aria-expanded={open}
-        className={`flex items-center gap-2 font-bold transition-all ${
+        className={`flex items-center gap-1 md:gap-2 font-bold transition-all ${
           active
-            ? "pl-4 pr-3.5 py-2.5 rounded-full bg-[#0d0d11] text-white text-sm md:text-[15px] shadow-sm"
-            : "text-slate-400 font-semibold text-sm md:text-[15px] hover:text-slate-600"
+            ? "pl-3 pr-2.5 py-2 rounded-full bg-[#0d0d11] text-white text-[11px] md:pl-4 md:pr-3.5 md:py-2.5 md:text-[15px] shadow-sm"
+            : "text-slate-400 font-semibold text-[11px] md:text-[15px] hover:text-slate-600"
         }`}
       >
-        <LayoutGrid className="w-4 h-4 flex-shrink-0" />
+        <LayoutGrid className="w-3.5 h-3.5 md:w-4 md:h-4 flex-shrink-0" />
         <span>Collection</span>
-        <ChevronDown className={`w-3.5 h-3.5 text-white/80 transition-transform ${open ? "rotate-180" : ""}`} />
+        <ChevronDown className={`w-3 h-3 md:w-3.5 md:h-3.5 text-white/80 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
 
       {open && createPortal(

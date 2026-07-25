@@ -640,7 +640,7 @@ export default function App() {
           </p>
         </div>
 
-        <div className="flex items-center justify-start md:justify-center gap-4 md:gap-5 px-7 md:px-6 mb-4 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+        <div className="flex w-[calc(100%-2.75rem)] items-center justify-between gap-1.5 px-7 md:w-auto md:justify-center md:gap-5 md:px-6 mb-4">
           <CollectionDropdown
             active={mainTab === "collection"}
             value={cardsSubView}
@@ -654,10 +654,10 @@ export default function App() {
             const active = mainTab === id;
             return (
               <button key={id} onClick={() => goTab(id)}
-                className={`flex flex-shrink-0 items-center gap-1.5 md:gap-2 text-sm md:text-[15px] font-semibold transition-all ${
-                  active ? "pl-4 pr-3.5 py-2.5 rounded-full bg-[#0d0d11] text-white font-bold shadow-sm" : "text-slate-400 hover:text-slate-600"
+                className={`flex flex-shrink-0 items-center gap-1 md:gap-2 text-[11px] md:text-[15px] font-semibold transition-all ${
+                  active ? "pl-3 pr-2.5 py-2 rounded-full bg-[#0d0d11] text-white font-bold shadow-sm md:pl-4 md:pr-3.5 md:py-2.5" : "text-slate-400 hover:text-slate-600"
                 }`}>
-                <Icon className="w-4 h-4 flex-shrink-0 text-slate-400" />
+                <Icon className="w-3.5 h-3.5 md:w-4 md:h-4 flex-shrink-0 text-slate-400" />
                 <span>{label}</span>
               </button>
             );
