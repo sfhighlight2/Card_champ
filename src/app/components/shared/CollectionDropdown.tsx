@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { LayoutGrid, ChevronDown, Check, Grid3X3, Folder, TrendingUp } from "lucide-react";
+import { LayoutGrid, ChevronDown, Check, Grid3X3, Folder, TrendingUp, Zap } from "lucide-react";
 
-export type CollectionSection = "cards" | "folders" | "insights";
+export type CollectionSection = "cards" | "folders" | "insights" | "chase";
 
 const ITEMS: { value: CollectionSection; label: string; icon: typeof Grid3X3 }[] = [
   { value: "cards", label: "Cards", icon: Grid3X3 },
   { value: "folders", label: "Folders", icon: Folder },
+  { value: "chase", label: "Chase", icon: Zap },
   { value: "insights", label: "Insights", icon: TrendingUp },
 ];
 

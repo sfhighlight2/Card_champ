@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { buildBackup, isValidBackup, parseBackupFile, type BackupData } from "./backup";
-import type { Card, FolderType, Profile } from "../types";
+import type { Card, Chase, FolderType, Profile } from "../types";
 
 const sampleProfile: Profile = { name: "Andrew Cordle", handle: "@andrewcordle", avatar: "/a.png", followers: 219 };
 
@@ -8,6 +8,7 @@ function sampleBackup(): BackupData {
   return buildBackup({
     cards: [] as Card[],
     folders: [] as FolderType[],
+    chases: [] as Chase[],
     profile: sampleProfile,
     watchlist: [1, 2],
     following: ["@garyvee"],
@@ -16,8 +17,8 @@ function sampleBackup(): BackupData {
 }
 
 describe("buildBackup", () => {
-  it("stamps version 1", () => {
-    expect(sampleBackup().version).toBe(1);
+  it("stamps version 2", () => {
+    expect(sampleBackup().version).toBe(2);
   });
 });
 
@@ -31,7 +32,13 @@ describe("isValidBackup", () => {
   });
 
   it("rejects a wrong version number", () => {
-    expect(isValidBackup({ ...sampleBackup(), version: 2 })).toBe(false);
+    expect(isValidBackup({ ...sampleBackup(), version: 3 })).toBe(false);
+  });
+
+  it("accepts older backups without chases", () => {
+    const legacy = { ...sampleBackup(), version: 1 };
+    delete (legacy as Partial<BackupData>).chases;
+    expect(isValidBackup(legacy)).toBe(true);
   });
 
   it("rejects a missing array field", () => {

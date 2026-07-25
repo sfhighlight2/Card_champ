@@ -32,6 +32,14 @@ export interface FolderType {
   thumbnail?: string;
 }
 
+export interface Chase {
+  id: number;
+  title: string;
+  description: string;
+  pinnedCardId?: number;
+  createdAt: number;
+}
+
 export interface PriceHistoryPoint {
   d: string;
   v: number;

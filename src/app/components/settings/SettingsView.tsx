@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, Download, Upload, RotateCcw, Trophy, LogOut, Sun, Moon, Monitor } from "lucide-react";
-import type { Card, FolderType, Listing, Profile } from "../../types";
+import type { Card, Chase, FolderType, Listing, Profile } from "../../types";
 import { buildBackup, downloadBackup, parseBackupFile } from "../../lib/backup";
 import type { BackupData } from "../../lib/backup";
 import { ConfirmDialog } from "../shared/ConfirmDialog";
@@ -14,6 +14,7 @@ interface SettingsViewProps {
   onProfileChange: (p: Profile) => void;
   cards: Card[];
   folders: FolderType[];
+  chases: Chase[];
   watchlist: number[];
   following: string[];
   listings: Listing[];
@@ -26,7 +27,7 @@ interface SettingsViewProps {
 }
 
 export function SettingsView({
-  onBack, profile, onProfileChange, cards, folders, watchlist, following, listings, onRestore, onReset, seenAchievements, onLogout, theme, onThemeChange,
+  onBack, profile, onProfileChange, cards, folders, chases, watchlist, following, listings, onRestore, onReset, seenAchievements, onLogout, theme, onThemeChange,
 }: SettingsViewProps) {
   useEscapeClose(onBack);
   const [name, setName] = useState(profile.name);
@@ -49,7 +50,7 @@ export function SettingsView({
   };
 
   const handleExport = () => {
-    downloadBackup(buildBackup({ cards, folders, profile, watchlist, following, listings }));
+    downloadBackup(buildBackup({ cards, folders, chases, profile, watchlist, following, listings }));
   };
 
   const handleFileChosen = async (file: File) => {
@@ -166,7 +167,7 @@ export function SettingsView({
       {confirmingImport && (
         <ConfirmDialog
           title="Restore this backup?"
-          message="This replaces your current cards, folders, watchlist, follows, and listings with the contents of the imported file."
+          message="This replaces your current cards, folders, chases, watchlist, follows, and listings with the contents of the imported file."
           confirmLabel="Restore"
           onConfirm={() => { onRestore(confirmingImport); setConfirmingImport(null); }}
           onCancel={() => setConfirmingImport(null)}
@@ -175,7 +176,7 @@ export function SettingsView({
       {confirmingReset && (
         <ConfirmDialog
           title="Reset all data?"
-          message="This erases your added cards, folders, watchlist, follows, and listings, and restores the original starter collection."
+          message="This erases your added cards, folders, chases, watchlist, follows, and listings, and restores the original starter collection."
           confirmLabel="Reset"
           onConfirm={() => { onReset(); setConfirmingReset(false); }}
           onCancel={() => setConfirmingReset(false)}

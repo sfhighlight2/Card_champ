@@ -17,7 +17,7 @@ export function TierMedallions({ levelInfo, size = 52 }: { levelInfo: LevelInfo;
         }
       `}</style>
       {levelInfo.isPro && (
-        <span className="text-[13px] font-bold tracking-wider" style={{ color: "#b45309" }}>PRO</span>
+        <span className="text-[13px] font-bold tracking-wider" style={{ color: "#b49b32" }}>PRO</span>
       )}
       <div className="flex items-center">
         <div
@@ -35,7 +35,7 @@ export function TierMedallions({ levelInfo, size = 52 }: { levelInfo: LevelInfo;
             className="absolute inset-0 pointer-events-none"
             style={{
               background: "linear-gradient(105deg, transparent 20%, rgba(255,255,255,0.75) 45%, rgba(255,255,255,0.95) 50%, rgba(255,255,255,0.75) 55%, transparent 80%)",
-              animation: "medallionGlare 5.8s ease-in-out infinite",
+              animation: "medallionGlare 8.8s ease-in-out infinite",
             }}
           />
         </div>
@@ -54,7 +54,7 @@ export function TierMedallions({ levelInfo, size = 52 }: { levelInfo: LevelInfo;
             className="absolute inset-0 pointer-events-none"
             style={{
               background: "linear-gradient(105deg, transparent 20%, rgba(255,255,255,0.75) 45%, rgba(255,255,255,0.95) 50%, rgba(255,255,255,0.75) 55%, transparent 80%)",
-              animation: "medallionGlare 5.8s ease-in-out infinite 0.4s",
+              animation: "medallionGlare 8.8s ease-in-out infinite 0.6s",
             }}
           />
         </div>

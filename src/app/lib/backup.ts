@@ -1,9 +1,10 @@
-import type { Card, FolderType, Listing, Profile } from "../types";
+import type { Card, Chase, FolderType, Listing, Profile } from "../types";
 
 export interface BackupData {
-  version: 1;
+  version: 1 | 2;
   cards: Card[];
   folders: FolderType[];
+  chases?: Chase[];
   profile: Profile;
   watchlist: number[];
   following: string[];
@@ -11,16 +12,17 @@ export interface BackupData {
 }
 
 export function buildBackup(data: Omit<BackupData, "version">): BackupData {
-  return { version: 1, ...data };
+  return { version: 2, ...data };
 }
 
 export function isValidBackup(value: unknown): value is BackupData {
   if (typeof value !== "object" || value === null) return false;
   const v = value as Record<string, unknown>;
   return (
-    v.version === 1 &&
+    (v.version === 1 || v.version === 2) &&
     Array.isArray(v.cards) &&
     Array.isArray(v.folders) &&
+    (v.chases === undefined || Array.isArray(v.chases)) &&
     typeof v.profile === "object" && v.profile !== null &&
     Array.isArray(v.watchlist) &&
     Array.isArray(v.following) &&

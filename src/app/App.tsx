@@ -4,7 +4,7 @@ import {
   Scan, X, Plus, Share2, Search, TrendingUp, TrendingDown, Users, UserPlus, LayoutGrid, Tag, ChevronLeft, ChevronUp, ChevronDown, Folder, SlidersHorizontal, Trash2, FolderPlus, Menu as MenuIcon, MessageCircle,
 } from "lucide-react";
 import confetti from "canvas-confetti";
-import type { AuthState, Card, CommunityComment, CommunityPost, DirectMessage, FolderType, Listing, MainTab, MarketItem, MessageThread, Profile } from "./types";
+import type { AuthState, Card, Chase, CommunityComment, CommunityPost, DirectMessage, FolderType, Listing, MainTab, MarketItem, MessageThread, Profile } from "./types";
 import { ME } from "./types";
 import { ALL_CARDS, DEFAULT_FOLDERS, GRADE_LABELS } from "./data/mockCards";
 import { MARKET_ITEMS } from "./data/mockMarket";
@@ -23,6 +23,7 @@ import { LevelRingAvatar } from "./components/shared/LevelRingAvatar";
 import { Money } from "./components/shared/Money";
 import { TierMedallions } from "./components/shared/TierMedallions";
 import { CollectionDropdown } from "./components/shared/CollectionDropdown";
+import type { CollectionSection } from "./components/shared/CollectionDropdown";
 import { CollectionFilterMenu } from "./components/shared/CollectionFilterMenu";
 import { BulkAddToFolderSheet } from "./components/cards/BulkAddToFolderSheet";
 import { CardTile } from "./components/cards/CardTile";
@@ -32,6 +33,7 @@ import { EditCardSheet } from "./components/cards/EditCardSheet";
 import { NewFolderSheet } from "./components/cards/NewFolderSheet";
 import { EditFolderSheet } from "./components/cards/EditFolderSheet";
 import { FolderDetailView } from "./components/cards/FolderDetailView";
+import { ChaseView } from "./components/cards/ChaseView";
 import { SellFlow } from "./components/market/SellFlow";
 import { ShareFlow } from "./components/shared/ShareFlow";
 import { ConfirmDialog } from "./components/shared/ConfirmDialog";
@@ -68,6 +70,16 @@ const DEFAULT_PROFILE: Profile = {
   chasing: "Mickey Mantle 1952 Topps PSA 10",
 };
 
+const DEFAULT_CHASES: Chase[] = [
+  {
+    id: 1,
+    title: "Mickey Mantle Gem Mint",
+    description: "Looking for a 1952 Topps Mickey Mantle graded PSA 9 or higher. The holy grail - any centering, any sub-grades, as long as it's a 9+.",
+    pinnedCardId: 8,
+    createdAt: 1728000000000,
+  },
+];
+
 type SortKey = "recent" | "oldest" | "value-desc" | "value-asc" | "gain-desc" | "name" | "year";
 const SORT_OPTIONS: { key: SortKey; label: string }[] = [
   { key: "recent", label: "Recently added" },
@@ -92,6 +104,7 @@ export default function App() {
 
   const [cards, setCards] = useLocalStorage<Card[]>("cardchamps:cards", ALL_CARDS);
   const [folders, setFolders] = useLocalStorage<FolderType[]>("cardchamps:folders", DEFAULT_FOLDERS);
+  const [chases, setChases] = useLocalStorage<Chase[]>("cardchamps:chases", DEFAULT_CHASES);
   const [profile, setProfile] = useLocalStorage<Profile>("cardchamps:profile", DEFAULT_PROFILE);
   const [watchlist, setWatchlist] = useLocalStorage<number[]>("cardchamps:watchlist", []);
   const [following, setFollowing] = useLocalStorage<string[]>("cardchamps:following", []);
@@ -133,7 +146,7 @@ export default function App() {
   const [editingProfile, setEditingProfile] = useState(false);
   const [openFolder, setOpenFolder] = useState<FolderType | null>(null);
   const [cardQuery, setCardQuery] = useState("");
-  const [cardsSubView, setCardsSubView] = useState<"cards" | "folders" | "insights">("cards");
+  const [cardsSubView, setCardsSubView] = useState<CollectionSection>("cards");
   const [sortBy, setSortBy] = useState<SortKey>("recent");
   const [filterAuto, setFilterAuto] = useState(false);
   const [filterGems, setFilterGems] = useState(false);
@@ -259,6 +272,7 @@ export default function App() {
     const uname = email.split("@")[0] || "collector";
     setCards([]);
     setFolders([]);
+    setChases([]);
     setWatchlist([]);
     setFollowing([]);
     setListings([]);
@@ -288,6 +302,7 @@ export default function App() {
     const card = cards.find(c => c.id === id);
     setCards(prev => prev.filter(c => c.id !== id));
     setFolders(prev => prev.map(f => ({ ...f, cardIds: f.cardIds.filter(cid => cid !== id) })));
+    setChases(prev => prev.map(chase => chase.pinnedCardId === id ? { ...chase, pinnedCardId: undefined } : chase));
     setListings(prev => prev.filter(l => l.cardId !== id));
     if (card) showToast(`Deleted ${card.player}`);
   };
@@ -300,6 +315,7 @@ export default function App() {
     const idSet = new Set(ids);
     setCards(prev => prev.filter(c => !idSet.has(c.id)));
     setFolders(prev => prev.map(f => ({ ...f, cardIds: f.cardIds.filter(cid => !idSet.has(cid)) })));
+    setChases(prev => prev.map(chase => chase.pinnedCardId && idSet.has(chase.pinnedCardId) ? { ...chase, pinnedCardId: undefined } : chase));
     setListings(prev => prev.filter(l => !idSet.has(l.cardId)));
     showToast(`Deleted ${ids.length} card${ids.length !== 1 ? "s" : ""}`);
     setSelectMode(false);
@@ -328,6 +344,21 @@ export default function App() {
     setFolders(prev => prev.filter(f => f.id !== folder.id));
     setOpenFolder(null);
     showToast(`Deleted ${folder.name}`);
+  };
+
+  const handleCreateChase = (data: Omit<Chase, "id" | "createdAt">) => {
+    setChases(prev => [{ id: Date.now(), createdAt: Date.now(), ...data }, ...prev]);
+    showToast("Chase saved");
+  };
+
+  const handleUpdateChase = (updated: Chase) => {
+    setChases(prev => prev.map(chase => chase.id === updated.id ? updated : chase));
+    showToast("Chase updated");
+  };
+
+  const handleDeleteChase = (id: number) => {
+    setChases(prev => prev.filter(chase => chase.id !== id));
+    showToast("Chase removed");
   };
 
   const handleBuy = (item: MarketItem) => {
@@ -450,6 +481,7 @@ export default function App() {
   const handleRestore = (data: BackupData) => {
     setCards(data.cards);
     setFolders(data.folders);
+    setChases(data.chases ?? []);
     setProfile(data.profile);
     setWatchlist(data.watchlist);
     setFollowing(data.following);
@@ -460,6 +492,7 @@ export default function App() {
   const handleReset = () => {
     setCards(ALL_CARDS);
     setFolders(DEFAULT_FOLDERS);
+    setChases(DEFAULT_CHASES);
     setProfile(DEFAULT_PROFILE);
     setWatchlist([]);
     setFollowing([]);
@@ -491,6 +524,7 @@ export default function App() {
               onProfileChange={setProfile}
               cards={cards}
               folders={folders}
+              chases={chases}
               watchlist={watchlist}
               following={following}
               listings={listings}
@@ -584,7 +618,7 @@ export default function App() {
         <div className="flex flex-col items-center px-7 pt-14 pb-3">
           <div className="relative mb-8">
             <LevelRingAvatar avatar={profile.avatar} name={profile.name} xpFraction={levelInfo.xpFraction} />
-            <div className="absolute left-1/2 -translate-x-1/2" style={{ bottom: -22 }}>
+            <div className="absolute left-1/2 -translate-x-1/2" style={{ bottom: -34 }}>
               <TierMedallions levelInfo={levelInfo} />
             </div>
           </div>
@@ -747,6 +781,16 @@ export default function App() {
               <Suspense fallback={LOADING_FALLBACK}>
                 <InsightsView cards={cards} />
               </Suspense>
+            )}
+
+            {cardsSubView === "chase" && (
+              <ChaseView
+                chases={chases}
+                cards={cards}
+                onCreate={handleCreateChase}
+                onUpdate={handleUpdateChase}
+                onDelete={handleDeleteChase}
+              />
             )}
 
             {cardsSubView === "folders" && (
