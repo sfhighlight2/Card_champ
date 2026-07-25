@@ -35,7 +35,7 @@ export function TierMedallions({ levelInfo, size = 52 }: { levelInfo: LevelInfo;
             className="absolute inset-0 pointer-events-none"
             style={{
               background: "linear-gradient(105deg, transparent 20%, rgba(255,255,255,0.75) 45%, rgba(255,255,255,0.95) 50%, rgba(255,255,255,0.75) 55%, transparent 80%)",
-              animation: "medallionGlare 3.8s ease-in-out infinite",
+              animation: "medallionGlare 5.8s ease-in-out infinite",
             }}
           />
         </div>
@@ -54,7 +54,7 @@ export function TierMedallions({ levelInfo, size = 52 }: { levelInfo: LevelInfo;
             className="absolute inset-0 pointer-events-none"
             style={{
               background: "linear-gradient(105deg, transparent 20%, rgba(255,255,255,0.75) 45%, rgba(255,255,255,0.95) 50%, rgba(255,255,255,0.75) 55%, transparent 80%)",
-              animation: "medallionGlare 3.8s ease-in-out infinite 0.3s",
+              animation: "medallionGlare 5.8s ease-in-out infinite 0.4s",
             }}
           />
         </div>
