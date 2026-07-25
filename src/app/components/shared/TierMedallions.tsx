@@ -16,16 +16,16 @@ export function TierMedallions({ levelInfo, size = 52 }: { levelInfo: LevelInfo;
           src={badgePro}
           alt="PRO membership"
           title="PRO membership"
-          className="relative flex-shrink-0 object-contain"
-          style={{ width: size, height: size, minWidth: size, zIndex: 2, filter: "drop-shadow(0 3px 5px rgba(0,0,0,0.22))" }}
+          className="relative flex-shrink-0 object-contain rounded-full bg-white"
+          style={{ width: size, height: size, minWidth: size, zIndex: 2, boxShadow: "0 0 0 3px #fff, 0 3px 6px rgba(0,0,0,0.24)" }}
           draggable={false}
         />
         <img
           src={badgeBronze}
           alt={`${TIER_LABELS[levelInfo.tier]} tier`}
           title={`${TIER_LABELS[levelInfo.tier]} tier`}
-          className="relative flex-shrink-0 object-contain"
-          style={{ width: size, height: size, minWidth: size, zIndex: 1, marginLeft: -size * 0.3, filter: "drop-shadow(0 3px 5px rgba(0,0,0,0.22))" }}
+          className="relative flex-shrink-0 object-contain rounded-full bg-white"
+          style={{ width: size, height: size, minWidth: size, zIndex: 1, marginLeft: -size * 0.3, boxShadow: "0 0 0 3px #fff, 0 3px 6px rgba(0,0,0,0.24)" }}
           draggable={false}
         />
       </div>
