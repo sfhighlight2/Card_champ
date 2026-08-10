@@ -1,4 +1,4 @@
-import type { Card, Chase, FolderType, Listing, Profile } from "../types";
+import type { Card, Chase, FolderType, Profile } from "../types";
 
 export interface BackupData {
   version: 1 | 2;
@@ -6,9 +6,11 @@ export interface BackupData {
   folders: FolderType[];
   chases?: Chase[];
   profile: Profile;
-  watchlist: number[];
+  /** Kept for compatibility with version 1 and 2 files. The watchlist, follows,
+   *  and listings all live in Postgres now, so fresh exports carry them empty. */
+  watchlist: unknown[];
   following: string[];
-  listings: Listing[];
+  listings: unknown[];
 }
 
 export function buildBackup(data: Omit<BackupData, "version">): BackupData {

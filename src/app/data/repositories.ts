@@ -716,9 +716,45 @@ export async function fetchListings() {
     grade: l.grade != null ? String(Number(l.grade)) : "",
     price: fromMinor(l.asking_amount_minor),
     source: l.marketplace_providers?.name ?? "",
-    externalUrl: l.external_url,
+    externalUrl: (l.external_url as string | null) ?? null,
     sourceType: l.source_type as "native" | "external",
   }));
+}
+
+/**
+ * Real 30-day movement per catalog card, from `market_price_snapshots`.
+ *
+ * The mock marketplace carried an invented `change` on every item. This derives
+ * it from the oldest and newest snapshot instead, batched into one query rather
+ * than one per listing. Cards without at least two snapshots simply have no
+ * change to report, and are omitted rather than shown as 0%.
+ */
+export async function fetchPriceChanges(catalogCardIds: string[]): Promise<Map<string, number>> {
+  const ids = [...new Set(catalogCardIds.filter(Boolean))];
+  if (ids.length === 0) return new Map();
+
+  const { data, error } = await supabase
+    .from("market_price_snapshots")
+    .select("catalog_card_id, amount_minor, observed_at")
+    .in("catalog_card_id", ids)
+    .order("observed_at");
+  if (error) throw error;
+
+  const byCard = new Map<string, { first: number; last: number; count: number }>();
+  for (const row of data ?? []) {
+    const id = row.catalog_card_id as string;
+    const amount = Number(row.amount_minor);
+    const entry = byCard.get(id);
+    if (!entry) byCard.set(id, { first: amount, last: amount, count: 1 });
+    else { entry.last = amount; entry.count += 1; }
+  }
+
+  const changes = new Map<string, number>();
+  for (const [id, { first, last, count }] of byCard) {
+    if (count < 2 || first === 0) continue;
+    changes.set(id, Math.round(((last - first) / first) * 1000) / 10);
+  }
+  return changes;
 }
 
 export async function fetchPriceHistory(catalogCardId: string) {
@@ -830,9 +866,24 @@ export async function updateListingStatus(listingId: string, status: string): Pr
   if (error) throw error;
 }
 
+/**
+ * Deletes a listing, and complains if nothing was deleted.
+ *
+ * `listings_delete_own` only permits draft, cancelled, or expired listings — an
+ * active or sold one must not be erasable, since a sold listing may have an order
+ * against it. A plain delete against a disallowed row succeeds with zero rows
+ * affected, so without this check the UI would report success and change nothing.
+ */
 export async function removeListing(listingId: string): Promise<void> {
-  const { error } = await supabase.from("marketplace_listings").delete().eq("id", listingId);
+  const { data, error } = await supabase
+    .from("marketplace_listings")
+    .delete()
+    .eq("id", listingId)
+    .select("id");
   if (error) throw error;
+  if (!data || data.length === 0) {
+    throw new Error("Only cancelled or expired listings can be removed. Cancel it first.");
+  }
 }
 
 // ---------------------------------------------------------------------------

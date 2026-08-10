@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { ChevronLeft, Download, Upload, Trophy, LogOut, Sun, Moon, Monitor, KeyRound } from "lucide-react";
-import type { Card, Chase, FolderType, Listing, Profile } from "../../types";
+import type { Card, Chase, FolderType, Profile } from "../../types";
 import { buildBackup, downloadBackup } from "../../lib/backup";
 import { CountUp } from "../shared/CountUp";
 import { useEscapeClose } from "../../hooks/useEscapeClose";
@@ -18,9 +18,9 @@ interface SettingsViewProps {
   cards: Card[];
   folders: FolderType[];
   chases: Chase[];
-  watchlist: number[];
+  watchlist: unknown[];
   following: string[];
-  listings: Listing[];
+  listings: unknown[];
   /** Server-evaluated, from `achievement_definitions` + `user_achievements`. */
   achievements: AchievementState[];
   /** Opens the change-password sheet. Absent for guests, who have no password. */

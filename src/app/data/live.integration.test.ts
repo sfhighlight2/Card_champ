@@ -402,6 +402,101 @@ d("live: peers and their collections", () => {
   });
 });
 
+d("live: marketplace", () => {
+  beforeAll(async () => {
+    alphaId = await signIn(ALPHA);
+    collectionId = (await repo.fetchDefaultCollectionId(alphaId)) ?? "";
+  });
+
+  afterAll(async () => {
+    await supabase.auth.signOut();
+  });
+
+  it("reads real active listings with provider and grading detail", async () => {
+    const listings = await repo.fetchListings();
+    expect(listings.length).toBeGreaterThan(0);
+    const first = listings[0];
+    expect(first.title).toBeTruthy();
+    expect(first.price).toBeGreaterThan(0);
+    expect(["native", "external"]).toContain(first.sourceType);
+  });
+
+  it("derives 30-day movement from price snapshots, not a hardcoded number", async () => {
+    const listings = await repo.fetchListings();
+    const ids = listings.map(l => l.catalogCardId).filter((id): id is string => !!id);
+    const changes = await repo.fetchPriceChanges(ids);
+
+    // Most seeded cards have six snapshots; at least one must yield a change.
+    expect(changes.size).toBeGreaterThan(0);
+    for (const [, change] of changes) {
+      expect(Number.isFinite(change)).toBe(true);
+    }
+
+    // A card with fewer than two snapshots is omitted rather than reported as 0%.
+    expect(changes.has("00000000-0000-4000-8000-000000000000")).toBe(false);
+  });
+
+  it("returns price history and recent sales for a catalog card", async () => {
+    const listings = await repo.fetchListings();
+    const withHistory = listings.find(l => l.catalogCardId);
+    const history = await repo.fetchPriceHistory(withHistory!.catalogCardId!);
+    const sales = await repo.fetchRecentSales(withHistory!.catalogCardId!);
+    expect(Array.isArray(history)).toBe(true);
+    expect(Array.isArray(sales)).toBe(true);
+  });
+
+  it("adds and removes a watchlist item server-side", async () => {
+    const listings = await repo.fetchListings();
+    const target = listings.find(l => l.catalogCardId)!.catalogCardId!;
+
+    await repo.toggleWatchlist(alphaId, target, false);
+    expect(await repo.fetchWatchlist(alphaId)).toContain(target);
+
+    await repo.toggleWatchlist(alphaId, target, true);
+    expect(await repo.fetchWatchlist(alphaId)).not.toContain(target);
+  });
+
+  it("creates, updates, and removes one of the user's own listings", async () => {
+    const copyId = await repo.addCard(alphaId, collectionId, {
+      player: "QA Sellable",
+      year: "1994",
+      brand: "Upper Deck",
+      team: "Braves",
+      graderCode: "PSA",
+      grade: "9",
+      gradeLabel: "Mint",
+      cert: "QA-SELL-1",
+      value: 75,
+    });
+    createdCardIds.push(copyId);
+
+    await repo.createListing(alphaId, copyId, {
+      title: "1994 Upper Deck QA Sellable",
+      price: 90,
+      shipsFrom: "United States",
+      graderCode: "PSA",
+      grade: "9",
+    });
+
+    let mine = await repo.fetchMyListings(alphaId);
+    const listing = mine.find(l => l.copyId === copyId)!;
+    expect(listing.price).toBe(90);
+    expect(listing.status).toBe("active");
+
+    // An active listing cannot be deleted — listings_delete_own permits only
+    // draft, cancelled, and expired — so removal has to go through cancel.
+    await expect(repo.removeListing(listing.id)).rejects.toThrow(/cancel/i);
+
+    await repo.updateListingStatus(listing.id, "cancelled");
+    mine = await repo.fetchMyListings(alphaId);
+    expect(mine.find(l => l.id === listing.id)!.status).toBe("cancelled");
+
+    await repo.removeListing(listing.id);
+    mine = await repo.fetchMyListings(alphaId);
+    expect(mine.find(l => l.id === listing.id)).toBeUndefined();
+  });
+});
+
 d("live: messaging", () => {
   let betaId = "";
 

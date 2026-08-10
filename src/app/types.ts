@@ -62,35 +62,6 @@ export interface RecentSale {
   source: string;
 }
 
-export interface MarketItem {
-  id: number;
-  img: string;
-  player: string;
-  year: string;
-  brand: string;
-  grader: string;
-  grade: string;
-  price: number;
-  change: number;
-  source: string;
-  priceHistory: PriceHistoryPoint[];
-  recentSales: RecentSale[];
-  dealNote: string | null;
-}
-
-export interface Listing {
-  id: number;
-  /** A card copy's UUID. */
-  cardId: string;
-  platform: string;
-  askingPrice: number;
-  condition: string;
-  shipsFrom: string;
-  status: "active" | "sold";
-  views: number;
-  createdAt: number;
-}
-
 export interface Profile {
   name: string;
   handle: string;
@@ -103,6 +74,38 @@ export interface Profile {
 }
 
 export type MainTab = "collection" | "community" | "connections";
+
+// ---------------------------------------------------------------------------
+// marketplace — shapes from `marketplace_listings` and the price tables
+// ---------------------------------------------------------------------------
+
+export interface MarketListing {
+  id: string;
+  catalogCardId: string | null;
+  title: string;
+  grader: string;
+  grade: string;
+  price: number;
+  /** Provider name, e.g. "eBay". */
+  source: string;
+  externalUrl: string | null;
+  sourceType: "native" | "external";
+  /** Real 30-day movement from market_price_snapshots; absent when a card has
+   *  fewer than two snapshots, rather than shown as a fabricated 0%. */
+  change?: number;
+}
+
+/** One of the current user's own listings. */
+export interface MyListing {
+  id: string;
+  copyId: string | null;
+  title: string;
+  price: number;
+  status: string;
+  views: number;
+  shipsFrom: string;
+  createdAt: string;
+}
 
 // ---------------------------------------------------------------------------
 // community — shapes returned by the `community_feed` view

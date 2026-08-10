@@ -1,24 +1,30 @@
 import { useState } from "react";
-import { X, Search, Check } from "lucide-react";
-import type { Card, Listing } from "../../types";
+import { X, Search, Check, Store } from "lucide-react";
+import type { Card } from "../../types";
 import { GRADER_COLOR } from "../../data/cardFields";
+import { gradingBadge, gradingSummary } from "../../lib/grading";
 import { useEscapeClose } from "../../hooks/useEscapeClose";
-
-const SELL_PLATFORMS = ["eBay", "Fanatics", "COMC", "MySlabs", "StockX"];
 
 interface SellFlowProps {
   onClose: () => void;
   allCards: Card[];
-  onCreate: (listing: Listing) => void;
+  /** Creates a real `marketplace_listings` row owned by the seller. */
+  onCreate: (input: {
+    copyId: string;
+    title: string;
+    price: number;
+    shipsFrom: string;
+    catalogCardId: string | null;
+    graderCode: string;
+    grade: string;
+  }) => void;
 }
 
 export function SellFlow({ onClose, allCards, onCreate }: SellFlowProps) {
   useEscapeClose(onClose);
   const [step, setStep] = useState(1);
   const [selectedCard, setSelectedCard] = useState<Card | null>(null);
-  const [platform, setPlatform] = useState("eBay");
   const [askingPrice, setAskingPrice] = useState("");
-  const [condition] = useState("As graded");
   const [shipsFrom, setShipsFrom] = useState("United States");
   const [done, setDone] = useState(false);
   const [cardSearch, setCardSearch] = useState("");
@@ -32,16 +38,16 @@ export function SellFlow({ onClose, allCards, onCreate }: SellFlowProps) {
 
   const handleList = () => {
     if (!selectedCard) return;
+    // A native listing on Card Champs itself — the seller's own copy, offered
+    // here rather than on a third-party platform this app cannot post to.
     onCreate({
-      id: Date.now(),
-      cardId: selectedCard.id,
-      platform,
-      askingPrice: parseFloat(askingPrice) || 0,
-      condition,
+      copyId: selectedCard.id,
+      title: [selectedCard.year, selectedCard.brand, selectedCard.player].filter(Boolean).join(" "),
+      price: parseFloat(askingPrice) || 0,
       shipsFrom,
-      status: "active",
-      views: 0,
-      createdAt: Date.now(),
+      catalogCardId: selectedCard.catalogCardId,
+      graderCode: selectedCard.grader,
+      grade: selectedCard.grade,
     });
     setDone(true);
   };
@@ -56,7 +62,7 @@ export function SellFlow({ onClose, allCards, onCreate }: SellFlowProps) {
           <p className="text-white/60 text-xs font-medium tracking-widest uppercase mb-2">Listed</p>
           <h2 className="text-2xl font-bold text-white mb-2 leading-tight">Your card is live!</h2>
           {selectedCard && <p className="text-white/60 text-sm mb-1">{selectedCard.player} · {selectedCard.year}</p>}
-          <p className="text-white font-semibold text-lg mb-6">${parseFloat(askingPrice || "0").toLocaleString()} · {platform}</p>
+          <p className="text-white font-semibold text-lg mb-6">${parseFloat(askingPrice || "0").toLocaleString()}</p>
           <button onClick={onClose} className="w-full py-3.5 rounded-2xl bg-white text-gray-900 text-sm font-semibold">Done</button>
         </div>
       </div>
@@ -128,20 +134,17 @@ export function SellFlow({ onClose, allCards, onCreate }: SellFlowProps) {
                 }
                 <div>
                   <p className="text-sm font-semibold text-gray-900">{selectedCard.player}</p>
-                  <p className="text-xs text-gray-400">{selectedCard.year} · {selectedCard.grader} {selectedCard.grade}</p>
+                  <p className="text-xs text-gray-400">{selectedCard.year} · {gradingBadge(selectedCard)}</p>
                   <p className="text-xs text-gray-400">Est. value: <span className="font-semibold text-gray-700">${selectedCard.value.toLocaleString()}</span></p>
                 </div>
               </div>
 
-              <p className="text-[10px] font-medium text-gray-400 tracking-widest uppercase mb-2">Platform</p>
-              <div className="flex gap-2 flex-wrap mb-4">
-                {SELL_PLATFORMS.map(p => (
-                  <button key={p} onClick={() => setPlatform(p)}
-                    className="px-4 py-2 rounded-full text-sm font-semibold transition-colors"
-                    style={{ background: platform === p ? "#111" : "#f4f4f5", color: platform === p ? "#fff" : "#888" }}>
-                    {p}
-                  </button>
-                ))}
+              <div className="flex items-start gap-2.5 p-3 rounded-2xl mb-4" style={{ background: "#f8fafc" }}>
+                <Store className="w-4 h-4 flex-shrink-0 mt-0.5 text-slate-500" />
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  This lists the card on Card Champs, visible to other collectors. It doesn't post to
+                  eBay or Fanatics.
+                </p>
               </div>
 
               <p className="text-[10px] font-medium text-gray-400 tracking-widest uppercase mb-1.5">Asking Price *</p>
@@ -180,13 +183,12 @@ export function SellFlow({ onClose, allCards, onCreate }: SellFlowProps) {
                   <div className="flex-1">
                     <p className="text-base font-bold text-gray-900">{selectedCard.player}</p>
                     <p className="text-xs text-gray-400 mt-0.5">{selectedCard.year} · {selectedCard.brand}</p>
-                    <p className="text-xs text-gray-400">{selectedCard.grader} {selectedCard.grade} · {selectedCard.gradeLabel}</p>
+                    <p className="text-xs text-gray-400">{gradingSummary(selectedCard)}</p>
                   </div>
                 </div>
-                <div className="grid grid-cols-3 gap-px bg-gray-200">
+                <div className="grid grid-cols-2 gap-px bg-gray-200">
                   {[
                     { label: "Price", value: `$${parseFloat(askingPrice).toLocaleString()}` },
-                    { label: "Platform", value: platform },
                     { label: "Ships From", value: shipsFrom },
                   ].map(s => (
                     <div key={s.label} className="bg-white px-3 py-3 text-center">

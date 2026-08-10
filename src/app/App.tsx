@@ -4,14 +4,14 @@ import {
   Scan, X, Plus, Share2, Search, TrendingUp, TrendingDown, Users, UserPlus, LayoutGrid, Tag, ChevronLeft, ChevronUp, ChevronDown, Folder, SlidersHorizontal, Trash2, FolderPlus, Menu as MenuIcon, MessageCircle, AlertTriangle,
 } from "lucide-react";
 import confetti from "canvas-confetti";
-import type { Card, Chase, FeedPost, FolderType, Listing, MainTab } from "./types";
-import { MARKET_ITEMS } from "./data/mockMarket";
+import type { Card, Chase, FeedPost, FolderType, MainTab, MarketListing } from "./types";
 import { isSupabaseConfigured } from "./lib/supabase";
 import { useAuth } from "./auth/AuthProvider";
 import { useCollection } from "./data/useCollection";
 import { useCommunity, usePostComments } from "./data/useCommunity";
 import { usePeers } from "./data/usePeers";
 import { useMessages, useConversationMessages } from "./data/useMessages";
+import { useMarket } from "./data/useMarket";
 import type { DbProfileStats } from "./data/repositories";
 import type { NewCardInput } from "./data/repositories";
 import { useLocalStorage } from "./hooks/useLocalStorage";
@@ -108,10 +108,13 @@ export default function App() {
     openConversation, sendMessage, markRead,
   } = useMessages();
 
+  const {
+    ready: marketReady, listings: marketListings, watched, myListings,
+    isWatched, toggleWatchlist, createListing, updateListingStatus, removeListing,
+  } = useMarket();
+
   // Everything above is Supabase-backed. What remains local belongs to the
   // marketplace (still mock) or is genuinely device-local preference.
-  const [watchlist, setWatchlist] = useLocalStorage<number[]>("cardchamps:watchlist", []);
-  const [listings, setListings] = useLocalStorage<Listing[]>("cardchamps:listings", []);
   const [dismissedMovers, setDismissedMovers] = useLocalStorage<string[]>("cardchamps:watchlist-banner-dismissed", []);
   const [theme, setTheme] = useLocalStorage<"light" | "dark" | "system">("cardchamps:theme", "system");
   const [hideValues, setHideValues] = useLocalStorage<boolean>("cardchamps:privacy", false);
@@ -223,8 +226,11 @@ export default function App() {
   const levelInfo = computeLevel(earnedCount);
   const followersLabel = formatCompact(profile.followers);
 
-  const watchlistMovers = MARKET_ITEMS.filter(item => watchlist.includes(item.id) && Math.abs(item.change) >= 5)
-    .sort((a, b) => Math.abs(b.change) - Math.abs(a.change));
+  // Real 30-day movement from market_price_snapshots, so this banner only fires
+  // for a price that actually moved.
+  const watchlistMovers = watched
+    .filter(l => l.change !== undefined && Math.abs(l.change) >= 5)
+    .sort((a, b) => Math.abs(b.change ?? 0) - Math.abs(a.change ?? 0));
   const topMover = watchlistMovers[0];
   const moverSignature = topMover ? `${topMover.id}:${topMover.change}` : null;
   const showMoverBanner = !!topMover && !!moverSignature && !dismissedMovers.includes(moverSignature);
@@ -399,7 +405,6 @@ export default function App() {
   // the copy survive. Listings are still local, so they are pruned here.
   const handleDeleteCard = (id: string) => {
     const card = cards.find(c => c.id === id);
-    setListings(prev => prev.filter(l => l.cardId !== id));
     void runWrite(deleteCard.mutateAsync(id), card ? `Deleted ${card.player}` : "Card deleted");
   };
 
@@ -408,8 +413,6 @@ export default function App() {
   };
 
   const handleBulkDeleteCards = (ids: string[]) => {
-    const idSet = new Set(ids);
-    setListings(prev => prev.filter(l => !idSet.has(l.cardId)));
     setSelectMode(false);
     setSelectedCardIds([]);
     void runWrite(deleteCards.mutateAsync(ids), `Deleted ${ids.length} card${ids.length !== 1 ? "s" : ""}`);
@@ -468,8 +471,19 @@ export default function App() {
     void runWrite(deleteChase.mutateAsync(id), "Chase removed");
   };
 
-  const handleToggleWatchlist = (id: number) => {
-    setWatchlist(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  const handleToggleWatchlist = (listing: MarketListing) => {
+    if (!canWrite) {
+      showToast("Create an account to track prices");
+      return;
+    }
+    if (!listing.catalogCardId) return;
+    void runWrite(
+      toggleWatchlist.mutateAsync({
+        catalogCardId: listing.catalogCardId,
+        isWatched: isWatched(listing.catalogCardId),
+      }),
+      ""
+    );
   };
 
   const handleToggleFollow = (peer: DbProfileStats) => {
@@ -484,9 +498,16 @@ export default function App() {
     );
   };
 
-  const handleCreateListing = (listing: Listing) => {
-    setListings(prev => [...prev, listing]);
-    showToast("Listed for sale");
+  const handleCreateListing = (input: {
+    copyId: string;
+    title: string;
+    price: number;
+    shipsFrom: string;
+    catalogCardId: string | null;
+    graderCode: string;
+    grade: string;
+  }) => {
+    void runWrite(createListing.mutateAsync(input), "Listed for sale");
   };
 
   const handleCreatePost = (topicSlug: string, body: string) => {
@@ -547,14 +568,15 @@ export default function App() {
     navigate("/marketplace");
   };
 
-  const handleUpdateListingStatus = (id: number, status: Listing["status"]) => {
-    setListings(prev => prev.map(l => l.id === id ? { ...l, status } : l));
-    showToast(status === "sold" ? "Marked as sold" : "Listing updated");
+  const handleUpdateListingStatus = (id: string, status: string) => {
+    void runWrite(
+      updateListingStatus.mutateAsync({ id, status }),
+      status === "sold" ? "Marked as sold" : "Listing updated"
+    );
   };
 
-  const handleRemoveListing = (id: number) => {
-    setListings(prev => prev.filter(l => l.id !== id));
-    showToast("Listing removed");
+  const handleRemoveListing = (id: string) => {
+    void runWrite(removeListing.mutateAsync(id), "Listing removed");
   };
 
   // Restore and Reset used to rewrite the localStorage stores wholesale. With
@@ -642,9 +664,9 @@ export default function App() {
               cards={cards}
               folders={folders}
               chases={chases}
-              watchlist={watchlist}
+              watchlist={[]}
               following={following}
-              listings={listings}
+              listings={[]}
               achievements={achievements}
               // Guests authenticate anonymously and have no password to change.
               onChangePassword={canWrite ? () => setChangingPassword(true) : undefined}
@@ -678,9 +700,12 @@ export default function App() {
           </div>
           <Suspense fallback={LOADING_FALLBACK}>
             <MarketView
-              allCards={cards}
-              listings={listings}
-              watchlist={watchlist}
+              listings={marketListings}
+              watched={watched}
+              myListings={myListings}
+              ready={marketReady}
+              canWrite={canWrite}
+              isWatched={isWatched}
               onToggleWatchlist={handleToggleWatchlist}
               onUpdateListingStatus={handleUpdateListingStatus}
               onRemoveListing={handleRemoveListing}
@@ -828,13 +853,13 @@ export default function App() {
         </div>
 
         {showMoverBanner && topMover && (
-          <div className={`mx-7 mb-4 flex items-center gap-3 px-4 py-3 rounded-2xl ${topMover.change > 0 ? "bg-emerald-50" : "bg-red-50"}`}>
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: topMover.change > 0 ? "#10b981" : "#ef4444" }}>
-              {topMover.change > 0 ? <TrendingUp className="w-4 h-4 text-white" /> : <TrendingDown className="w-4 h-4 text-white" />}
+          <div className={`mx-7 mb-4 flex items-center gap-3 px-4 py-3 rounded-2xl ${(topMover.change ?? 0) > 0 ? "bg-emerald-50" : "bg-red-50"}`}>
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: (topMover.change ?? 0) > 0 ? "#10b981" : "#ef4444" }}>
+              {(topMover.change ?? 0) > 0 ? <TrendingUp className="w-4 h-4 text-white" /> : <TrendingDown className="w-4 h-4 text-white" />}
             </div>
             <button onClick={() => { setShopInitialTab("watchlist"); navigate("/marketplace"); }} className="flex-1 text-left min-w-0">
               <p className="text-xs font-semibold text-gray-900 truncate">
-                {topMover.player} is {topMover.change > 0 ? "up" : "down"} {Math.abs(topMover.change)}%
+                {topMover.title} is {(topMover.change ?? 0) > 0 ? "up" : "down"} {Math.abs(topMover.change ?? 0)}%
               </p>
               <p className="text-[11px] text-gray-500">
                 On your watchlist{watchlistMovers.length > 1 ? ` · +${watchlistMovers.length - 1} more moved` : ""}
