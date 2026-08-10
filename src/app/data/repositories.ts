@@ -144,6 +144,20 @@ export async function updateProfile(
   if (error) throw error;
 }
 
+/**
+ * Whether a handle is free, answered by a security-definer RPC.
+ *
+ * A plain select cannot answer this before signup: the caller is `anon`, and
+ * `profiles_select` only exposes discoverable rows — so a handle owned by a
+ * non-discoverable account would look available and then be silently replaced.
+ * Returns false for anything that fails the format rule too.
+ */
+export async function isHandleAvailable(handle: string): Promise<boolean> {
+  const { data, error } = await supabase.rpc("is_handle_available", { p_handle: handle });
+  if (error) throw error;
+  return data === true;
+}
+
 export async function fetchDiscoverableProfiles(excludeId?: string): Promise<DbProfileStats[]> {
   let q = supabase.from("profile_stats").select("*").eq("is_discoverable", true);
   if (excludeId) q = q.neq("profile_id", excludeId);

@@ -11,7 +11,11 @@ export interface AuthContextValue {
   /** Anonymous (guest) identities are browse-only; every write policy rejects them. */
   isGuest: boolean;
   isSignedIn: boolean;
-  signUp: (email: string, password: string) => Promise<{ needsConfirmation: boolean }>;
+  signUp: (
+    email: string,
+    password: string,
+    profile?: { displayName: string; handle: string }
+  ) => Promise<{ needsConfirmation: boolean }>;
   signIn: (email: string, password: string) => Promise<void>;
   continueAsGuest: () => Promise<void>;
   signOut: () => Promise<void>;
@@ -66,8 +70,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isGuest: user?.is_anonymous === true,
       isSignedIn: !!user,
 
-      async signUp(email, password) {
-        const { data, error } = await supabase.auth.signUp({ email, password });
+      async signUp(email, password, profile) {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          // Lands in auth.users.raw_user_meta_data, which the handle_new_user
+          // trigger reads to name the profile. A taken or malformed handle falls
+          // back to collector_N server-side rather than failing the signup.
+          options: profile
+            ? { data: { display_name: profile.displayName, handle: profile.handle } }
+            : undefined,
+        });
         if (error) throw error;
         // With email confirmation on, Supabase returns a user but no session.
         return { needsConfirmation: !data.session };

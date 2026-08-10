@@ -1,5 +1,5 @@
-import { useState, type FormEvent } from "react";
-import { Mail, MailCheck, Lock, Eye, EyeOff, User } from "lucide-react";
+import { useEffect, useState, type FormEvent } from "react";
+import { Mail, MailCheck, Lock, Eye, EyeOff, User, AtSign, IdCard, Check, Loader2 } from "lucide-react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
@@ -7,14 +7,31 @@ import { Checkbox } from "../ui/checkbox";
 import { Separator } from "../ui/separator";
 import { AnimateIn } from "../shared/AnimateIn";
 import { cardChampsLogo, cardChampsLogoDark } from "../../data/cardImages";
+import { isHandleAvailable } from "../../data/repositories";
 
 /** Supabase's own minimum. Validating below it only produced a server rejection
  *  the form then had to explain. */
 const MIN_PASSWORD_LENGTH = 6;
 
+/** Matches profiles_handle_format, so the form rejects what the column would. */
+const HANDLE_PATTERN = /^[a-z0-9_]{3,30}$/;
+
+/** Turns ordinary typing into a valid handle: lowercased, @ dropped, spaces and
+ *  dashes folded to underscores. Mirrors what the signup trigger does server-side. */
+function normalizeHandle(input: string): string {
+  return input.trim().toLowerCase().replace(/^@/, "").replace(/[\s-]+/g, "_");
+}
+
+/** A reasonable first suggestion so most people never touch the field. */
+function suggestHandle(displayName: string, email: string): string {
+  const base = displayName.trim() || email.split("@")[0] || "";
+  const cleaned = normalizeHandle(base).replace(/[^a-z0-9_]/g, "");
+  return cleaned.slice(0, 30);
+}
+
 interface LoginScreenProps {
   onSignIn: (email: string, password: string) => void;
-  onSignUp: (email: string, password: string) => void;
+  onSignUp: (email: string, password: string, profile: { displayName: string; handle: string }) => void;
   onGuest: () => void;
   /** Sends a reset email; the link lands on /reset-password. */
   onForgotPassword: (email: string) => void;
@@ -39,7 +56,44 @@ export function LoginScreen({
   const [remember, setRemember] = useState(true);
   const [localError, setLocalError] = useState("");
 
+  // Signup-only fields. A new account used to be provisioned as "Collector" with
+  // a collector_NNNN handle, so the community feed filled up with identical names.
+  const [displayName, setDisplayName] = useState("");
+  const [handle, setHandle] = useState("");
+  const [handleEdited, setHandleEdited] = useState(false);
+  const [handleState, setHandleState] = useState<"idle" | "checking" | "free" | "taken" | "invalid">("idle");
+
   const error = localError || authError;
+
+  // Suggest a handle from the name until the user takes control of the field.
+  useEffect(() => {
+    if (mode !== "signup" || handleEdited) return;
+    setHandle(suggestHandle(displayName, email));
+  }, [displayName, email, mode, handleEdited]);
+
+  // Debounced availability check. Answered by a security-definer RPC, because a
+  // pre-signup caller cannot see non-discoverable profiles and would otherwise be
+  // told a taken handle was free.
+  useEffect(() => {
+    if (mode !== "signup") return;
+    const candidate = normalizeHandle(handle);
+    if (!candidate) { setHandleState("idle"); return; }
+    if (!HANDLE_PATTERN.test(candidate)) { setHandleState("invalid"); return; }
+
+    setHandleState("checking");
+    let active = true;
+    const timer = setTimeout(async () => {
+      try {
+        const free = await isHandleAvailable(candidate);
+        if (active) setHandleState(free ? "free" : "taken");
+      } catch {
+        // Never block signup on this check — the trigger falls back safely.
+        if (active) setHandleState("idle");
+      }
+    }, 400);
+
+    return () => { active = false; clearTimeout(timer); };
+  }, [handle, mode]);
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
@@ -51,9 +105,26 @@ export function LoginScreen({
       setLocalError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
       return;
     }
+    if (mode === "signup") {
+      if (displayName.trim().length < 1) {
+        setLocalError("Add your name so other collectors know who you are.");
+        return;
+      }
+      const candidate = normalizeHandle(handle);
+      if (!HANDLE_PATTERN.test(candidate)) {
+        setLocalError("Handles are 3–30 characters, using letters, numbers, and underscores.");
+        return;
+      }
+      if (handleState === "taken") {
+        setLocalError("That handle is already taken.");
+        return;
+      }
+      setLocalError("");
+      onSignUp(email, password, { displayName: displayName.trim(), handle: candidate });
+      return;
+    }
     setLocalError("");
-    if (mode === "signup") onSignUp(email, password);
-    else onSignIn(email, password);
+    onSignIn(email, password);
   };
 
   const requestReset = () => {
@@ -133,6 +204,61 @@ export function LoginScreen({
         </div>
 
         <form onSubmit={submit} className="flex flex-col gap-3">
+          {mode === "signup" && (
+            <>
+              <div>
+                <Label htmlFor="signup-name" className="text-[10px] font-medium text-gray-400 tracking-widest uppercase mb-1.5 block">
+                  Your name
+                </Label>
+                <div className="relative">
+                  <IdCard className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <Input
+                    id="signup-name"
+                    value={displayName}
+                    onChange={e => setDisplayName(e.target.value.slice(0, 60))}
+                    placeholder="Alex Rivera"
+                    autoComplete="name"
+                    className="w-full h-auto rounded-2xl bg-gray-50 border-none pl-11 pr-4 py-3.5 text-sm text-gray-900 placeholder-gray-400"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="signup-handle" className="text-[10px] font-medium text-gray-400 tracking-widest uppercase mb-1.5 block">
+                  Handle
+                </Label>
+                <div className="relative">
+                  <AtSign className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <Input
+                    id="signup-handle"
+                    value={handle}
+                    onChange={e => { setHandleEdited(true); setHandle(e.target.value.slice(0, 30)); }}
+                    placeholder="alexrivera"
+                    autoComplete="off"
+                    autoCapitalize="none"
+                    spellCheck={false}
+                    className="w-full h-auto rounded-2xl bg-gray-50 border-none pl-11 pr-11 py-3.5 text-sm text-gray-900 placeholder-gray-400"
+                  />
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2">
+                    {handleState === "checking" && <Loader2 className="w-4 h-4 text-gray-300 animate-spin" />}
+                    {handleState === "free" && <Check className="w-4 h-4 text-emerald-500" />}
+                  </span>
+                </div>
+                <p className="text-[11px] mt-1.5 min-h-[15px]">
+                  {handleState === "taken" ? (
+                    <span className="text-red-500">That handle is taken — try another.</span>
+                  ) : handleState === "invalid" ? (
+                    <span className="text-gray-400">3–30 characters: letters, numbers, underscores.</span>
+                  ) : handleState === "free" ? (
+                    <span className="text-emerald-600">@{normalizeHandle(handle)} is available.</span>
+                  ) : (
+                    <span className="text-gray-400">This is how other collectors will find you.</span>
+                  )}
+                </p>
+              </div>
+            </>
+          )}
+
           <div>
             <Label htmlFor="login-email" className="text-[10px] font-medium text-gray-400 tracking-widest uppercase mb-1.5 block">
               Email

@@ -304,11 +304,15 @@ export default function App() {
     }
   };
 
-  const handleSignUp = async (email: string, password: string) => {
+  const handleSignUp = async (
+    email: string,
+    password: string,
+    profileDetails: { displayName: string; handle: string }
+  ) => {
     setAuthBusy(true);
     setAuthError("");
     try {
-      const { needsConfirmation } = await signUp(email, password);
+      const { needsConfirmation } = await signUp(email, password, profileDetails);
       // The auth trigger provisions the profile and default collection, so
       // there is nothing for the client to seed.
       if (needsConfirmation) setAwaitingConfirmation(true);
