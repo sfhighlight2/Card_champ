@@ -40,7 +40,7 @@ export function CardTile({ card, onClick, index = 0, selectMode = false, selecte
       <button
         onClick={handleClick}
         className="focus:outline-none w-full"
-        style={{ perspective: "600px", animation: `cardEnter 0.6s cubic-bezier(0.22,1,0.36,1) both`, animationDelay: `${index * 70}ms` }}
+        style={{ perspective: "600px", animation: `cardEnter 0.6s cubic-bezier(0.22,1,0.36,1) both`, animationDelay: `${Math.min(index, 8) * 60}ms` }}
       >
         <div
           ref={tilt.ref}
@@ -52,7 +52,11 @@ export function CardTile({ card, onClick, index = 0, selectMode = false, selecte
             outlineOffset: 2,
             opacity: selectMode && !selected ? 0.55 : 1,
             scale: pressed ? "0.96" : "1",
-            transition: "scale 140ms cubic-bezier(0.22,1,0.36,1)",
+            // Appended to the tilt's own transition rather than replacing it —
+            // overriding it made the hover tilt snap instead of ease.
+            transition: [tilt.style.transition, "scale 140ms cubic-bezier(0.22,1,0.36,1)"]
+              .filter(Boolean)
+              .join(", "),
           }}
           onMouseMove={tilt.onMouseMove}
           onMouseLeave={tilt.onMouseLeave}

@@ -341,6 +341,10 @@ export default function App() {
    *  along because `updateProfile` writes every field, so sending a partial
    *  object here would blank the user's bio, chasing, and collecting-since. */
   const handleAvatarPicked = (file: File) => {
+    // `profile` is a placeholder ("Collector"/@collector) until stats arrive,
+    // and saveProfile writes every field — saving before then would overwrite
+    // the real name and handle with the placeholders.
+    if (!stats) return;
     void runWrite(saveProfile.mutateAsync({ profile, avatarFile: file }), "Profile picture updated");
   };
 
@@ -351,7 +355,11 @@ export default function App() {
       case "first-folder": setCardsSubView("folders"); setShowNewFolder(true); break;
       case "first-chase":  setCardsSubView("chase"); break;
       case "first-follow": navigate("/connections"); break;
-      case "first-post":   navigate("/community"); setShowNewPost(true); break;
+      // Navigation only: the route-change effect closes every sheet when the
+      // pathname changes, so opening one in the same tick as navigate() just
+      // flashes it shut. Landing on the feed with the Post button visible is
+      // enough.
+      case "first-post":   navigate("/community"); break;
     }
   };
 
@@ -789,10 +797,10 @@ export default function App() {
               xpFraction={levelInfo.xpFraction}
               // Guests cannot write, so the avatar stays inert for them rather
               // than opening a picker whose upload RLS would reject.
-              onPress={canWrite ? () => avatarInputRef.current?.click() : undefined}
+              onPress={canWrite && stats ? () => avatarInputRef.current?.click() : undefined}
               // Prompt hardest when there is no picture yet, but keep the
               // affordance afterwards so it stays changeable.
-              showCameraBadge={canWrite}
+              showCameraBadge={canWrite && !!stats}
             />
             <div className="absolute left-1/2 -translate-x-1/2" style={{ bottom: -34 }}>
               <TierMedallions levelInfo={levelInfo} />

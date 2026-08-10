@@ -21,18 +21,24 @@
 }
 
 /* The outer page and the phone-width column.
- * dvh follows the visible viewport as browser chrome collapses; vh is the
- * fallback. Using min-height (not height) lets short content still fill the
- * screen while long content grows. */
+ *
+ * Both use MINIMUM heights, never fixed ones: the column grows with its content
+ * and the page scrolls, which is the layout every screen was designed against.
+ * A fixed 100dvh height here clipped any screen without its own internal scroll
+ * area — most visibly the sign-up form, whose lower fields became unreachable —
+ * and re-measured on every browser-toolbar collapse, so the whole layout
+ * twitched while scrolling. */
 .app-shell {
   min-height: 100vh;
   min-height: 100dvh;
 }
 
-/* Full-height panels that manage their own internal scrolling. */
 .app-frame {
-  height: 100vh;
-  height: 100dvh;
+  min-height: 100vh;
+  min-height: 100dvh;
+  /* Zero in a normal browser tab; real insets when installed to the home
+     screen, where black-translucent puts content under the status bar. */
+  padding-top: var(--safe-top);
   padding-left: var(--safe-left);
   padding-right: var(--safe-right);
 }
@@ -58,6 +64,18 @@
    height against the visible viewport rather than the largest one. */
 .app-sheet {
   padding-bottom: var(--safe-bottom);
+}
+
+/* iOS Safari zooms the whole page when a focused input's font is under 16px,
+   and frequently leaves it zoomed — which reads as the app glitching every time
+   a search box or form field is tapped. Promoting inputs to 16px on phones
+   disables that zoom entirely; the visual size difference is minor. */
+@media (max-width: 767px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
 }
 
 /* Long words, URLs, and pasted card names should wrap rather than force the

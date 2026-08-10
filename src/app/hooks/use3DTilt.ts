@@ -23,21 +23,11 @@ export function use3DTilt() {
     setStyle({ transform: "perspective(600px) rotateX(0deg) rotateY(0deg) scale3d(1,1,1)", transition: "transform 0.4s ease" });
   }, []);
 
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const onTouchMove = (e: TouchEvent) => {
-      e.preventDefault();
-      applyTilt(e.touches[0].clientX, e.touches[0].clientY);
-    };
-    const onTouchEnd = () => resetTilt();
-    el.addEventListener("touchmove", onTouchMove, { passive: false });
-    el.addEventListener("touchend", onTouchEnd);
-    return () => {
-      el.removeEventListener("touchmove", onTouchMove);
-      el.removeEventListener("touchend", onTouchEnd);
-    };
-  }, [applyTilt, resetTilt]);
+  // Deliberately no touch handling. The previous version listened for touchmove
+  // with preventDefault, which hijacked the scroll gesture: a drag that began on
+  // a card tile tilted the card instead of scrolling the page, and the grid
+  // covers most of the screen — so on a phone the collection barely scrolled at
+  // all. Tilt is a hover flourish; it belongs to pointers that can hover.
 
   const onMouseMove = useCallback((e: ReactMouseEvent) => applyTilt(e.clientX, e.clientY), [applyTilt]);
   const onMouseLeave = useCallback(() => resetTilt(), [resetTilt]);

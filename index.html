@@ -18,14 +18,16 @@
       <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       <meta name="apple-mobile-web-app-title" content="Card Champs" />
       <style>
-        /* 100dvh tracks the *visible* viewport as mobile browser chrome shows and
-           hides. 100% / 100vh measure the largest viewport, which is why content
-           sat under Safari's toolbar. The vh line is a fallback for browsers
-           without dvh support. */
-        html, body { margin: 0; height: 100vh; height: 100dvh; }
-        #root { height: 100vh; height: 100dvh; }
-        /* Nothing should ever escape the frame sideways. */
-        html, body { overflow-x: hidden; }
+        /* The page scrolls; screens grow with their content. Fixed dvh heights
+           here caused two kinds of jank: screens without their own scroll area
+           (the sign-up form) were clipped with no way to reach the fields below
+           the fold, and the layout reflowed every time the browser toolbar
+           collapsed or expanded mid-scroll. Minimum heights let short screens
+           still fill the viewport without either problem. */
+        html, body { margin: 0; }
+        html { overflow-x: hidden; }
+        body { min-height: 100vh; min-height: 100dvh; overflow-x: hidden; }
+        #root { min-height: 100vh; min-height: 100dvh; }
       </style>
 
     </head>
