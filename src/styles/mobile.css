@@ -50,9 +50,14 @@
 }
 
 /* The floating Scan / Share / Sell pill and the selection bar. Sits above the
-   home indicator and Safari's bottom toolbar instead of behind them. */
+   home indicator and Safari's bottom toolbar instead of behind them.
+   width: max-content because a left-50% fixed element otherwise sizes against
+   half the viewport and squeezes its buttons; the labels must never wrap. */
 .app-action-bar {
   bottom: calc(1.5rem + var(--safe-bottom));
+  width: max-content;
+  max-width: calc(100vw - 1.5rem);
+  white-space: nowrap;
 }
 
 /* Scroll areas that sit underneath the action bar. */
@@ -79,8 +84,12 @@
 }
 
 /* Long words, URLs, and pasted card names should wrap rather than force the
-   layout wider than the screen. */
+   layout wider than the screen.
+   break-word, deliberately not `anywhere`: `anywhere` also collapses text's
+   min-content width to a single character, which let the fixed action pill
+   squeeze its buttons until "Scan" rendered as "Sc/an". break-word only breaks
+   words that would actually overflow, and leaves intrinsic sizing alone. */
 .app-shell,
 .app-frame {
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
