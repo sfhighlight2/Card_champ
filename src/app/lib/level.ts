@@ -29,6 +29,15 @@ export const TIER_GRADIENTS: Record<Tier, string> = {
   platinum: "linear-gradient(135deg, #7c8ce0 0%, #b5a6f7 50%, #6a7ad4 100%)",
 };
 
+// SVG gradient stops for the level ring, per tier. The peers list used to key a
+// hardcoded colour off each mock handle; this derives it from real standing.
+export const TIER_RING_STOPS: Record<Tier, { start: string; end: string }> = {
+  bronze: { start: "#b5793f", end: "#d99f5f" },
+  silver: { start: "#64748b", end: "#94a3b8" },
+  gold: { start: "#c45a09", end: "#f6c57a" },
+  platinum: { start: "#7c3aed", end: "#a78bfa" },
+};
+
 export const TIER_LABELS: Record<Tier, string> = {
   bronze: "Rookie",
   silver: "Collector",

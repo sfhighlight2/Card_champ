@@ -1,41 +1,40 @@
 import { useState } from "react";
 import { Search, Bell, X, MessagesSquare } from "lucide-react";
-import type { CommunityPost, Profile } from "../../types";
-import type { Tier } from "../../lib/level";
-import { COMMUNITY_TOPICS, TOPIC_EMOJI } from "../../data/mockPosts";
-import { resolveAuthor } from "../../lib/community";
+import type { CommunityTopic, FeedPost } from "../../types";
 import { AnimateIn } from "../shared/AnimateIn";
 import { PostCard } from "./PostCard";
 
-type Filter = "all" | "trending" | (typeof COMMUNITY_TOPICS)[number];
-
 interface CommunityViewProps {
-  posts: CommunityPost[];
-  profile: Profile;
-  myTier: Tier;
-  onOpenPost: (post: CommunityPost) => void;
+  posts: FeedPost[];
+  topics: CommunityTopic[];
+  ready: boolean;
+  onOpenPost: (post: FeedPost) => void;
   showToast: (msg: string) => void;
 }
 
-export function CommunityView({ posts, profile, myTier, onOpenPost, showToast }: CommunityViewProps) {
-  const [filter, setFilter] = useState<Filter>("all");
+export function CommunityView({ posts, topics, ready, onOpenPost, showToast }: CommunityViewProps) {
+  /** "all" | "trending" | a topic slug. */
+  const [filter, setFilter] = useState<string>("all");
   const [query, setQuery] = useState("");
 
-  const chips: { id: Filter; label: string }[] = [
+  const chips = [
     { id: "all", label: "All" },
     { id: "trending", label: "🔥 Trending" },
-    ...COMMUNITY_TOPICS.map(t => ({ id: t as Filter, label: `${TOPIC_EMOJI[t]} ${t}` })),
+    ...topics.map(t => ({ id: t.slug, label: `${t.emoji} ${t.label}` })),
   ];
 
   const q = query.trim().toLowerCase();
+  // The view already returns newest-first, so no client re-sort.
   const filtered = posts
-    .filter(p => (filter === "all" ? true : filter === "trending" ? p.hot : p.topic === filter))
+    .filter(p => (filter === "all" ? true : filter === "trending" ? p.hot : p.topicSlug === filter))
     .filter(p => {
       if (!q) return true;
-      const author = resolveAuthor(p.authorHandle, profile);
-      return p.body.toLowerCase().includes(q) || author.name.toLowerCase().includes(q) || p.topic.toLowerCase().includes(q);
-    })
-    .sort((a, b) => b.createdAt - a.createdAt);
+      return (
+        p.body.toLowerCase().includes(q) ||
+        p.authorName.toLowerCase().includes(q) ||
+        p.topicLabel.toLowerCase().includes(q)
+      );
+    });
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
@@ -67,18 +66,26 @@ export function CommunityView({ posts, profile, myTier, onOpenPost, showToast }:
       </div>
 
       <div className="flex-1 px-7 overflow-y-auto" style={{ scrollbarWidth: "none", paddingBottom: "110px" }}>
-        {filtered.length === 0 ? (
+        {!ready ? (
+          <div className="flex items-center justify-center py-20">
+            <div className="w-2 h-2 rounded-full bg-gray-300 animate-pulse" />
+          </div>
+        ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center text-center pt-16">
             <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mb-4">
               <MessagesSquare className="w-7 h-7 text-gray-400" />
             </div>
-            <p className="text-base font-semibold text-gray-900">No posts found</p>
-            <p className="text-sm text-gray-400 mt-1 max-w-[240px]">Try a different topic or search term.</p>
+            <p className="text-base font-semibold text-gray-900">
+              {posts.length === 0 ? "No posts yet" : "No posts found"}
+            </p>
+            <p className="text-sm text-gray-400 mt-1 max-w-[240px]">
+              {posts.length === 0 ? "Be the first to post something." : "Try a different topic or search term."}
+            </p>
           </div>
         ) : (
           filtered.map((post, i) => (
             <AnimateIn key={post.id} delay={Math.min(i, 6) * 60}>
-              <PostCard post={post} profile={profile} myTier={myTier} onOpen={() => onOpenPost(post)} />
+              <PostCard post={post} onOpen={() => onOpenPost(post)} />
             </AnimateIn>
           ))
         )}

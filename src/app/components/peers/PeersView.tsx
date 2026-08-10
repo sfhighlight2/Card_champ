@@ -1,8 +1,8 @@
 import { useEffect, useId, useState } from "react";
-import { Share2, Search, X, ChevronDown, ChevronUp, Send } from "lucide-react";
-import type { Card, FolderType, Peer } from "../../types";
-import { PEERS, SUGGESTED } from "../../data/mockPeers";
-import { PEER_TIER_BADGES } from "../../data/mockPosts";
+import { Share2, Search, X, ChevronDown, ChevronUp, Send, Users } from "lucide-react";
+import type { Card, FolderType } from "../../types";
+import type { DbProfileStats } from "../../data/repositories";
+import { computeLevel, tierBadgeLabel, TIER_RING_STOPS } from "../../lib/level";
 import { badgeHof, badgePro } from "../../data/cardImages";
 import { AnimateIn } from "../shared/AnimateIn";
 import { ShareFlow } from "../shared/ShareFlow";
@@ -11,48 +11,40 @@ import { PeerProfileSheet } from "./PeerProfileSheet";
 interface PeersViewProps {
   allCards: Card[];
   folders: FolderType[];
-  following: string[];
-  onToggleFollow: (handle: string) => void;
-  onOpenChat: (peerHandle: string) => void;
-  showToast: (msg: string) => void;
+  /** Collectors the user follows. */
+  myPeers: DbProfileStats[];
+  /** Discoverable collectors not yet followed. */
+  suggested: DbProfileStats[];
+  ready: boolean;
+  isFollowing: (profileId: string) => boolean;
+  onToggleFollow: (peer: DbProfileStats) => void;
+  onOpenChat: (peer: DbProfileStats) => void;
+  onShareViaDm: (peer: DbProfileStats, message: string) => void;
 }
 
-const PEER_XP_FRACTIONS: Record<string, number> = {
-  "@loganpaul": 0.75,
-  "@garyvee": 0.9,
-  "@barbaracorcoran": 0.45,
-  "@kevinoleary": 0.6,
-};
+const CHASING_PREVIEW_COUNT = 3;
 
-const PEER_RING_COLORS: Record<string, { start: string; end: string }> = {
-  "@loganpaul": { start: "#64748b", end: "#94a3b8" },
-  "@barbaracorcoran": { start: "#c45a09", end: "#f6c57a" },
-  "@garyvee": { start: "#7c3aed", end: "#a78bfa" },
-  "@kevinoleary": { start: "#c45a09", end: "#f6c57a" },
-};
-
-export function PeersView({ allCards, folders, following, onToggleFollow, onOpenChat, showToast }: PeersViewProps) {
-  const [selectedPeer, setSelectedPeer] = useState<Peer | null>(null);
+export function PeersView({
+  allCards, folders, myPeers, suggested, ready, isFollowing, onToggleFollow, onOpenChat, onShareViaDm,
+}: PeersViewProps) {
+  const [selectedPeerId, setSelectedPeerId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [showShareFlow, setShowShareFlow] = useState(false);
   const [showAllChasing, setShowAllChasing] = useState(false);
 
-  const filteredSuggested = SUGGESTED.filter(s =>
-    s.name.toLowerCase().includes(query.toLowerCase()) ||
-    s.handle.toLowerCase().includes(query.toLowerCase())
-  );
-  const filteredPeers = PEERS.filter(p =>
-    p.name.toLowerCase().includes(query.toLowerCase()) ||
-    p.handle.toLowerCase().includes(query.toLowerCase())
-  );
+  const matches = (p: DbProfileStats) =>
+    p.displayName.toLowerCase().includes(query.toLowerCase()) ||
+    p.handle.toLowerCase().includes(query.toLowerCase());
 
-  const toggleFollow = (handle: string) => {
-    const willFollow = !following.includes(handle);
-    onToggleFollow(handle);
-    showToast(willFollow ? `Connected with ${handle}` : `Disconnected from ${handle}`);
-  };
+  const filteredSuggested = suggested.filter(matches);
+  const filteredPeers = myPeers.filter(matches);
 
-  const chasingPeers = showAllChasing ? PEERS : PEERS.slice(0, 3);
+  // Only peers who have actually said what they're hunting.
+  const chasingPeers = myPeers.filter(p => !!p.chasing);
+  const visibleChasing = showAllChasing ? chasingPeers : chasingPeers.slice(0, CHASING_PREVIEW_COUNT);
+
+  const selectedPeer =
+    [...myPeers, ...suggested].find(p => p.profileId === selectedPeerId) ?? null;
 
   return (
     <>
@@ -60,28 +52,45 @@ export function PeersView({ allCards, folders, following, onToggleFollow, onOpen
 
         <div className="mb-6">
           <p className="text-xs font-semibold text-gray-400 tracking-widest uppercase px-6 mb-4">My Peers</p>
-          <div className="flex gap-6 px-6 overflow-x-auto md:justify-center" style={{ scrollbarWidth: "none" }}>
-            {PEERS.map((peer, i) => (
-              <AnimateIn key={i} delay={i * 80}>
-              <button
-                onClick={() => setSelectedPeer(peer)}
-                className="flex w-[86px] flex-col items-center gap-2 focus:outline-none flex-shrink-0"
-              >
-                <div className="relative">
-                  <LevelRingAvatar
-                    avatar={peer.avatar}
-                    name={peer.name}
-                    progress={PEER_XP_FRACTIONS[peer.handle] ?? 0.5}
-                    colors={PEER_RING_COLORS[peer.handle] ?? { start: "#64748b", end: "#94a3b8" }}
-                  />
-                  <PeerTierBadge handle={peer.handle} />
-                </div>
-                <p className="text-sm font-bold text-gray-900 leading-tight text-center max-w-[86px] truncate">{peer.handle}</p>
-                <p className="text-xs font-bold text-gray-400 leading-none">{peer.cards} cards</p>
-              </button>
-              </AnimateIn>
-            ))}
-          </div>
+          {!ready ? (
+            <div className="flex items-center justify-center py-10">
+              <div className="w-2 h-2 rounded-full bg-gray-300 animate-pulse" />
+            </div>
+          ) : myPeers.length === 0 ? (
+            <div className="flex flex-col items-center text-center px-6 py-6">
+              <div className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center mb-3">
+                <Users className="w-5 h-5 text-gray-400" />
+              </div>
+              <p className="text-sm font-semibold text-gray-900">No connections yet</p>
+              <p className="text-xs text-gray-400 mt-1 max-w-[240px]">Connect with a collector below and they'll show up here.</p>
+            </div>
+          ) : (
+            <div className="flex gap-6 px-6 overflow-x-auto md:justify-center" style={{ scrollbarWidth: "none" }}>
+              {myPeers.map((peer, i) => {
+                const level = computeLevel(peer.achievementCount);
+                return (
+                  <AnimateIn key={peer.profileId} delay={i * 80}>
+                    <button
+                      onClick={() => setSelectedPeerId(peer.profileId)}
+                      className="flex w-[86px] flex-col items-center gap-2 focus:outline-none flex-shrink-0"
+                    >
+                      <div className="relative">
+                        <LevelRingAvatar
+                          avatar={peer.avatar}
+                          name={peer.displayName}
+                          progress={level.xpFraction}
+                          colors={TIER_RING_STOPS[level.tier]}
+                        />
+                        <PeerTierBadge badge={tierBadgeLabel(level.tier)} />
+                      </div>
+                      <p className="text-sm font-bold text-gray-900 leading-tight text-center max-w-[86px] truncate">@{peer.handle}</p>
+                      <p className="text-xs font-bold text-gray-400 leading-none">{peer.cardCount} cards</p>
+                    </button>
+                  </AnimateIn>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         <div className="h-px bg-gray-100 mx-6 mb-5" />
@@ -92,31 +101,35 @@ export function PeersView({ allCards, folders, following, onToggleFollow, onOpen
           </button>
         </div>
 
-        <div className="px-6 mb-6">
-          <p className="text-xs font-semibold text-gray-400 tracking-widest uppercase mb-3">What They're Chasing</p>
-          <div className="flex flex-col gap-2">
-            {chasingPeers.map((peer, i) => (
-              <AnimateIn key={peer.handle} delay={i * 60}>
-                <div className="flex items-center gap-3 rounded-2xl bg-emerald-50 px-4 py-3">
-                  <img src={peer.avatar} alt={peer.name} className="w-9 h-9 rounded-full object-cover flex-shrink-0" draggable={false} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[11px] font-semibold text-gray-400">{peer.handle}</p>
-                    <p className="text-sm font-semibold text-gray-900 truncate">{peer.chasing}</p>
+        {chasingPeers.length > 0 && (
+          <div className="px-6 mb-6">
+            <p className="text-xs font-semibold text-gray-400 tracking-widest uppercase mb-3">What They're Chasing</p>
+            <div className="flex flex-col gap-2">
+              {visibleChasing.map((peer, i) => (
+                <AnimateIn key={peer.profileId} delay={i * 60}>
+                  <div className="flex items-center gap-3 rounded-2xl bg-emerald-50 px-4 py-3">
+                    <img src={peer.avatar} alt={peer.displayName} className="w-9 h-9 rounded-full object-cover flex-shrink-0" draggable={false} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[11px] font-semibold text-gray-400">@{peer.handle}</p>
+                      <p className="text-sm font-semibold text-gray-900 truncate">{peer.chasing}</p>
+                    </div>
+                    <button onClick={() => onOpenChat(peer)}
+                      className="flex-shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold text-white" style={{ background: "#16a34a" }}>
+                      <Send className="w-3 h-3" />DM
+                    </button>
                   </div>
-                  <button onClick={() => onOpenChat(peer.handle)}
-                    className="flex-shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold text-white" style={{ background: "#16a34a" }}>
-                    <Send className="w-3 h-3" />DM
-                  </button>
-                </div>
-              </AnimateIn>
-            ))}
+                </AnimateIn>
+              ))}
+            </div>
+            {chasingPeers.length > CHASING_PREVIEW_COUNT && (
+              <button onClick={() => setShowAllChasing(v => !v)} className="w-full flex items-center justify-center gap-1 py-3 text-xs font-semibold text-gray-400">
+                {showAllChasing
+                  ? <>Show less <ChevronUp className="w-3.5 h-3.5" /></>
+                  : <>View more ({chasingPeers.length - CHASING_PREVIEW_COUNT} more) <ChevronDown className="w-3.5 h-3.5" /></>}
+              </button>
+            )}
           </div>
-          {PEERS.length > 3 && (
-            <button onClick={() => setShowAllChasing(v => !v)} className="w-full flex items-center justify-center gap-1 py-3 text-xs font-semibold text-gray-400">
-              {showAllChasing ? <>Show less <ChevronUp className="w-3.5 h-3.5" /></> : <>View more ({PEERS.length - 3} more) <ChevronDown className="w-3.5 h-3.5" /></>}
-            </button>
-          )}
-        </div>
+        )}
 
         <div className="px-6 mb-5">
           <div className="flex items-center gap-2.5 rounded-2xl bg-gray-100 px-4 py-3">
@@ -137,12 +150,12 @@ export function PeersView({ allCards, folders, following, onToggleFollow, onOpen
             <p className="text-xs font-semibold text-gray-400 tracking-widest uppercase mb-3">My Peers</p>
             <div className="flex flex-col">
               {filteredPeers.map((p, i) => (
-                <AnimateIn key={p.handle} delay={i * 60}>
-                  <button onClick={() => setSelectedPeer(p)} className="w-full flex items-center gap-3 py-3 text-left" style={{ borderBottom: "1px solid #f4f4f5" }}>
-                    <img src={p.avatar} alt={p.name} className="w-10 h-10 rounded-full object-cover flex-shrink-0" draggable={false} />
+                <AnimateIn key={p.profileId} delay={i * 60}>
+                  <button onClick={() => setSelectedPeerId(p.profileId)} className="w-full flex items-center gap-3 py-3 text-left" style={{ borderBottom: "1px solid #f4f4f5" }}>
+                    <img src={p.avatar} alt={p.displayName} className="w-10 h-10 rounded-full object-cover flex-shrink-0" draggable={false} />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-900">{p.name}</p>
-                      <p className="text-[11px] text-gray-400">{p.handle} · {p.cards} cards</p>
+                      <p className="text-sm font-semibold text-gray-900">{p.displayName}</p>
+                      <p className="text-[11px] text-gray-400">@{p.handle} · {p.cardCount} cards</p>
                     </div>
                   </button>
                 </AnimateIn>
@@ -153,44 +166,57 @@ export function PeersView({ allCards, folders, following, onToggleFollow, onOpen
 
         <div className="px-6">
           <p className="text-xs font-semibold text-gray-400 tracking-widest uppercase mb-3">Suggested</p>
-          <div className="flex flex-col">
-            {filteredSuggested.map((s, i) => (
-              <AnimateIn key={i} delay={i * 70}>
-              <div className="flex items-center gap-3 py-3" style={{ borderBottom: i < filteredSuggested.length - 1 ? "1px solid #f4f4f5" : "none" }}>
-                <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex-shrink-0">
-                  <img src={s.avatar} alt={s.name} className="w-full h-full" style={{ objectFit: "cover", objectPosition: "top center" }} draggable={false} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-gray-900">{s.name}</p>
-                  <p className="text-[11px] text-gray-400">{s.handle} · {s.cards} cards</p>
-                </div>
-                <button
-                  onClick={() => toggleFollow(s.handle)}
-                  className="flex-shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all"
-                  style={{
-                    background: following.includes(s.handle) ? "#f4f4f5" : "#111",
-                    color: following.includes(s.handle) ? "#888" : "#fff",
-                  }}
-                >
-                  {following.includes(s.handle) ? "Connected" : "Connect"}
-                </button>
-              </div>
-              </AnimateIn>
-            ))}
-          </div>
+          {filteredSuggested.length === 0 ? (
+            <p className="text-sm text-gray-400 py-4">
+              {query ? "No collectors match that search." : "You're connected with everyone we can suggest."}
+            </p>
+          ) : (
+            <div className="flex flex-col">
+              {filteredSuggested.map((s, i) => (
+                <AnimateIn key={s.profileId} delay={i * 70}>
+                  <div className="flex items-center gap-3 py-3" style={{ borderBottom: i < filteredSuggested.length - 1 ? "1px solid #f4f4f5" : "none" }}>
+                    <button onClick={() => setSelectedPeerId(s.profileId)} className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex-shrink-0">
+                      <img src={s.avatar} alt={s.displayName} className="w-full h-full" style={{ objectFit: "cover", objectPosition: "top center" }} draggable={false} />
+                    </button>
+                    <button onClick={() => setSelectedPeerId(s.profileId)} className="flex-1 min-w-0 text-left">
+                      <p className="text-sm font-semibold text-gray-900">{s.displayName}</p>
+                      <p className="text-[11px] text-gray-400">@{s.handle} · {s.cardCount} cards</p>
+                    </button>
+                    <button
+                      onClick={() => onToggleFollow(s)}
+                      className="flex-shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all"
+                      style={{
+                        background: isFollowing(s.profileId) ? "#f4f4f5" : "#111",
+                        color: isFollowing(s.profileId) ? "#888" : "#fff",
+                      }}
+                    >
+                      {isFollowing(s.profileId) ? "Connected" : "Connect"}
+                    </button>
+                  </div>
+                </AnimateIn>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
       {selectedPeer && (
         <PeerProfileSheet
           peer={selectedPeer}
-          onClose={() => setSelectedPeer(null)}
-          allCards={allCards}
-          isFollowing={following.includes(selectedPeer.handle)}
-          onToggleFollow={() => toggleFollow(selectedPeer.handle)}
+          onClose={() => setSelectedPeerId(null)}
+          isFollowing={isFollowing(selectedPeer.profileId)}
+          onToggleFollow={() => onToggleFollow(selectedPeer)}
         />
       )}
-      {showShareFlow && <ShareFlow onClose={() => setShowShareFlow(false)} allCards={allCards} folders={folders} />}
+      {showShareFlow && (
+        <ShareFlow
+          onClose={() => setShowShareFlow(false)}
+          allCards={allCards}
+          folders={folders}
+          dmPeers={myPeers}
+          onShareViaDm={onShareViaDm}
+        />
+      )}
     </>
   );
 }
@@ -256,8 +282,7 @@ function LevelRingAvatar({
   );
 }
 
-function PeerTierBadge({ handle }: { handle: string }) {
-  const badge = PEER_TIER_BADGES[handle];
+function PeerTierBadge({ badge }: { badge: "PRO" | "HOF" | null }) {
   if (!badge) return null;
   const src = badge === "HOF" ? badgeHof : badgePro;
   const label = badge === "HOF" ? "Hall of Fame tier" : "PRO tier";

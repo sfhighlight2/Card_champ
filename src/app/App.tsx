@@ -4,20 +4,22 @@ import {
   Scan, X, Plus, Share2, Search, TrendingUp, TrendingDown, Users, UserPlus, LayoutGrid, Tag, ChevronLeft, ChevronUp, ChevronDown, Folder, SlidersHorizontal, Trash2, FolderPlus, Menu as MenuIcon, MessageCircle,
 } from "lucide-react";
 import confetti from "canvas-confetti";
-import type { Card, Chase, CommunityComment, CommunityPost, DirectMessage, FolderType, Listing, MainTab, MarketItem, MessageThread } from "./types";
-import { ME } from "./types";
+import type { Card, Chase, FeedPost, FolderType, Listing, MainTab, MarketItem } from "./types";
 import { GRADE_LABELS } from "./data/cardFields";
 import { MARKET_ITEMS } from "./data/mockMarket";
-import { MOCK_POSTS } from "./data/mockPosts";
-import { MOCK_THREADS } from "./data/mockThreads";
 import { useAuth } from "./auth/AuthProvider";
 import { useCollection } from "./data/useCollection";
+import { useCommunity, usePostComments } from "./data/useCommunity";
+import { usePeers } from "./data/usePeers";
+import { useMessages, useConversationMessages } from "./data/useMessages";
+import type { DbProfileStats } from "./data/repositories";
 import type { NewCardInput } from "./data/repositories";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import { computeLevel } from "./lib/level";
 import { formatCompact } from "./lib/format";
 import { filterCards, sortCards, SORT_OPTIONS, type SortKey } from "./lib/collectionSort";
 import { LoginScreen } from "./components/auth/LoginScreen";
+import { ResetPasswordScreen } from "./components/auth/ResetPasswordScreen";
 import { AppMenu } from "./components/shared/AppMenu";
 import { LevelRingAvatar } from "./components/shared/LevelRingAvatar";
 import { Money } from "./components/shared/Money";
@@ -66,10 +68,14 @@ export default function App() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const { ready: authReady, isSignedIn, isGuest, signIn, signUp, continueAsGuest, signOut } = useAuth();
+  const {
+    user, ready: authReady, isSignedIn, isGuest, isRecovering,
+    signIn, signUp, continueAsGuest, signOut, resetPassword, updatePassword,
+  } = useAuth();
   const [authError, setAuthError] = useState("");
   const [authBusy, setAuthBusy] = useState(false);
   const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
+  const [resetEmailSent, setResetEmailSent] = useState(false);
 
   // Codes the server reported as newly earned; turned into a toast once the
   // achievement labels are on hand.
@@ -84,13 +90,23 @@ export default function App() {
     createChase, updateChase, deleteChase, saveProfile,
   } = useCollection({ onAchievementsEarned: handleAchievementsEarned });
 
-  // Collection state lives in Supabase. The stores below still belong to
-  // surfaces that have not been rewired yet.
+  const {
+    ready: communityReady, posts, topics, createPost, setReaction, addComment,
+  } = useCommunity();
+
+  const {
+    ready: peersReady, myPeers, suggested, following, isFollowing, toggleFollow,
+  } = usePeers();
+
+  const {
+    ready: messagesReady, conversations, unreadTotal,
+    openConversation, sendMessage, markRead,
+  } = useMessages();
+
+  // Everything above is Supabase-backed. What remains local belongs to the
+  // marketplace (still mock) or is genuinely device-local preference.
   const [watchlist, setWatchlist] = useLocalStorage<number[]>("cardchamps:watchlist", []);
-  const [following, setFollowing] = useLocalStorage<string[]>("cardchamps:following", []);
   const [listings, setListings] = useLocalStorage<Listing[]>("cardchamps:listings", []);
-  const [posts, setPosts] = useLocalStorage<CommunityPost[]>("cardchamps:posts", MOCK_POSTS);
-  const [threads, setThreads] = useLocalStorage<MessageThread[]>("cardchamps:threads", MOCK_THREADS);
   const [dismissedMovers, setDismissedMovers] = useLocalStorage<string[]>("cardchamps:watchlist-banner-dismissed", []);
   const [theme, setTheme] = useLocalStorage<"light" | "dark" | "system">("cardchamps:theme", "system");
   const [hideValues, setHideValues] = useLocalStorage<boolean>("cardchamps:privacy", false);
@@ -121,8 +137,8 @@ export default function App() {
   const [showShare, setShowShare] = useState(false);
   const [showSell, setShowSell] = useState(false);
   const [showNewPost, setShowNewPost] = useState(false);
-  const [viewingPostId, setViewingPostId] = useState<number | null>(null);
-  const [activeChatHandle, setActiveChatHandle] = useState<string | null>(null);
+  const [viewingPostId, setViewingPostId] = useState<string | null>(null);
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [editingProfile, setEditingProfile] = useState(false);
   const [openFolderId, setOpenFolderId] = useState<string | null>(null);
   const [cardQuery, setCardQuery] = useState("");
@@ -157,7 +173,7 @@ export default function App() {
     setShowSell(false);
     setShowNewPost(false);
     setViewingPostId(null);
-    setActiveChatHandle(null);
+    setActiveConversationId(null);
     setEditingProfile(false);
     setShowNewFolder(false);
     setSelectMode(false);
@@ -174,9 +190,12 @@ export default function App() {
   const marketplaceOpen = location.pathname === "/marketplace";
   const profileOpen = location.pathname === "/profile";
   const messagesOpen = location.pathname === "/messages";
-  const activeThread = activeChatHandle
-    ? threads.find(t => t.peerHandle === activeChatHandle) ?? { peerHandle: activeChatHandle, messages: [] }
-    : null;
+  const activeConversation = conversations.find(c => c.id === activeConversationId) ?? null;
+  const { messages: activeMessages, isLoading: messagesLoading } = useConversationMessages(activeConversationId);
+
+  // Peers you follow but haven't messaged, offered as a starting point.
+  const peersWithConversation = new Set(conversations.map(c => c.peerId).filter(Boolean));
+  const peersWithoutConversation = myPeers.filter(p => !peersWithConversation.has(p.profileId));
   // Derived collection numbers come from profile_stats, not client arithmetic.
   // While the stats query is in flight, the local sum keeps the header from
   // flashing zero.
@@ -238,6 +257,7 @@ export default function App() {
   };
 
   const viewingPost = viewingPostId !== null ? posts.find(p => p.id === viewingPostId) ?? null : null;
+  const { comments: viewingPostComments, isLoading: commentsLoading } = usePostComments(viewingPostId);
 
   // The server decides what has been earned, from real counts, so the
   // celebration can only fire for something it actually recorded.
@@ -283,6 +303,19 @@ export default function App() {
       if (needsConfirmation) setAwaitingConfirmation(true);
     } catch (err) {
       setAuthError(err instanceof Error ? err.message : "Could not create the account.");
+    } finally {
+      setAuthBusy(false);
+    }
+  };
+
+  const handleForgotPassword = async (email: string) => {
+    setAuthBusy(true);
+    setAuthError("");
+    try {
+      await resetPassword(email);
+      setResetEmailSent(true);
+    } catch (err) {
+      setAuthError(err instanceof Error ? err.message : "Could not send the reset email.");
     } finally {
       setAuthBusy(false);
     }
@@ -409,8 +442,16 @@ export default function App() {
     setWatchlist(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   };
 
-  const handleToggleFollow = (handle: string) => {
-    setFollowing(prev => prev.includes(handle) ? prev.filter(h => h !== handle) : [...prev, handle]);
+  const handleToggleFollow = (peer: DbProfileStats) => {
+    if (!canWrite) {
+      showToast("Create an account to connect with collectors");
+      return;
+    }
+    const following = isFollowing(peer.profileId);
+    void runWrite(
+      toggleFollow.mutateAsync({ profileId: peer.profileId, isFollowing: following }),
+      following ? `Disconnected from @${peer.handle}` : `Connected with @${peer.handle}`
+    );
   };
 
   const handleCreateListing = (listing: Listing) => {
@@ -418,72 +459,56 @@ export default function App() {
     showToast("Listed for sale");
   };
 
-  const handleCreatePost = (topic: string, body: string) => {
-    const newPost: CommunityPost = {
-      id: Date.now(),
-      authorHandle: profile.handle,
-      topic,
-      hot: false,
-      body,
-      createdAt: Date.now(),
-      likes: 0,
-      dislikes: 0,
-      comments: [],
-    };
-    setPosts(prev => [newPost, ...prev]);
+  const handleCreatePost = (topicSlug: string, body: string) => {
     setShowNewPost(false);
-    showToast("Posted to Community");
+    void runWrite(createPost.mutateAsync({ topicSlug, body }), "Posted to Community");
   };
 
-  const handleTogglePostLike = (id: number) => {
-    setPosts(prev => prev.map(p => {
-      if (p.id !== id) return p;
-      const likedByMe = !p.likedByMe;
-      return {
-        ...p,
-        likedByMe,
-        likes: p.likes + (likedByMe ? 1 : -1),
-        dislikedByMe: likedByMe ? false : p.dislikedByMe,
-        dislikes: likedByMe && p.dislikedByMe ? p.dislikes - 1 : p.dislikes,
-      };
-    }));
+  // The view recomputes the counts, so toggling can never leave them adrift.
+  const handleToggleReaction = (post: FeedPost, reaction: "like" | "dislike") => {
+    if (!canWrite) {
+      showToast("Create an account to react");
+      return;
+    }
+    void runWrite(
+      setReaction.mutateAsync({ postId: post.id, reaction, current: post.myReaction }),
+      ""
+    );
   };
 
-  const handleTogglePostDislike = (id: number) => {
-    setPosts(prev => prev.map(p => {
-      if (p.id !== id) return p;
-      const dislikedByMe = !p.dislikedByMe;
-      return {
-        ...p,
-        dislikedByMe,
-        dislikes: p.dislikes + (dislikedByMe ? 1 : -1),
-        likedByMe: dislikedByMe ? false : p.likedByMe,
-        likes: dislikedByMe && p.likedByMe ? p.likes - 1 : p.likes,
-      };
-    }));
+  const handleAddComment = (postId: string, text: string) => {
+    void runWrite(addComment.mutateAsync({ postId, body: text }), "");
   };
 
-  const handleAddComment = (postId: number, text: string) => {
-    const comment: CommunityComment = {
-      id: Date.now(),
-      authorHandle: profile.handle,
-      body: text,
-      createdAt: Date.now(),
-      likes: 0,
-    };
-    setPosts(prev => prev.map(p => p.id === postId ? { ...p, comments: [...p.comments, comment] } : p));
+  const handleSendMessage = (conversationId: string, text: string) => {
+    void runWrite(sendMessage.mutateAsync({ conversationId, body: text }), "");
   };
 
-  const handleSendMessage = (peerHandle: string, text: string) => {
-    const message: DirectMessage = { id: Date.now(), senderHandle: ME, body: text, createdAt: Date.now() };
-    setThreads(prev => {
-      const existing = prev.find(t => t.peerHandle === peerHandle);
-      if (existing) return prev.map(t => t.peerHandle === peerHandle ? { ...t, messages: [...t.messages, message] } : t);
-      return [...prev, { peerHandle, messages: [message] }];
-    });
+  /** Resolves the pair's thread, then posts the share into it as a real message. */
+  const handleShareViaDm = async (peer: DbProfileStats, message: string) => {
+    try {
+      const conversationId = await openConversation.mutateAsync(peer.profileId);
+      await sendMessage.mutateAsync({ conversationId, body: message });
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Could not send that message");
+    }
   };
 
-  const openChat = (peerHandle: string) => setActiveChatHandle(peerHandle);
+  /** One stable thread per pair, resolved server-side, so opening a chat from
+   *  Connections and from Messages lands in the same conversation. */
+  const openChatWith = async (peer: DbProfileStats) => {
+    if (!canWrite) {
+      showToast("Create an account to send messages");
+      return;
+    }
+    try {
+      const conversationId = await openConversation.mutateAsync(peer.profileId);
+      setActiveConversationId(conversationId);
+      navigate("/messages");
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Could not open that conversation");
+    }
+  };
 
   const handleShopCard = (card: Card) => {
     setSelectedCardId(null);
@@ -515,6 +540,24 @@ export default function App() {
     );
   }
 
+  // Ahead of the sign-in gate: a recovery link arrives with its own session, and
+  // without this the user would land on their collection with the token stranded
+  // in the URL and no way to set a password.
+  if (location.pathname === "/reset-password") {
+    return (
+      <div className="min-h-screen w-full flex justify-center bg-white" style={{ fontFamily: "'Google Sans', sans-serif" }}>
+        <div className="relative w-full max-w-[430px] md:max-w-2xl flex flex-col min-h-screen bg-white overflow-hidden">
+          <ResetPasswordScreen
+            hasRecoverySession={isRecovering || isSignedIn}
+            onSubmit={updatePassword}
+            onBackToSignIn={() => navigate("/")}
+            isDark={isDark}
+          />
+        </div>
+      </div>
+    );
+  }
+
   if (!isSignedIn) {
     return (
       <div className="min-h-screen w-full flex justify-center bg-white" style={{ fontFamily: "'Google Sans', sans-serif" }}>
@@ -523,10 +566,12 @@ export default function App() {
             onSignIn={handleSignIn}
             onSignUp={handleSignUp}
             onGuest={handleGuest}
+            onForgotPassword={handleForgotPassword}
             isDark={isDark}
             authError={authError}
             busy={authBusy}
             awaitingConfirmation={awaitingConfirmation}
+            resetEmailSent={resetEmailSent}
           />
         </div>
       </div>
@@ -623,7 +668,15 @@ export default function App() {
       <div className="min-h-screen w-full flex justify-center bg-white" style={{ fontFamily: "'Google Sans', sans-serif" }}>
         <div className="relative w-full max-w-[430px] md:max-w-2xl flex flex-col min-h-screen bg-white overflow-hidden">
           <Suspense fallback={LOADING_FALLBACK}>
-            <MessagesView threads={threads} profile={profile} onBack={() => navigate("/")} onOpenChat={openChat} />
+            <MessagesView
+              conversations={conversations}
+              suggested={peersWithoutConversation}
+              ready={messagesReady}
+              currentUserId={user?.id ?? ""}
+              onBack={() => navigate("/")}
+              onOpenConversation={setActiveConversationId}
+              onStartConversation={openChatWith}
+            />
           </Suspense>
         </div>
       </div>
@@ -878,8 +931,8 @@ export default function App() {
           <Suspense fallback={LOADING_FALLBACK}>
             <CommunityView
               posts={posts}
-              profile={profile}
-              myTier={levelInfo.tier}
+              topics={topics}
+              ready={communityReady}
               onOpenPost={post => setViewingPostId(post.id)}
               showToast={showToast}
             />
@@ -890,10 +943,13 @@ export default function App() {
             <PeersView
               allCards={cards}
               folders={folders}
-              following={following}
+              myPeers={myPeers}
+              suggested={suggested}
+              ready={peersReady}
+              isFollowing={isFollowing}
               onToggleFollow={handleToggleFollow}
-              onOpenChat={openChat}
-              showToast={showToast}
+              onOpenChat={openChatWith}
+              onShareViaDm={handleShareViaDm}
             />
           </Suspense>
         )}
@@ -925,7 +981,12 @@ export default function App() {
               : mainTab === "connections"
               ? [
                   { label: "Share",    icon: <Share2 className="w-4 h-4" />,        active: showShare, onClick: () => setShowShare(true)      },
-                  { label: "Messages", icon: <MessageCircle className="w-4 h-4" />, active: false,      onClick: () => navigate("/messages")   },
+                  {
+                    label: unreadTotal > 0 ? `Messages (${unreadTotal > 9 ? "9+" : unreadTotal})` : "Messages",
+                    icon: <MessageCircle className="w-4 h-4" />,
+                    active: false,
+                    onClick: () => navigate("/messages"),
+                  },
                 ]
               : [
                   { label: "Scan",  icon: <Scan className="w-4 h-4" />,   active: showScan,  onClick: guardWrite(() => setShowScan(true))  },
@@ -985,33 +1046,46 @@ export default function App() {
           <ScanCardSheet onClose={() => setShowScan(false)} onAdd={handleAddCard} />
         </Suspense>
       )}
-      {showShare && <ShareFlow onClose={() => setShowShare(false)} allCards={cards} folders={folders} />}
+      {showShare && (
+        <ShareFlow
+          onClose={() => setShowShare(false)}
+          allCards={cards}
+          folders={folders}
+          dmPeers={myPeers}
+          onShareViaDm={handleShareViaDm}
+        />
+      )}
       {showSell && <SellFlow onClose={() => setShowSell(false)} allCards={cards} onCreate={handleCreateListing} />}
       {showNewPost && (
         <Suspense fallback={LOADING_FALLBACK}>
-          <NewPostSheet onClose={() => setShowNewPost(false)} onCreate={handleCreatePost} />
+          <NewPostSheet onClose={() => setShowNewPost(false)} topics={topics} onCreate={handleCreatePost} />
         </Suspense>
       )}
       {viewingPost && (
         <Suspense fallback={LOADING_FALLBACK}>
           <ThreadView
             post={viewingPost}
+            comments={viewingPostComments}
+            commentsLoading={commentsLoading}
             profile={profile}
-            myTier={levelInfo.tier}
+            canWrite={canWrite}
             onClose={() => setViewingPostId(null)}
-            onToggleLike={() => handleTogglePostLike(viewingPost.id)}
-            onToggleDislike={() => handleTogglePostDislike(viewingPost.id)}
+            onToggleLike={() => handleToggleReaction(viewingPost, "like")}
+            onToggleDislike={() => handleToggleReaction(viewingPost, "dislike")}
             onAddComment={text => handleAddComment(viewingPost.id, text)}
           />
         </Suspense>
       )}
-      {activeThread && (
+      {activeConversation && (
         <Suspense fallback={LOADING_FALLBACK}>
           <ChatView
-            thread={activeThread}
-            profile={profile}
-            onBack={() => setActiveChatHandle(null)}
-            onSend={text => handleSendMessage(activeThread.peerHandle, text)}
+            conversation={activeConversation}
+            messages={activeMessages}
+            isLoading={messagesLoading}
+            currentUserId={user?.id ?? ""}
+            onBack={() => setActiveConversationId(null)}
+            onSend={text => handleSendMessage(activeConversation.id, text)}
+            onMarkRead={() => markRead.mutate(activeConversation.id)}
           />
         </Suspense>
       )}

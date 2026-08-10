@@ -171,12 +171,87 @@ blank fallback tile. Repaired to `local:card5` in the same migration.
 - **Folder thumbnail picker.** Works only once the `folder_summaries` fix above
   lands, and stores a `copy_id` instead of a raw image URL.
 
-## Known gap left open
+## Follow-up pass: auth completion, Storage, and three more surfaces
 
-Scanned card images are still written as `data:` URLs into
-`card_copy_media.storage_path`, a column meant for a Storage path. The
-`card-images` bucket exists (migration `20260810020002`), so uploading properly
-is a follow-up — deliberately out of scope here.
+Delivered after the collection landed, closing most of the gaps that made the
+app unusable for real users.
+
+### Password reset (was broken and unreachable)
+
+`resetPassword` pointed `redirectTo` at `/reset-password`, a route that did not
+exist — App compares `location.pathname` against a fixed set and falls through
+to the collection view, so a recovery link stranded its token in the URL. It was
+also dead code: nothing called it, and the form had no "Forgot password?" link.
+
+Now: `ResetPasswordScreen` handles `/reset-password` **ahead of the sign-in
+gate**, since a recovery link arrives with its own session. `AuthProvider` gains
+`updatePassword` and tracks `isRecovering` off the `PASSWORD_RECOVERY` event —
+without it the app cannot distinguish a recovery session from a normal sign-in.
+An expired or already-used link gets an explicit "this link has expired" state
+rather than a dead form.
+
+### Scanned images to Storage (and the private-bucket bug it exposed)
+
+Captures were written as `data:` URLs into `card_copy_media.storage_path`.
+`lib/uploads.ts` now uploads to `card-images` at `{user_id}/{uuid}.jpg`, matching
+the path convention the Storage policies check.
+
+The upload happens **before** the `card_copies` insert, so a rejected image
+leaves nothing half-created — that is also why the object name is a fresh uuid
+rather than the copy id.
+
+Fixing the upload surfaced a second bug: `card-images` is a **private** bucket,
+and `resolveImage` was building `getPublicUrl` links for it. Every real upload
+would have 404'd even after a correct upload. `signCardImages` now batch-signs
+card-image paths in one request per read; `resolveImage`'s default bucket moved
+to `catalog-media` so a private path can't silently take the public branch.
+
+### Community, Connections, Messages
+
+All three moved off mock data onto the views that already existed and had zero
+consumers. Three hooks mirroring `useCollection`: `useCommunity`, `usePeers`,
+`useMessages`.
+
+What stopped being fabricated:
+
+| Was | Now |
+|---|---|
+| `PEER_TIER_BADGES` — a per-handle badge map | `authorBadgeFor(achievementCount)`, the same derivation the current user's own badge uses |
+| `PEER_XP_FRACTIONS` / `PEER_RING_COLORS` — hardcoded per handle | `computeLevel(achievementCount)` + `TIER_RING_STOPS` |
+| Like/dislike counts incremented by hand | `community_feed` recomputes them, so they cannot drift or go negative |
+| `PEERS` / `SUGGESTED` — two static rosters | "My Peers" is who you follow; "Suggested" is discoverable profiles you don't |
+| Threads keyed by peer handle, no unread concept | `conversation_summaries`, with `unread` derived from `last_read_at` |
+| Share-to-DM picked from the mock roster and sent nothing | Sends a real message into the pair's thread via `get_or_create_direct_conversation` |
+
+A peer's collection is now genuinely fetched, and honestly gated:
+`card_copies_select` pairs ownership with `can_read_collection`, so a private
+collection returns nothing and the sheet says so instead of showing fabricated
+cards. Their card *images* remain unreadable — `card_images_read_own` is
+own-files-only, so an image a peer uploaded cannot be signed by us and the tile
+falls back to its placeholder. Seeded peers use bundled `local:` artwork and
+render fine. Widening that would need a Storage read policy keyed to public
+collections, which is a deliberate backend decision, not an oversight here.
+
+Deleted as dead: `mockPosts`, `mockPeers`, `mockThreads`, `lib/messages.ts`, and
+the `Peer` / `SuggestedPeer` / `CommunityPost` / `CommunityComment` /
+`MessageThread` types.
+
+### Still not done
+
+- **The marketplace** is the one surface still on mock data. `MARKET_ITEMS` is
+  fabricated browse inventory, and `watchlist` / `listings` remain localStorage.
+  The backend is ready and unused: 9 seeded `marketplace_listings`, 48
+  `market_price_snapshots`, 24 `market_sale_comps`, plus `fetchListings`,
+  `fetchPriceHistory`, `fetchRecentSales`, `fetchWatchlist`, `toggleWatchlist`,
+  `fetchMyListings`, `createListing`, and the `place_native_order` RPC.
+- **Email deliverability.** Sign-up and password reset both send through
+  Supabase's built-in email, which is rate-limited to a handful per hour and not
+  intended for production. Needs custom SMTP configured in the dashboard — it
+  requires provider credentials, so it cannot be done from the codebase.
+- **Leaked-password protection** is disabled (security advisor `WARN`). A
+  dashboard toggle under Authentication → Policies.
+- **Settings Import** still needs the `import_legacy_backup` /
+  `restore_portable_backup` RPCs.
 
 ## Verification
 

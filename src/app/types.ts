@@ -5,8 +5,8 @@ export interface SubGrades {
   surface: string;
 }
 
-// Collection ids are Supabase UUIDs. The surfaces still running on mock data
-// (market, community, messaging) keep their numeric ids until they are rewired.
+// Collection ids are Supabase UUIDs. Only the marketplace still runs on mock
+// data, and it keeps its numeric ids until it is rewired.
 export interface Card {
   id: string;
   img: string;
@@ -78,27 +78,6 @@ export interface MarketItem {
   dealNote: string | null;
 }
 
-export interface Peer {
-  name: string;
-  handle: string;
-  cards: number;
-  value: number;
-  avatar: string;
-  badge: string;
-  verified: boolean;
-  topCards: string[];
-  snapshot: string[];
-  specialty: string;
-  chasing: string;
-}
-
-export interface SuggestedPeer {
-  name: string;
-  handle: string;
-  cards: number;
-  avatar: string;
-}
-
 export interface Listing {
   id: number;
   /** A card copy's UUID. */
@@ -125,39 +104,68 @@ export interface Profile {
 
 export type MainTab = "collection" | "community" | "connections";
 
-export interface CommunityComment {
-  id: number;
+// ---------------------------------------------------------------------------
+// community — shapes returned by the `community_feed` view
+// ---------------------------------------------------------------------------
+
+export interface FeedPost {
+  id: string;
+  authorId: string;
   authorHandle: string;
+  authorName: string;
+  authorAvatar: string;
+  /** Drives the author's tier badge, derived rather than seeded per-handle. */
+  authorAchievements: number;
+  topicSlug: string;
+  topicLabel: string;
+  topicEmoji: string;
   body: string;
-  createdAt: number;
-  likes: number;
-}
-
-export const ME = "__me__";
-
-export interface DirectMessage {
-  id: number;
-  senderHandle: string;
-  body: string;
-  createdAt: number;
-}
-
-export interface MessageThread {
-  peerHandle: string;
-  messages: DirectMessage[];
-}
-
-export interface CommunityPost {
-  id: number;
-  authorHandle: string;
-  topic: string;
   hot: boolean;
-  body: string;
-  cardImage?: string;
-  createdAt: number;
+  createdAt: string;
   likes: number;
   dislikes: number;
-  likedByMe?: boolean;
-  dislikedByMe?: boolean;
-  comments: CommunityComment[];
+  /** Comment count from the view; the comments themselves load on demand. */
+  comments: number;
+  myReaction: "like" | "dislike" | null;
 }
+
+export interface PostComment {
+  id: string;
+  body: string;
+  createdAt: string;
+  authorId: string;
+  authorHandle: string;
+  authorName: string;
+  authorAvatar: string;
+}
+
+export interface CommunityTopic {
+  slug: string;
+  label: string;
+  emoji: string;
+}
+
+// ---------------------------------------------------------------------------
+// messaging — shapes returned by `conversation_summaries` and `messages`
+// ---------------------------------------------------------------------------
+
+export interface ConversationSummary {
+  id: string;
+  peerId: string | null;
+  peerHandle: string;
+  peerName: string;
+  peerAvatar: string;
+  lastBody: string;
+  lastSenderId: string | null;
+  lastAt: string | null;
+  /** Derived from `last_read_at`, so it cannot be faked by a client. */
+  unread: number;
+}
+
+export interface DirectMessage {
+  id: string;
+  senderId: string;
+  body: string;
+  createdAt: string;
+}
+

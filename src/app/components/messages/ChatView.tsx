@@ -1,22 +1,32 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ChevronLeft, Send } from "lucide-react";
-import type { MessageThread, Profile } from "../../types";
-import { ME } from "../../types";
-import { resolveSender } from "../../lib/messages";
+import type { ConversationSummary, DirectMessage } from "../../types";
 import { relativeTime } from "../../lib/relativeTime";
 import { useEscapeClose } from "../../hooks/useEscapeClose";
 
 interface ChatViewProps {
-  thread: MessageThread;
-  profile: Profile;
+  conversation: ConversationSummary;
+  messages: DirectMessage[];
+  isLoading: boolean;
+  currentUserId: string;
   onBack: () => void;
   onSend: (text: string) => void;
+  /** Advances `last_read_at`, which is what the unread count derives from. */
+  onMarkRead: () => void;
 }
 
-export function ChatView({ thread, profile, onBack, onSend }: ChatViewProps) {
+export function ChatView({
+  conversation, messages, isLoading, currentUserId, onBack, onSend, onMarkRead,
+}: ChatViewProps) {
   useEscapeClose(onBack);
   const [text, setText] = useState("");
-  const peer = resolveSender(thread.peerHandle, profile);
+
+  // Opening a thread is what marks it read, so the badge clears on the way in
+  // rather than needing a separate action.
+  useEffect(() => {
+    if (conversation.unread > 0) onMarkRead();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conversation.id]);
 
   const submit = () => {
     if (!text.trim()) return;
@@ -30,35 +40,47 @@ export function ChatView({ thread, profile, onBack, onSend }: ChatViewProps) {
         <button onClick={onBack} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100" aria-label="Back">
           <ChevronLeft className="w-4 h-4 text-gray-600" />
         </button>
-        <img src={peer.avatar} alt={peer.name} className="w-8 h-8 rounded-full object-cover flex-shrink-0" draggable={false} />
+        <img src={conversation.peerAvatar} alt={conversation.peerName} className="w-8 h-8 rounded-full object-cover flex-shrink-0" draggable={false} />
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-gray-900 truncate">{peer.name}</p>
-          <p className="text-[11px] text-gray-400 truncate">{peer.handle}</p>
+          <p className="text-sm font-semibold text-gray-900 truncate">{conversation.peerName}</p>
+          <p className="text-[11px] text-gray-400 truncate">{conversation.peerHandle}</p>
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col gap-3" style={{ scrollbarWidth: "none" }}>
-        {thread.messages.map(msg => {
-          const mine = msg.senderHandle === ME;
-          return (
-            <div key={msg.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
-              <div className="max-w-[75%]">
-                <div
-                  className="px-4 py-2.5 rounded-2xl text-sm"
-                  style={{
-                    background: mine ? "#111" : "#f4f4f5",
-                    color: mine ? "#fff" : "#111",
-                    borderBottomRightRadius: mine ? 4 : undefined,
-                    borderBottomLeftRadius: mine ? undefined : 4,
-                  }}
-                >
-                  {msg.body}
+        {isLoading ? (
+          <div className="flex items-center justify-center py-10">
+            <div className="w-2 h-2 rounded-full bg-gray-300 animate-pulse" />
+          </div>
+        ) : messages.length === 0 ? (
+          <p className="text-sm text-gray-400 text-center py-10">
+            No messages yet — say hello.
+          </p>
+        ) : (
+          messages.map(msg => {
+            const mine = msg.senderId === currentUserId;
+            return (
+              <div key={msg.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
+                <div className="max-w-[75%]">
+                  <div
+                    className="px-4 py-2.5 rounded-2xl text-sm"
+                    style={{
+                      background: mine ? "#111" : "#f4f4f5",
+                      color: mine ? "#fff" : "#111",
+                      borderBottomRightRadius: mine ? 4 : undefined,
+                      borderBottomLeftRadius: mine ? undefined : 4,
+                    }}
+                  >
+                    {msg.body}
+                  </div>
+                  <p className={`text-[10px] text-gray-300 mt-1 ${mine ? "text-right" : "text-left"}`}>
+                    {relativeTime(Date.parse(msg.createdAt))}
+                  </p>
                 </div>
-                <p className={`text-[10px] text-gray-300 mt-1 ${mine ? "text-right" : "text-left"}`}>{relativeTime(msg.createdAt)}</p>
               </div>
-            </div>
-          );
-        })}
+            );
+          })
+        )}
       </div>
 
       <div className="flex items-center gap-2 px-6 py-3 flex-shrink-0" style={{ borderTop: "1px solid #f4f4f5" }}>

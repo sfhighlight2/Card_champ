@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { X, Check, Share2, Link, Mail, MessageCircle, ChevronRight, ChevronLeft, Folder, Send } from "lucide-react";
-import type { Card, FolderType, Peer } from "../../types";
+import type { Card, FolderType } from "../../types";
+import type { DbProfileStats } from "../../data/repositories";
 import { GRADER_COLOR } from "../../data/cardFields";
-import { PEERS } from "../../data/mockPeers";
 import { useEscapeClose } from "../../hooks/useEscapeClose";
 
 const SHARE_PLATFORMS = [
@@ -17,9 +17,13 @@ interface ShareFlowProps {
   onClose: () => void;
   allCards: Card[];
   folders: FolderType[];
+  /** Collectors the user follows — the only people a DM can go to. */
+  dmPeers: DbProfileStats[];
+  /** Sends the share as a real direct message. */
+  onShareViaDm: (peer: DbProfileStats, message: string) => void;
 }
 
-export function ShareFlow({ onClose, allCards, folders }: ShareFlowProps) {
+export function ShareFlow({ onClose, allCards, folders, dmPeers, onShareViaDm }: ShareFlowProps) {
   useEscapeClose(onClose);
   const [step, setStep] = useState<1 | 2>(1);
   const [type, setType] = useState<"collection" | "folder" | "card" | null>(null);
@@ -28,7 +32,7 @@ export function ShareFlow({ onClose, allCards, folders }: ShareFlowProps) {
   const [copied, setCopied] = useState(false);
   const [done, setDone] = useState(false);
   const [dmPicking, setDmPicking] = useState(false);
-  const [dmRecipient, setDmRecipient] = useState<Peer | null>(null);
+  const [dmRecipient, setDmRecipient] = useState<DbProfileStats | null>(null);
 
   const shareTitle = type === "collection" ? "Andrew's Collection"
     : type === "folder" ? selectedFolder?.name ?? ""
@@ -71,7 +75,7 @@ export function ShareFlow({ onClose, allCards, folders }: ShareFlowProps) {
           <p className="text-white/70 text-xs font-medium tracking-widest uppercase mb-2">{dmRecipient ? "Sent" : "Shared"}</p>
           <h2 className="text-2xl font-bold text-white mb-2 leading-tight">
             {dmRecipient
-              ? `Sent to ${dmRecipient.name}!`
+              ? `Sent to ${dmRecipient.displayName}!`
               : type === "card" ? `Look at this card!` : type === "folder" ? `Check out ${selectedFolder?.name}!` : "Look at my collection!"}
           </h2>
           <p className="text-white/70 text-sm mb-8">{dmRecipient ? shareTitle : shareSubtitle}</p>
@@ -196,16 +200,25 @@ export function ShareFlow({ onClose, allCards, folders }: ShareFlowProps) {
             <>
               <h2 className="text-xl font-semibold text-gray-900 mb-1">Send to</h2>
               <p className="text-sm text-gray-400 mb-4">Pick a collector to direct message.</p>
-              {PEERS.map((peer, i) => (
-                <button key={peer.handle} onClick={() => { setDmRecipient(peer); setDone(true); }}
+              {dmPeers.length === 0 ? (
+                <p className="text-sm text-gray-400 py-6">
+                  Connect with a collector first — you can only message people you follow.
+                </p>
+              ) : dmPeers.map((peer, i) => (
+                <button key={peer.profileId}
+                  onClick={() => {
+                    onShareViaDm(peer, `${shareTitle} — ${shareSubtitle}`);
+                    setDmRecipient(peer);
+                    setDone(true);
+                  }}
                   className="w-full flex items-center gap-3 py-3 text-left"
-                  style={{ borderBottom: i < PEERS.length - 1 ? "1px solid #f4f4f5" : "none" }}>
+                  style={{ borderBottom: i < dmPeers.length - 1 ? "1px solid #f4f4f5" : "none" }}>
                   <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex-shrink-0">
-                    <img src={peer.avatar} alt={peer.name} className="w-full h-full" style={{ objectFit: "cover", objectPosition: "top center" }} draggable={false} />
+                    <img src={peer.avatar} alt={peer.displayName} className="w-full h-full" style={{ objectFit: "cover", objectPosition: "top center" }} draggable={false} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-gray-900 truncate">{peer.name}</p>
-                    <p className="text-[11px] text-gray-400">{peer.handle}</p>
+                    <p className="text-sm font-semibold text-gray-900 truncate">{peer.displayName}</p>
+                    <p className="text-[11px] text-gray-400">@{peer.handle}</p>
                   </div>
                   <Send className="w-4 h-4 text-violet-500 flex-shrink-0" />
                 </button>

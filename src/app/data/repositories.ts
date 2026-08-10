@@ -10,7 +10,8 @@
 // counts — come from the database rather than from client arithmetic.
 
 import { supabase, fromMinor, toMinor } from "../lib/supabase";
-import { resolveImage, resolveAvatar } from "../lib/media";
+import { resolveImage, resolveAvatar, signCardImages } from "../lib/media";
+import { uploadCardImage } from "../lib/uploads";
 
 // ---------------------------------------------------------------------------
 // shapes returned to the UI
@@ -175,13 +176,18 @@ export async function fetchCards(ownerId: string): Promise<DbCard[]> {
     .order("created_at", { ascending: false });
   if (error) throw error;
 
-  return (data ?? []).map(mapCard);
+  const rows = data ?? [];
+  // `card-images` is a private bucket, so real uploads need signed URLs. One
+  // batch request covers the whole collection.
+  const images = await signCardImages(rows.map(r => r.image_path));
+
+  return rows.map(r => mapCard(r, images));
 }
 
-function mapCard(d: Record<string, any>): DbCard {
+function mapCard(d: Record<string, any>, images?: Map<string, string>): DbCard {
   return {
     id: d.id,
-    img: resolveImage(d.image_path),
+    img: (d.image_path && images?.get(d.image_path)) ?? resolveImage(d.image_path),
     player: d.player ?? "",
     year: d.year != null ? String(d.year) : "",
     brand: d.brand ?? "",
@@ -240,6 +246,13 @@ export async function addCard(
 ): Promise<string> {
   const graderId = await lookupGraderId(input.graderCode);
 
+  // Uploaded first, deliberately: if Storage rejects the image there is no
+  // half-created card to clean up, and the user just retries. That is also why
+  // the object name is a fresh uuid rather than the copy id.
+  const imagePath = input.imageDataUrl
+    ? await uploadCardImage(input.imageDataUrl, ownerId)
+    : null;
+
   const { data, error } = await supabase
     .from("card_copies")
     .insert({
@@ -270,11 +283,11 @@ export async function addCard(
     created_by: ownerId,
   });
 
-  if (input.imageDataUrl) {
+  if (imagePath) {
     await supabase.from("card_copy_media").insert({
       copy_id: copyId,
       uploaded_by: ownerId,
-      storage_path: input.imageDataUrl,
+      storage_path: imagePath,
       media_type: "front",
       is_primary: true,
     });
@@ -375,6 +388,10 @@ export async function fetchFolders(ownerId: string): Promise<DbFolder[]> {
   const folders = data ?? [];
   if (folders.length === 0) return [];
 
+  // Same private-bucket treatment as the card grid: a folder thumbnail is a
+  // card image.
+  const thumbnails = await signCardImages(folders.map(f => f.thumbnail_path));
+
   // thumbnail_copy_id lives on `folders`, not the summary view, and the picker
   // needs it to show which copy is currently selected.
   const { data: chosen, error: chosenError } = await supabase
@@ -408,7 +425,7 @@ export async function fetchFolders(ownerId: string): Promise<DbFolder[]> {
     color: f.color,
     cardCount: f.card_count ?? 0,
     value: fromMinor(f.total_value_minor),
-    thumbnail: resolveImage(f.thumbnail_path),
+    thumbnail: (f.thumbnail_path && thumbnails.get(f.thumbnail_path)) ?? resolveImage(f.thumbnail_path),
     thumbnailCopyId: thumbCopyByFolder.get(f.id) ?? null,
     cardIds: byFolder.get(f.id) ?? [],
   }));
@@ -548,6 +565,21 @@ export async function deleteChase(chaseId: string): Promise<void> {
 // ---------------------------------------------------------------------------
 // community
 // ---------------------------------------------------------------------------
+
+export async function fetchTopics() {
+  const { data, error } = await supabase
+    .from("community_topics")
+    .select("slug, label, emoji")
+    .eq("is_active", true)
+    .order("sort_order");
+  if (error) throw error;
+
+  return (data ?? []).map(t => ({
+    slug: t.slug as string,
+    label: t.label as string,
+    emoji: (t.emoji as string) ?? "",
+  }));
+}
 
 export async function fetchFeed() {
   const { data, error } = await supabase
@@ -786,6 +818,30 @@ export async function removeListing(listingId: string): Promise<void> {
 // ---------------------------------------------------------------------------
 // follows
 // ---------------------------------------------------------------------------
+
+/**
+ * Another collector's cards. Readable only when their collection is public —
+ * `card_copies_select` pairs ownership with `private.can_read_collection`, so a
+ * private collection simply returns nothing rather than erroring.
+ *
+ * Their card images are a different matter: `card-images` is private and its
+ * read policy is own-files-only, so an image a peer uploaded cannot be signed
+ * by us and the tile falls back to its placeholder. Seeded demo peers use
+ * bundled `local:` artwork, which resolves fine.
+ */
+export async function fetchPeerCards(profileId: string): Promise<DbCard[]> {
+  const { data, error } = await supabase
+    .from("collection_copy_details")
+    .select("*")
+    .eq("owner_id", profileId)
+    .is("archived_at", null)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+
+  const rows = data ?? [];
+  const images = await signCardImages(rows.map(r => r.image_path));
+  return rows.map(r => mapCard(r, images));
+}
 
 export async function fetchFollowing(followerId: string): Promise<string[]> {
   const { data, error } = await supabase

@@ -1,26 +1,15 @@
-import type { Profile } from "../types";
-import { PEERS } from "../data/mockPeers";
-import { PEER_TIER_BADGES } from "../data/mockPosts";
-import { tierBadgeLabel, type Tier } from "./level";
+import { computeLevel, tierBadgeLabel } from "./level";
 
-export interface ResolvedAuthor {
-  name: string;
-  avatar: string;
-  handle: string;
-}
-
-// Posts/comments only store a handle; resolve it against "me" (the current
-// profile) or the mock peers roster to get a display name + avatar.
-export function resolveAuthor(handle: string, profile: Profile): ResolvedAuthor {
-  if (handle === profile.handle) return { name: profile.name, avatar: profile.avatar, handle };
-  const peer = PEERS.find(p => p.handle === handle);
-  if (peer) return { name: peer.name, avatar: peer.avatar, handle };
-  return { name: handle.replace("@", ""), avatar: profile.avatar, handle };
-}
-
-// My own badge is real (derived from earned achievements); other authors
-// use the seeded flavor map.
-export function authorBadge(handle: string, profile: Profile, myTier: Tier): "PRO" | "HOF" | null {
-  if (handle === profile.handle) return tierBadgeLabel(myTier);
-  return PEER_TIER_BADGES[handle] ?? null;
+/**
+ * An author's tier badge, derived from the achievements they have actually
+ * earned.
+ *
+ * The prototype resolved authors against a mock peer roster and looked their
+ * badge up in a hand-written per-handle map. Posts now carry their author's
+ * identity and achievement count from the `community_feed` view, so every
+ * author's badge is derived the same way the current user's own is — nobody's
+ * standing is seeded flavour.
+ */
+export function authorBadgeFor(achievementsEarned: number): "PRO" | "HOF" | null {
+  return tierBadgeLabel(computeLevel(achievementsEarned).tier);
 }

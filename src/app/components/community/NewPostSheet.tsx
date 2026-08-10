@@ -1,18 +1,20 @@
 import { useState } from "react";
 import { X } from "lucide-react";
-import { COMMUNITY_TOPICS, TOPIC_EMOJI } from "../../data/mockPosts";
+import type { CommunityTopic } from "../../types";
 import { useEscapeClose } from "../../hooks/useEscapeClose";
 
 interface NewPostSheetProps {
   onClose: () => void;
-  onCreate: (topic: string, body: string) => void;
+  topics: CommunityTopic[];
+  /** Receives the topic's slug, which is what `posts.topic_id` resolves from. */
+  onCreate: (topicSlug: string, body: string) => void;
 }
 
-export function NewPostSheet({ onClose, onCreate }: NewPostSheetProps) {
+export function NewPostSheet({ onClose, topics, onCreate }: NewPostSheetProps) {
   useEscapeClose(onClose);
-  const [topic, setTopic] = useState<string>(COMMUNITY_TOPICS[0]);
+  const [topic, setTopic] = useState<string>(topics[0]?.slug ?? "");
   const [body, setBody] = useState("");
-  const canPost = body.trim().length > 0;
+  const canPost = body.trim().length > 0 && topic.length > 0;
 
   const submit = () => {
     if (!canPost) return;
@@ -38,11 +40,11 @@ export function NewPostSheet({ onClose, onCreate }: NewPostSheetProps) {
         <div className="px-6 pb-8 overflow-y-auto" style={{ maxHeight: "calc(88vh - 76px)", scrollbarWidth: "none" }}>
           <p className="text-[10px] font-medium text-gray-400 tracking-widest uppercase mb-2">Topic</p>
           <div className="flex flex-wrap gap-2 mb-6">
-            {COMMUNITY_TOPICS.map(t => (
-              <button key={t} onClick={() => setTopic(t)}
+            {topics.map(t => (
+              <button key={t.slug} onClick={() => setTopic(t.slug)}
                 className="px-4 py-2 rounded-full text-xs font-semibold transition-colors"
-                style={{ background: topic === t ? "#111" : "#f3f4f6", color: topic === t ? "#fff" : "#6b7280" }}>
-                {TOPIC_EMOJI[t]} {t}
+                style={{ background: topic === t.slug ? "#111" : "#f3f4f6", color: topic === t.slug ? "#fff" : "#6b7280" }}>
+                {t.emoji} {t.label}
               </button>
             ))}
           </div>
