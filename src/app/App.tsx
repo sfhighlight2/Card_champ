@@ -37,6 +37,7 @@ import { NewFolderSheet } from "./components/cards/NewFolderSheet";
 import { EditFolderSheet } from "./components/cards/EditFolderSheet";
 import { FolderDetailView } from "./components/cards/FolderDetailView";
 import { FolderGrid } from "./components/cards/FolderGrid";
+import { GettingStarted } from "./components/cards/GettingStarted";
 import { ChaseView } from "./components/cards/ChaseView";
 import { SellFlow } from "./components/market/SellFlow";
 import { ShareFlow } from "./components/shared/ShareFlow";
@@ -79,6 +80,7 @@ export default function App() {
   const [authBusy, setAuthBusy] = useState(false);
   const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
   const [resetEmailSent, setResetEmailSent] = useState(false);
+  const [authInitialMode, setAuthInitialMode] = useState<"signin" | "signup">("signin");
 
   // Codes the server reported as newly earned; turned into a toast once the
   // achievement labels are on hand.
@@ -113,6 +115,7 @@ export default function App() {
   const [dismissedMovers, setDismissedMovers] = useLocalStorage<string[]>("cardchamps:watchlist-banner-dismissed", []);
   const [theme, setTheme] = useLocalStorage<"light" | "dark" | "system">("cardchamps:theme", "system");
   const [hideValues, setHideValues] = useLocalStorage<boolean>("cardchamps:privacy", false);
+  const [onboardingDismissed, setOnboardingDismissed] = useLocalStorage<boolean>("cardchamps:onboarding-dismissed", false);
   const [isDark, setIsDark] = useState(false);
 
   useEffect(() => {
@@ -335,6 +338,17 @@ export default function App() {
     void runWrite(saveProfile.mutateAsync({ profile, avatarFile: file }), "Profile picture updated");
   };
 
+  /** Sends the user to wherever a getting-started step is performed. */
+  const handleOnboardingStep = (code: string) => {
+    switch (code) {
+      case "first-card":   setCardsSubView("cards"); setShowScan(true); break;
+      case "first-folder": setCardsSubView("folders"); setShowNewFolder(true); break;
+      case "first-chase":  setCardsSubView("chase"); break;
+      case "first-follow": navigate("/connections"); break;
+      case "first-post":   navigate("/community"); setShowNewPost(true); break;
+    }
+  };
+
   const handleForgotPassword = async (email: string) => {
     setAuthBusy(true);
     setAuthError("");
@@ -361,6 +375,14 @@ export default function App() {
   };
 
   const handleLogout = () => {
+    setAuthInitialMode("signin");
+    void signOut();
+  };
+
+  /** A guest upgrading to a real account. The anonymous session has to end first,
+   *  so this lands them on the Sign Up tab rather than Sign In. */
+  const handleUpgradeFromGuest = () => {
+    setAuthInitialMode("signup");
     void signOut();
   };
 
@@ -601,6 +623,7 @@ export default function App() {
             busy={authBusy}
             awaitingConfirmation={awaitingConfirmation}
             resetEmailSent={resetEmailSent}
+            initialMode={authInitialMode}
           />
         </div>
       </div>
@@ -871,6 +894,13 @@ export default function App() {
 
             {cardsSubView === "cards" && (
               <div className="flex-1 px-7 pb-10 overflow-y-auto app-scroll-pad" style={{ scrollbarWidth: "none" }}>
+                {canWrite && collectionReady && !onboardingDismissed && (
+                  <GettingStarted
+                    achievements={achievements}
+                    onDismiss={() => setOnboardingDismissed(true)}
+                    onGo={handleOnboardingStep}
+                  />
+                )}
                 {!collectionReady ? (
                   LOADING_FALLBACK
                 ) : isGuest ? (
@@ -883,7 +913,7 @@ export default function App() {
                       Create an account to start a collection of your own. You can keep browsing the community and
                       marketplace either way.
                     </p>
-                    <button onClick={handleLogout}
+                    <button onClick={handleUpgradeFromGuest}
                       className="flex items-center gap-2 px-5 py-3 rounded-full bg-gray-950 text-white text-sm font-semibold">
                       Create an account
                     </button>

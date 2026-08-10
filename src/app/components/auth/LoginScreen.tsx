@@ -43,13 +43,17 @@ interface LoginScreenProps {
   awaitingConfirmation?: boolean;
   /** A reset email has just been sent. */
   resetEmailSent?: boolean;
+  /** Which tab to open on. A guest tapping "Create an account" should land on
+   *  Sign Up, not have to find the tab themselves. */
+  initialMode?: "signin" | "signup";
 }
 
 export function LoginScreen({
   onSignIn, onSignUp, onGuest, onForgotPassword, isDark,
   authError = "", busy = false, awaitingConfirmation = false, resetEmailSent = false,
+  initialMode = "signin",
 }: LoginScreenProps) {
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [mode, setMode] = useState<"signin" | "signup">(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
