@@ -1,11 +1,12 @@
-import { useCallback, useState, useEffect, lazy, Suspense } from "react";
+import { useCallback, useState, useEffect, useRef, lazy, Suspense } from "react";
 import { useLocation, useNavigate } from "react-router";
 import {
-  Scan, X, Plus, Share2, Search, TrendingUp, TrendingDown, Users, UserPlus, LayoutGrid, Tag, ChevronLeft, ChevronUp, ChevronDown, Folder, SlidersHorizontal, Trash2, FolderPlus, Menu as MenuIcon, MessageCircle,
+  Scan, X, Plus, Share2, Search, TrendingUp, TrendingDown, Users, UserPlus, LayoutGrid, Tag, ChevronLeft, ChevronUp, ChevronDown, Folder, SlidersHorizontal, Trash2, FolderPlus, Menu as MenuIcon, MessageCircle, AlertTriangle,
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import type { Card, Chase, FeedPost, FolderType, Listing, MainTab } from "./types";
 import { MARKET_ITEMS } from "./data/mockMarket";
+import { isSupabaseConfigured } from "./lib/supabase";
 import { useAuth } from "./auth/AuthProvider";
 import { useCollection } from "./data/useCollection";
 import { useCommunity, usePostComments } from "./data/useCommunity";
@@ -156,6 +157,7 @@ export default function App() {
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
   const [confirmingDeleteFolderId, setConfirmingDeleteFolderId] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setSelectMode(false);
@@ -315,6 +317,14 @@ export default function App() {
     } finally {
       setAuthBusy(false);
     }
+  };
+
+  /** Tapping the dashboard avatar picks a picture and saves it immediately —
+   *  no trip through Profile → Edit Profile. The full current `profile` goes
+   *  along because `updateProfile` writes every field, so sending a partial
+   *  object here would blank the user's bio, chasing, and collecting-since. */
+  const handleAvatarPicked = (file: File) => {
+    void runWrite(saveProfile.mutateAsync({ profile, avatarFile: file }), "Profile picture updated");
   };
 
   const handleForgotPassword = async (email: string) => {
@@ -522,9 +532,30 @@ export default function App() {
   // restore_portable_backup RPCs, which do not exist yet, so SettingsView
   // presents them as unavailable rather than corrupting real rows.
 
+  // A host that was never given VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY
+  // cannot reach the backend at all. Saying so beats an app that looks broken.
+  if (!isSupabaseConfigured) {
+    return (
+      <div className="app-shell w-full flex items-center justify-center bg-white px-8" style={{ fontFamily: "'Google Sans', sans-serif" }}>
+        <div className="max-w-sm text-center">
+          <div className="w-14 h-14 rounded-2xl bg-amber-50 flex items-center justify-center mx-auto mb-4">
+            <AlertTriangle className="w-6 h-6 text-amber-600" />
+          </div>
+          <h1 className="text-lg font-semibold text-gray-900">Not configured</h1>
+          <p className="text-sm text-gray-500 mt-2 leading-relaxed">
+            This build is missing its Supabase credentials, so it can't load your collection. Set
+            {" "}<span className="font-mono text-xs text-gray-700">VITE_SUPABASE_URL</span> and{" "}
+            <span className="font-mono text-xs text-gray-700">VITE_SUPABASE_PUBLISHABLE_KEY</span>
+            {" "}as build environment variables, then redeploy.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   if (!authReady) {
     return (
-      <div className="min-h-screen w-full flex items-center justify-center bg-white">
+      <div className="app-shell w-full flex items-center justify-center bg-white">
         <div className="w-2 h-2 rounded-full bg-gray-300 animate-pulse" />
       </div>
     );
@@ -535,8 +566,8 @@ export default function App() {
   // in the URL and no way to set a password.
   if (location.pathname === "/reset-password") {
     return (
-      <div className="min-h-screen w-full flex justify-center bg-white" style={{ fontFamily: "'Google Sans', sans-serif" }}>
-        <div className="relative w-full max-w-[430px] md:max-w-2xl flex flex-col min-h-screen bg-white overflow-hidden">
+      <div className="app-shell w-full flex justify-center bg-white" style={{ fontFamily: "'Google Sans', sans-serif" }}>
+        <div className="app-frame relative w-full max-w-[430px] md:max-w-2xl flex flex-col bg-white overflow-hidden">
           <ResetPasswordScreen
             hasRecoverySession={isRecovering || isSignedIn}
             onSubmit={updatePassword}
@@ -550,8 +581,8 @@ export default function App() {
 
   if (!isSignedIn) {
     return (
-      <div className="min-h-screen w-full flex justify-center bg-white" style={{ fontFamily: "'Google Sans', sans-serif" }}>
-        <div className="relative w-full max-w-[430px] md:max-w-2xl flex flex-col min-h-screen bg-white overflow-hidden">
+      <div className="app-shell w-full flex justify-center bg-white" style={{ fontFamily: "'Google Sans', sans-serif" }}>
+        <div className="app-frame relative w-full max-w-[430px] md:max-w-2xl flex flex-col bg-white overflow-hidden">
           <LoginScreen
             onSignIn={handleSignIn}
             onSignUp={handleSignUp}
@@ -570,8 +601,8 @@ export default function App() {
 
   if (settingsOpen) {
     return (
-      <div className="min-h-screen w-full flex justify-center bg-white" style={{ fontFamily: "'Google Sans', sans-serif" }}>
-        <div className="relative w-full max-w-[430px] md:max-w-2xl flex flex-col min-h-screen bg-white overflow-hidden">
+      <div className="app-shell w-full flex justify-center bg-white" style={{ fontFamily: "'Google Sans', sans-serif" }}>
+        <div className="app-frame relative w-full max-w-[430px] md:max-w-2xl flex flex-col bg-white overflow-hidden">
           <Suspense fallback={LOADING_FALLBACK}>
             <SettingsView
               onBack={() => navigate("/")}
@@ -596,8 +627,8 @@ export default function App() {
 
   if (marketplaceOpen) {
     return (
-      <div className="min-h-screen w-full flex justify-center bg-white" style={{ fontFamily: "'Google Sans', sans-serif" }}>
-        <div className="relative w-full max-w-[430px] md:max-w-2xl flex flex-col min-h-screen bg-white overflow-hidden">
+      <div className="app-shell w-full flex justify-center bg-white" style={{ fontFamily: "'Google Sans', sans-serif" }}>
+        <div className="app-frame relative w-full max-w-[430px] md:max-w-2xl flex flex-col bg-white overflow-hidden">
           <div className="flex items-center gap-3 px-6 pt-6 pb-2 flex-shrink-0">
             <button onClick={() => navigate("/")} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100" aria-label="Back">
               <ChevronLeft className="w-4 h-4 text-gray-600" />
@@ -623,8 +654,8 @@ export default function App() {
 
   if (profileOpen) {
     return (
-      <div className="min-h-screen w-full flex justify-center bg-white" style={{ fontFamily: "'Google Sans', sans-serif" }}>
-        <div className="relative w-full max-w-[430px] md:max-w-2xl flex flex-col min-h-screen bg-white overflow-hidden">
+      <div className="app-shell w-full flex justify-center bg-white" style={{ fontFamily: "'Google Sans', sans-serif" }}>
+        <div className="app-frame relative w-full max-w-[430px] md:max-w-2xl flex flex-col bg-white overflow-hidden">
           <Suspense fallback={LOADING_FALLBACK}>
             <ProfileView
               profile={profile}
@@ -654,8 +685,8 @@ export default function App() {
 
   if (messagesOpen) {
     return (
-      <div className="min-h-screen w-full flex justify-center bg-white" style={{ fontFamily: "'Google Sans', sans-serif" }}>
-        <div className="relative w-full max-w-[430px] md:max-w-2xl flex flex-col min-h-screen bg-white overflow-hidden">
+      <div className="app-shell w-full flex justify-center bg-white" style={{ fontFamily: "'Google Sans', sans-serif" }}>
+        <div className="app-frame relative w-full max-w-[430px] md:max-w-2xl flex flex-col bg-white overflow-hidden">
           <Suspense fallback={LOADING_FALLBACK}>
             <MessagesView
               conversations={conversations}
@@ -674,22 +705,45 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen w-full flex justify-center bg-white" style={{ fontFamily: "'Google Sans', sans-serif" }}>
-      <div className="relative w-full max-w-[430px] md:max-w-2xl lg:max-w-5xl flex flex-col min-h-screen bg-white overflow-hidden">
+    <div className="app-shell w-full flex justify-center bg-white" style={{ fontFamily: "'Google Sans', sans-serif" }}>
+      <div className="app-frame relative w-full max-w-[430px] md:max-w-2xl lg:max-w-5xl flex flex-col bg-white overflow-hidden">
 
         {!openFolder && (
-          <button onClick={() => setMenuOpen(true)} className="absolute top-6 right-6 w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 z-10" aria-label="Menu">
+          <button onClick={() => setMenuOpen(true)} className="absolute right-6 w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 z-10"
+            style={{ top: "calc(1.5rem + var(--safe-top))" }} aria-label="Menu">
             <MenuIcon className="w-4 h-4 text-gray-500" />
           </button>
         )}
 
         <div className="flex flex-col items-center px-7 pt-14 pb-3">
           <div className="relative mb-14">
-            <LevelRingAvatar avatar={profile.avatar} name={profile.name} xpFraction={levelInfo.xpFraction} />
+            <LevelRingAvatar
+              avatar={profile.avatar}
+              name={profile.name}
+              xpFraction={levelInfo.xpFraction}
+              // Guests cannot write, so the avatar stays inert for them rather
+              // than opening a picker whose upload RLS would reject.
+              onPress={canWrite ? () => avatarInputRef.current?.click() : undefined}
+              // Prompt hardest when there is no picture yet, but keep the
+              // affordance afterwards so it stays changeable.
+              showCameraBadge={canWrite}
+            />
             <div className="absolute left-1/2 -translate-x-1/2" style={{ bottom: -34 }}>
               <TierMedallions levelInfo={levelInfo} />
             </div>
           </div>
+          <input
+            ref={avatarInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            className="hidden"
+            onChange={e => {
+              const file = e.target.files?.[0];
+              if (file) handleAvatarPicked(file);
+              // Cleared so re-picking the same file still fires onChange.
+              e.target.value = "";
+            }}
+          />
           <h1 className="text-2xl font-bold text-gray-900 leading-none tracking-tight">{profile.handle}</h1>
           <p className="text-[15px] font-medium text-slate-500 mt-2 flex items-center gap-1.5 flex-wrap justify-center">
             <span>
@@ -798,7 +852,7 @@ export default function App() {
             )}
 
             {cardsSubView === "cards" && (
-              <div className="flex-1 px-7 pb-10 overflow-y-auto" style={{ scrollbarWidth: "none", paddingBottom: "110px" }}>
+              <div className="flex-1 px-7 pb-10 overflow-y-auto app-scroll-pad" style={{ scrollbarWidth: "none" }}>
                 {!collectionReady ? (
                   LOADING_FALLBACK
                 ) : isGuest ? (
@@ -879,7 +933,7 @@ export default function App() {
             )}
 
             {cardsSubView === "folders" && (
-              <div className="flex-1 px-7 overflow-y-auto" style={{ scrollbarWidth: "none", paddingBottom: "110px" }}>
+              <div className="flex-1 px-7 overflow-y-auto app-scroll-pad" style={{ scrollbarWidth: "none" }}>
                 <p className="text-xs text-gray-400 mb-3">{displayedFolders.length} folder{displayedFolders.length !== 1 ? "s" : ""}</p>
                 {displayedFolders.length === 0 && (
                   <div className="flex flex-col items-center text-center pt-12">
@@ -945,7 +999,7 @@ export default function App() {
         )}
 
         {selectMode ? (
-          <div className="fixed bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-2 px-3 py-2.5 rounded-full bg-gray-950 z-40" style={{ boxShadow: "0 8px 32px rgba(0,0,0,0.2)" }}>
+          <div className="app-action-bar fixed left-1/2 -translate-x-1/2 flex items-center gap-2 px-3 py-2.5 rounded-full bg-gray-950 z-40" style={{ boxShadow: "0 8px 32px rgba(0,0,0,0.2)" }}>
             <button onClick={() => { setSelectMode(false); setSelectedCardIds([]); }}
               className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 flex-shrink-0" aria-label="Cancel selection">
               <X className="w-4 h-4 text-white" />
@@ -961,7 +1015,7 @@ export default function App() {
             </button>
           </div>
         ) : (
-          <div className="fixed bottom-8 left-1/2 -translate-x-1/2 flex gap-2 px-4 py-2.5 rounded-full bg-white z-40" style={{ boxShadow: "0 8px 32px rgba(0,0,0,0.12)" }}>
+          <div className="app-action-bar fixed left-1/2 -translate-x-1/2 flex gap-2 px-4 py-2.5 rounded-full bg-white z-40" style={{ boxShadow: "0 8px 32px rgba(0,0,0,0.12)" }}>
             {(mainTab === "community"
               ? [
                   { label: "Scan",  icon: <Scan className="w-4 h-4" />,  active: showScan,    onClick: guardWrite(() => setShowScan(true))    },
@@ -994,7 +1048,8 @@ export default function App() {
         )}
 
         {toast && (
-          <div className="absolute bottom-28 left-1/2 -translate-x-1/2 px-4 py-2.5 rounded-full bg-gray-950 text-white text-xs font-semibold shadow-lg whitespace-nowrap z-50">
+          <div className="absolute left-1/2 -translate-x-1/2 px-4 py-2.5 rounded-full bg-gray-950 text-white text-xs font-semibold shadow-lg whitespace-nowrap z-50"
+            style={{ bottom: "calc(7rem + var(--safe-bottom))" }}>
             {toast}
           </div>
         )}

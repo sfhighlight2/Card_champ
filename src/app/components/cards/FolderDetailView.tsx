@@ -78,7 +78,7 @@ export function FolderDetailView({ folder, onBack, onSetCards, onSetThumbnail, a
         </div>
       </div>
 
-      <div className="flex-1 px-6 overflow-y-auto" style={{ scrollbarWidth: "none", paddingBottom: "110px" }}>
+      <div className="flex-1 px-6 overflow-y-auto app-scroll-pad" style={{ scrollbarWidth: "none" }}>
         {cards.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 gap-3">
             <Folder className="w-8 h-8 text-gray-200" />
@@ -101,13 +101,13 @@ export function FolderDetailView({ folder, onBack, onSetCards, onSetThumbnail, a
 
       {addingCards && (
         <div className="fixed inset-0 z-50 flex flex-col" style={{ background: "rgba(0,0,0,0.45)", backdropFilter: "blur(6px)" }} onClick={() => setAddingCards(false)}>
-          <div className="mt-auto md:m-auto rounded-t-3xl md:rounded-3xl bg-white overflow-hidden w-full max-w-lg" style={{ maxHeight: "80vh" }} onClick={e => e.stopPropagation()}>
+          <div className="app-sheet mt-auto md:m-auto rounded-t-3xl md:rounded-3xl bg-white overflow-hidden w-full max-w-lg" style={{ maxHeight: "80dvh" }} onClick={e => e.stopPropagation()}>
             <div className="flex justify-center pt-3 md:hidden"><div className="w-8 h-1 rounded-full bg-gray-200" /></div>
             <div className="flex items-center justify-between px-6 pt-4 pb-3">
               <h2 className="text-base font-semibold text-gray-900">Add Cards</h2>
               <button onClick={() => setAddingCards(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100" aria-label="Close"><X className="w-4 h-4 text-gray-500" /></button>
             </div>
-            <div className="grid grid-cols-3 md:grid-cols-4 gap-3 px-6 pb-10 overflow-y-auto" style={{ scrollbarWidth: "none", maxHeight: "calc(80vh - 80px)" }}>
+            <div className="grid grid-cols-3 md:grid-cols-4 gap-3 px-6 pb-10 overflow-y-auto" style={{ scrollbarWidth: "none", maxHeight: "calc(80dvh - 80px)" }}>
               {allCards.map(card => (
                 <button key={card.id} onClick={() => toggleCard(card.id)} className="relative focus:outline-none">
                   <div className="overflow-hidden" style={{ outline: folder.cardIds.includes(card.id) ? "2px solid #111" : "2px solid transparent", outlineOffset: "2px" }}>
@@ -129,13 +129,13 @@ export function FolderDetailView({ folder, onBack, onSetCards, onSetThumbnail, a
 
       {changingThumb && (
         <div className="fixed inset-0 z-50 flex flex-col" style={{ background: "rgba(0,0,0,0.45)", backdropFilter: "blur(6px)" }} onClick={() => setChangingThumb(false)}>
-          <div className="mt-auto md:m-auto rounded-t-3xl md:rounded-3xl bg-white overflow-hidden w-full max-w-lg" style={{ maxHeight: "70vh" }} onClick={e => e.stopPropagation()}>
+          <div className="app-sheet mt-auto md:m-auto rounded-t-3xl md:rounded-3xl bg-white overflow-hidden w-full max-w-lg" style={{ maxHeight: "70dvh" }} onClick={e => e.stopPropagation()}>
             <div className="flex justify-center pt-3 md:hidden"><div className="w-8 h-1 rounded-full bg-gray-200" /></div>
             <div className="flex items-center justify-between px-6 pt-4 pb-3">
               <h2 className="text-base font-semibold text-gray-900">Choose Thumbnail</h2>
               <button onClick={() => setChangingThumb(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100" aria-label="Close"><X className="w-4 h-4 text-gray-500" /></button>
             </div>
-            <div className="grid grid-cols-4 gap-2 px-6 pb-10 overflow-y-auto" style={{ scrollbarWidth: "none", maxHeight: "calc(70vh - 80px)" }}>
+            <div className="grid grid-cols-4 gap-2 px-6 pb-10 overflow-y-auto" style={{ scrollbarWidth: "none", maxHeight: "calc(70dvh - 80px)" }}>
               <button onClick={() => { onSetThumbnail(null); setChangingThumb(false); }}
                 className="aspect-square rounded-xl flex items-center justify-center"
                 style={{ background: folder.color, outline: !folder.thumbnailCopyId ? "2px solid #111" : "none", outlineOffset: "2px" }}>

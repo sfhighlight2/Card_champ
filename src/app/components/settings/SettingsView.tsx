@@ -61,7 +61,7 @@ export function SettingsView({
         <h2 className="text-base font-semibold text-gray-900">Settings</h2>
       </div>
 
-      <div className="flex-1 px-6 overflow-y-auto max-w-lg" style={{ scrollbarWidth: "none", paddingBottom: "110px" }}>
+      <div className="flex-1 px-6 overflow-y-auto max-w-lg app-scroll-pad" style={{ scrollbarWidth: "none" }}>
         <p className="text-[10px] font-medium text-gray-400 tracking-widest uppercase mb-3">Profile</p>
         <p className="text-[10px] font-medium text-gray-400 tracking-widest uppercase mb-1.5">Name</p>
         <input value={name} onChange={e => setName(e.target.value)} onBlur={saveProfile}

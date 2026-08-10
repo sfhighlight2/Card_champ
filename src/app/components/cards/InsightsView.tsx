@@ -63,7 +63,7 @@ export function InsightsView({ cards, changePct }: InsightsViewProps) {
   const maxGrader = byGrader[0]?.value ?? 1;
 
   return (
-    <div className="flex-1 px-7 overflow-y-auto" style={{ scrollbarWidth: "none", paddingBottom: "110px" }}>
+    <div className="flex-1 px-7 overflow-y-auto app-scroll-pad" style={{ scrollbarWidth: "none" }}>
       {/* Portfolio value + trend */}
       <AnimateIn>
         <div className="rounded-3xl bg-gray-950 text-white p-5 mb-4">

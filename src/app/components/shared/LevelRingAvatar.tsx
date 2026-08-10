@@ -1,4 +1,5 @@
 import { useId, useEffect, useState } from "react";
+import { Camera } from "lucide-react";
 import { Avatar } from "./Avatar";
 
 interface LevelRingAvatarProps {
@@ -7,6 +8,12 @@ interface LevelRingAvatarProps {
   size?: number;
   xpFraction: number;
   tier?: "bronze" | "silver" | "gold" | "platinum";
+  /** When given, the whole avatar becomes a button — used to pick a new
+   *  profile picture straight from the dashboard. */
+  onPress?: () => void;
+  /** Shows the camera affordance, so it is discoverable that the avatar is
+   *  tappable rather than decoration. */
+  showCameraBadge?: boolean;
 }
 
 const TIER_STOPS: Record<"bronze" | "silver" | "gold" | "platinum", { start: string; end: string }> = {
@@ -19,7 +26,7 @@ const TIER_STOPS: Record<"bronze" | "silver" | "gold" | "platinum", { start: str
 // Shared by the profile header, Profile detail page, and Peers list so the XP ring
 // treatment stays identical in both places. The progress arc animates up
 // from empty on mount and keeps a soft breathing glow.
-export function LevelRingAvatar({ avatar, name, size = 128, xpFraction, tier }: LevelRingAvatarProps) {
+export function LevelRingAvatar({ avatar, name, size = 128, xpFraction, tier, onPress, showCameraBadge = false }: LevelRingAvatarProps) {
   const gradientId = `levelRingGradient-${useId()}`;
   const stroke = size >= 120 ? 8 : 6;
   const r = size / 2 - stroke / 2 - 1;
@@ -36,8 +43,16 @@ export function LevelRingAvatar({ avatar, name, size = 128, xpFraction, tier }: 
 
   const stops = TIER_STOPS[tier || "gold"];
 
+  const Root = onPress ? "button" : "div";
+
   return (
-    <div className="relative" style={{ width: size, height: size }}>
+    <Root
+      {...(onPress
+        ? { onClick: onPress, type: "button" as const, "aria-label": `Change ${name}'s profile picture` }
+        : {})}
+      className="relative block focus:outline-none"
+      style={{ width: size, height: size }}
+    >
       <style>{`@keyframes levelRingGlow { 0%,100%{opacity:0.85} 50%{opacity:1} }`}</style>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="absolute inset-0 -rotate-90">
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#eef0f3" strokeWidth={stroke} />
@@ -64,6 +79,20 @@ export function LevelRingAvatar({ avatar, name, size = 128, xpFraction, tier }: 
           boxShadow: "0 0 0 3px #fff, 0 4px 12px rgba(0,0,0,0.12)",
         }}
       />
-    </div>
+      {showCameraBadge && (
+        <span
+          className="absolute rounded-full bg-gray-950 flex items-center justify-center"
+          style={{
+            width: size * 0.24,
+            height: size * 0.24,
+            right: size * 0.02,
+            bottom: size * 0.02,
+            boxShadow: "0 0 0 3px #fff",
+          }}
+        >
+          <Camera style={{ width: size * 0.12, height: size * 0.12 }} className="text-white" />
+        </span>
+      )}
+    </Root>
   );
 }

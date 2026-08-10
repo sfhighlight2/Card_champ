@@ -56,7 +56,7 @@ function FilterSheet({
   useEscapeClose(onClose);
   return (
     <div className="fixed inset-0 z-[70] flex flex-col" style={{ background: "rgba(0,0,0,0.45)", backdropFilter: "blur(6px)" }} onClick={onClose}>
-      <div className="mt-auto md:m-auto w-full max-w-[430px] md:max-w-lg mx-auto rounded-t-3xl md:rounded-3xl bg-white overflow-hidden" style={{ maxHeight: "85vh" }} onClick={e => e.stopPropagation()}>
+      <div className="app-sheet mt-auto md:m-auto w-full max-w-[430px] md:max-w-lg mx-auto rounded-t-3xl md:rounded-3xl bg-white overflow-hidden" style={{ maxHeight: "85dvh" }} onClick={e => e.stopPropagation()}>
         <div className="flex justify-center pt-3 md:hidden"><div className="w-8 h-1 rounded-full bg-gray-200" /></div>
         <div className="flex items-center justify-between px-6 pt-4 pb-3">
           <h2 className="text-base font-semibold text-gray-900">View &amp; filters</h2>
@@ -65,7 +65,7 @@ function FilterSheet({
           </button>
         </div>
 
-        <div className="px-6 pb-4 overflow-y-auto" style={{ maxHeight: "calc(85vh - 132px)", scrollbarWidth: "none" }}>
+        <div className="px-6 pb-4 overflow-y-auto" style={{ maxHeight: "calc(85dvh - 132px)", scrollbarWidth: "none" }}>
           <Section label="Sort by">
             <div className="flex flex-col gap-0.5">
               {sortOptions.map(o => (

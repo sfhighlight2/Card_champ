@@ -17,9 +17,9 @@ export function MarketCardDetailSheet({ item, onClose, onBuy, isWatchlisted, onT
   const gradeColor = GRADER_COLOR[item.grader] || "#111";
   return (
     <div className="fixed inset-0 z-[60] flex flex-col" style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(6px)" }} onClick={onClose}>
-      <div className="mt-auto md:m-auto rounded-t-3xl md:rounded-3xl bg-white overflow-hidden w-full max-w-lg" style={{ maxHeight: "90vh" }} onClick={e => e.stopPropagation()}>
+      <div className="app-sheet mt-auto md:m-auto rounded-t-3xl md:rounded-3xl bg-white overflow-hidden w-full max-w-lg" style={{ maxHeight: "90dvh" }} onClick={e => e.stopPropagation()}>
         <div className="flex justify-center pt-3 md:hidden"><div className="w-8 h-1 rounded-full bg-gray-200" /></div>
-        <div className="overflow-y-auto pb-10" style={{ maxHeight: "calc(90vh - 20px)", scrollbarWidth: "none" }}>
+        <div className="overflow-y-auto pb-10" style={{ maxHeight: "calc(90dvh - 20px)", scrollbarWidth: "none" }}>
           <div className="flex justify-center px-6 pt-4 pb-4 relative">
             <img src={item.img} alt={item.player} className="w-40" style={{ objectFit: "contain", background: "#f4f4f5" }} draggable={false} />
             <button

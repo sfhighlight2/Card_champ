@@ -49,7 +49,7 @@ export function PeersView({
 
   return (
     <>
-      <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: "none", paddingBottom: "110px" }}>
+      <div className="flex-1 overflow-y-auto app-scroll-pad" style={{ scrollbarWidth: "none" }}>
 
         <div className="mb-6">
           <p className="text-xs font-semibold text-gray-400 tracking-widest uppercase px-6 mb-4">My Peers</p>

@@ -49,7 +49,7 @@ export function EditCardSheet({ card, onClose, onSave }: EditCardSheetProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col" style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(6px)" }} onClick={onClose}>
-      <div className="mt-auto md:m-auto rounded-t-3xl md:rounded-3xl bg-white overflow-hidden w-full max-w-lg" style={{ maxHeight: "92vh" }} onClick={e => e.stopPropagation()}>
+      <div className="app-sheet mt-auto md:m-auto rounded-t-3xl md:rounded-3xl bg-white overflow-hidden w-full max-w-lg" style={{ maxHeight: "92dvh" }} onClick={e => e.stopPropagation()}>
         <div className="flex justify-center pt-3 md:hidden"><div className="w-8 h-1 rounded-full bg-gray-200" /></div>
         <div className="flex items-center justify-between px-6 pt-4 pb-2">
           <h2 className="text-lg font-semibold text-gray-900">Edit card</h2>
@@ -58,7 +58,7 @@ export function EditCardSheet({ card, onClose, onSave }: EditCardSheetProps) {
           </button>
         </div>
 
-        <div className="px-6 pb-10 overflow-y-auto" style={{ maxHeight: "calc(92vh - 70px)", scrollbarWidth: "none" }}>
+        <div className="px-6 pb-10 overflow-y-auto" style={{ maxHeight: "calc(92dvh - 70px)", scrollbarWidth: "none" }}>
           <p className="text-[10px] font-medium text-gray-400 tracking-widest uppercase mb-1.5 mt-4">Player</p>
           <input value={player} onChange={e => setPlayer(e.target.value)}
             className="w-full rounded-2xl bg-gray-50 px-4 py-3.5 text-sm text-gray-900 outline-none mb-4" />

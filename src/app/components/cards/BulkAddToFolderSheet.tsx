@@ -13,7 +13,7 @@ export function BulkAddToFolderSheet({ folders, count, onClose, onPick }: BulkAd
   useEscapeClose(onClose);
   return (
     <div className="fixed inset-0 z-[70] flex flex-col" style={{ background: "rgba(0,0,0,0.45)", backdropFilter: "blur(6px)" }} onClick={onClose}>
-      <div className="mt-auto md:m-auto rounded-t-3xl md:rounded-3xl bg-white overflow-hidden w-full max-w-lg" style={{ maxHeight: "70vh" }} onClick={e => e.stopPropagation()}>
+      <div className="app-sheet mt-auto md:m-auto rounded-t-3xl md:rounded-3xl bg-white overflow-hidden w-full max-w-lg" style={{ maxHeight: "70dvh" }} onClick={e => e.stopPropagation()}>
         <div className="flex justify-center pt-3 md:hidden"><div className="w-8 h-1 rounded-full bg-gray-200" /></div>
         <div className="flex items-center justify-between px-6 pt-4 pb-3">
           <div>
@@ -24,7 +24,7 @@ export function BulkAddToFolderSheet({ folders, count, onClose, onPick }: BulkAd
             <X className="w-4 h-4 text-gray-500" />
           </button>
         </div>
-        <div className="px-6 pb-8 overflow-y-auto" style={{ scrollbarWidth: "none", maxHeight: "calc(70vh - 80px)" }}>
+        <div className="px-6 pb-8 overflow-y-auto" style={{ scrollbarWidth: "none", maxHeight: "calc(70dvh - 80px)" }}>
           {folders.length === 0 ? (
             <p className="text-sm text-gray-400 py-8 text-center">No folders yet. Create one from the Folders tab first.</p>
           ) : (

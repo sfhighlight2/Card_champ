@@ -50,8 +50,8 @@ export function DetailSheet({ card, onClose, isPeer = false, cards = [], initial
         onClick={onClose}
       >
         <div
-          className="mt-auto md:m-auto rounded-t-3xl md:rounded-3xl bg-white overflow-hidden w-full max-w-lg"
-          style={{ maxHeight: "92vh" }}
+          className="app-sheet mt-auto md:m-auto rounded-t-3xl md:rounded-3xl bg-white overflow-hidden w-full max-w-lg"
+          style={{ maxHeight: "92dvh" }}
           onClick={e => e.stopPropagation()}
           onTouchStart={onTouchStart}
           onTouchEnd={onTouchEnd}
@@ -75,7 +75,7 @@ export function DetailSheet({ card, onClose, isPeer = false, cards = [], initial
             <div className="w-8" />
           </div>
 
-          <div className="px-6 pb-10 overflow-y-auto" style={{ maxHeight: "calc(92vh - 64px)", scrollbarWidth: "none" }}>
+          <div className="px-6 pb-10 overflow-y-auto" style={{ maxHeight: "calc(92dvh - 64px)", scrollbarWidth: "none" }}>
             <AnimateIn delay={0}>
             <div className="flex justify-center mb-6 mt-4" style={{ perspective: "800px" }}>
               <div

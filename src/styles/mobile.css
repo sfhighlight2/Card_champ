@@ -1,0 +1,68 @@
+/* Mobile framing.
+ *
+ * The app is a phone-first layout that also runs installed as a PWA, where
+ * `apple-mobile-web-app-status-bar-style: black-translucent` puts content under
+ * the status bar. These utilities keep everything inside the visible frame on
+ * both, and are defined once here rather than repeated as inline styles.
+ *
+ * `env(safe-area-inset-*)` only reports real values because index.html sets
+ * `viewport-fit=cover`.
+ */
+
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+
+  /* Height of the floating action pill plus its breathing room. Scroll
+     containers reserve this so their last row is never hidden behind it. */
+  --action-bar-space: 104px;
+}
+
+/* The outer page and the phone-width column.
+ * dvh follows the visible viewport as browser chrome collapses; vh is the
+ * fallback. Using min-height (not height) lets short content still fill the
+ * screen while long content grows. */
+.app-shell {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* Full-height panels that manage their own internal scrolling. */
+.app-frame {
+  height: 100vh;
+  height: 100dvh;
+  padding-left: var(--safe-left);
+  padding-right: var(--safe-right);
+}
+
+/* Anything pinned to the top edge — the menu button, sheet headers — so it
+   clears the notch and status bar. */
+.app-safe-top {
+  padding-top: var(--safe-top);
+}
+
+/* The floating Scan / Share / Sell pill and the selection bar. Sits above the
+   home indicator and Safari's bottom toolbar instead of behind them. */
+.app-action-bar {
+  bottom: calc(1.5rem + var(--safe-bottom));
+}
+
+/* Scroll areas that sit underneath the action bar. */
+.app-scroll-pad {
+  padding-bottom: calc(var(--action-bar-space) + var(--safe-bottom));
+}
+
+/* Bottom sheets: keep their content clear of the home indicator, and cap their
+   height against the visible viewport rather than the largest one. */
+.app-sheet {
+  padding-bottom: var(--safe-bottom);
+}
+
+/* Long words, URLs, and pasted card names should wrap rather than force the
+   layout wider than the screen. */
+.app-shell,
+.app-frame {
+  overflow-wrap: anywhere;
+}

@@ -62,7 +62,7 @@ export function ChaseView({ chases, cards, onCreate, onUpdate, onDelete }: Chase
         </button>
       </div>
 
-      <div className="flex-1 px-4 md:px-7 overflow-y-auto" style={{ scrollbarWidth: "none", paddingBottom: "110px" }}>
+      <div className="flex-1 px-4 md:px-7 overflow-y-auto app-scroll-pad" style={{ scrollbarWidth: "none" }}>
         <AnimateIn>
           <div className="flex items-center gap-5 rounded-[28px] border border-emerald-200 bg-white px-5 md:px-4 py-6 md:py-4 mb-6 md:mb-5">
             <ChaseMark size="sm" />

@@ -96,7 +96,7 @@ export function ShareFlow({ onClose, allCards, folders, dmPeers, onShareViaDm }:
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col" style={{ background: "rgba(0,0,0,0.45)", backdropFilter: "blur(6px)" }} onClick={onClose}>
-      <div className="mt-auto md:m-auto rounded-t-3xl md:rounded-3xl bg-white overflow-hidden w-full max-w-lg" style={{ maxHeight: "88vh" }} onClick={e => e.stopPropagation()}>
+      <div className="app-sheet mt-auto md:m-auto rounded-t-3xl md:rounded-3xl bg-white overflow-hidden w-full max-w-lg" style={{ maxHeight: "88dvh" }} onClick={e => e.stopPropagation()}>
         <div className="flex justify-center pt-3 md:hidden"><div className="w-8 h-1 rounded-full bg-gray-200" /></div>
 
         <div className="flex items-center justify-between px-6 pt-4 mb-5">
@@ -109,7 +109,7 @@ export function ShareFlow({ onClose, allCards, folders, dmPeers, onShareViaDm }:
           </button>
         </div>
 
-        <div className="px-6 pb-10 overflow-y-auto" style={{ maxHeight: "calc(88vh - 88px)", scrollbarWidth: "none" }}>
+        <div className="px-6 pb-10 overflow-y-auto" style={{ maxHeight: "calc(88dvh - 88px)", scrollbarWidth: "none" }}>
 
           {step === 1 && (
             <>

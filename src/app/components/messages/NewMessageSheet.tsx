@@ -41,7 +41,7 @@ export function NewMessageSheet({
 
   return (
     <div className="fixed inset-0 z-[60] flex flex-col" style={{ background: "rgba(0,0,0,0.45)", backdropFilter: "blur(6px)" }} onClick={onClose}>
-      <div className="mt-auto md:m-auto rounded-t-3xl md:rounded-3xl bg-white overflow-hidden w-full max-w-lg" style={{ maxHeight: "85vh" }} onClick={e => e.stopPropagation()}>
+      <div className="app-sheet mt-auto md:m-auto rounded-t-3xl md:rounded-3xl bg-white overflow-hidden w-full max-w-lg" style={{ maxHeight: "85dvh" }} onClick={e => e.stopPropagation()}>
         <div className="flex justify-center pt-3 md:hidden"><div className="w-8 h-1 rounded-full bg-gray-200" /></div>
 
         <div className="flex items-center justify-between px-6 pt-4 pb-3">
@@ -66,7 +66,7 @@ export function NewMessageSheet({
           </div>
         </div>
 
-        <div className="px-6 pb-8 overflow-y-auto" style={{ maxHeight: "calc(85vh - 150px)", scrollbarWidth: "none" }}>
+        <div className="px-6 pb-8 overflow-y-auto" style={{ maxHeight: "calc(85dvh - 150px)", scrollbarWidth: "none" }}>
           {ordered.length === 0 ? (
             <div className="flex flex-col items-center text-center py-12">
               <div className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center mb-3">

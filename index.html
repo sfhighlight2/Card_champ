@@ -1,10 +1,12 @@
-
   <!DOCTYPE html>
   <html lang="en">
     <head>
-      
+
       <meta charset="UTF-8" />
-      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <!-- viewport-fit=cover is what makes env(safe-area-inset-*) report real
+           values; without it those insets are always 0 and fixed bars end up
+           underneath the home indicator and the browser toolbar. -->
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
       <title>Cards Champs</title>
       <meta name="description" content="Scan and catalog trading cards by selecting year, brand, and team with intuitive pickers, then display them in an organized grid for easy collection management." />
       <meta name="robots" content="noindex, nofollow" />
@@ -15,15 +17,23 @@
       <meta name="apple-mobile-web-app-capable" content="yes" />
       <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       <meta name="apple-mobile-web-app-title" content="Card Champs" />
-      <style>html, body { height: 100%; margin: 0; } #root { height: 100%; }</style>
-      
+      <style>
+        /* 100dvh tracks the *visible* viewport as mobile browser chrome shows and
+           hides. 100% / 100vh measure the largest viewport, which is why content
+           sat under Safari's toolbar. The vh line is a fallback for browsers
+           without dvh support. */
+        html, body { margin: 0; height: 100vh; height: 100dvh; }
+        #root { height: 100vh; height: 100dvh; }
+        /* Nothing should ever escape the frame sideways. */
+        html, body { overflow-x: hidden; }
+      </style>
+
     </head>
 
     <body>
-      
+
       <div id="root"></div>
       <script type="module" src="/src/main.tsx"></script>
-      
+
     </body>
   </html>
-  

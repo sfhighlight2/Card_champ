@@ -86,7 +86,7 @@ export function MarketView({ allCards, listings, watchlist, onToggleWatchlist, o
       </div>
 
       {marketTab === "listings" && (
-        <div className="flex-1 px-6 pb-10 overflow-y-auto" style={{ scrollbarWidth: "none", paddingBottom: "110px" }}>
+        <div className="flex-1 px-6 pb-10 overflow-y-auto app-scroll-pad" style={{ scrollbarWidth: "none" }}>
           {listings.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 gap-2">
               <Tag className="w-8 h-8 text-gray-200" />
@@ -136,7 +136,7 @@ export function MarketView({ allCards, listings, watchlist, onToggleWatchlist, o
       )}
 
       {marketTab === "watchlist" && (
-        <div className="flex-1 px-6 overflow-y-auto" style={{ scrollbarWidth: "none", paddingBottom: "110px" }}>
+        <div className="flex-1 px-6 overflow-y-auto app-scroll-pad" style={{ scrollbarWidth: "none" }}>
           {watchlistedItems.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 gap-2">
               <Heart className="w-8 h-8 text-gray-200" />
@@ -161,7 +161,7 @@ export function MarketView({ allCards, listings, watchlist, onToggleWatchlist, o
       )}
 
       {marketTab === "browse" && (
-        <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: "none", paddingBottom: "110px" }}>
+        <div className="flex-1 overflow-y-auto app-scroll-pad" style={{ scrollbarWidth: "none" }}>
 
           {!isSearching && (
             <AnimateIn delay={0} className="px-6 mb-5">

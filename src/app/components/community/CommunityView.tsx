@@ -65,7 +65,7 @@ export function CommunityView({ posts, topics, ready, onOpenPost, showToast }: C
         ))}
       </div>
 
-      <div className="flex-1 px-7 overflow-y-auto" style={{ scrollbarWidth: "none", paddingBottom: "110px" }}>
+      <div className="flex-1 px-7 overflow-y-auto app-scroll-pad" style={{ scrollbarWidth: "none" }}>
         {!ready ? (
           <div className="flex items-center justify-center py-20">
             <div className="w-2 h-2 rounded-full bg-gray-300 animate-pulse" />

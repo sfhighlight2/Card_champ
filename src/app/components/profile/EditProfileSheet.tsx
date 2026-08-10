@@ -50,7 +50,7 @@ export function EditProfileSheet({ profile, onClose, onSave }: EditProfileSheetP
 
   return (
     <div className="fixed inset-0 z-[60] flex flex-col" style={{ background: "rgba(0,0,0,0.45)", backdropFilter: "blur(6px)" }} onClick={onClose}>
-      <div className="mt-auto md:m-auto rounded-t-3xl md:rounded-3xl bg-white overflow-hidden w-full max-w-lg" style={{ maxHeight: "88vh" }} onClick={e => e.stopPropagation()}>
+      <div className="app-sheet mt-auto md:m-auto rounded-t-3xl md:rounded-3xl bg-white overflow-hidden w-full max-w-lg" style={{ maxHeight: "88dvh" }} onClick={e => e.stopPropagation()}>
         <div className="flex justify-center pt-3 md:hidden"><div className="w-8 h-1 rounded-full bg-gray-200" /></div>
         <div className="flex items-center justify-between px-6 pt-4 pb-4">
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100" aria-label="Close">
@@ -60,7 +60,7 @@ export function EditProfileSheet({ profile, onClose, onSave }: EditProfileSheetP
           <button onClick={save} className="px-4 py-2 rounded-full text-xs font-bold text-white" style={{ background: "#111" }}>Save</button>
         </div>
 
-        <div className="px-6 pb-8 overflow-y-auto" style={{ maxHeight: "calc(88vh - 76px)", scrollbarWidth: "none" }}>
+        <div className="px-6 pb-8 overflow-y-auto" style={{ maxHeight: "calc(88dvh - 76px)", scrollbarWidth: "none" }}>
           <div className="flex flex-col items-center mb-6">
             <button
               onClick={() => fileInputRef.current?.click()}
