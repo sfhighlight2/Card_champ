@@ -24,6 +24,8 @@ nothing is edited directly in the dashboard.
 | — | `fix_placeholder_handle_collisions` | **NO** | replaces the uuid-derived placeholder handle with a sequence |
 | — | `demo_seed` | **NO** | Andrew Cordle + peer roster, cards, folders, chases, posts, DMs, listings |
 | — | `fix_catalog_card_identity` | **NO** | gives seeded catalog cards a `card_number` so distinct players in one set stop colliding |
+| `20260810040000` | `copy_sell_price_pop_and_folder_view_fixes` | yes | `card_copies.sell_amount_minor` / `sell_currency` / `pop_report`, exposed through `collection_copy_details`; `folder_summaries` stops counting archived copies and finally honours `folders.thumbnail_copy_id` |
+| `20260810040001` | `demo_seed_sell_price_and_pop` | yes | fills the new columns for Andrew's twelve copies, and repairs one copy seeded with the unresolvable image ref `local:2023` |
 
 > **Known gap:** the last three migrations were applied to the remote database
 > but do not yet have local `.sql` files, so `migrations/` is not a complete
