@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { filterCards, sortCards } from "./collectionSort";
+import { FOLDER_COLORS, FOLDER_COLOR_PATTERN } from "../data/cardFields";
 import type { Card } from "../types";
 
 function card(over: Partial<Card> & { id: string }): Card {
@@ -78,5 +79,16 @@ describe("filterCards", () => {
   it("applies query and filters together", () => {
     expect(filterCards(all, { query: "bo", gemsOnly: true }).map(c => c.id)).toEqual(["b"]);
     expect(filterCards(all, { query: "bo", autographOnly: true })).toEqual([]);
+  });
+});
+
+describe("folder colour palette", () => {
+  // folders.color is checked against ^#[0-9a-fA-F]{6}$ in Postgres, so a
+  // three-digit shorthand swatch makes folder creation fail. "#111" shipped as
+  // the first entry — and NewFolderSheet's default — until a live write caught it.
+  it("only offers colours the database will accept", () => {
+    for (const color of FOLDER_COLORS) {
+      expect(color).toMatch(FOLDER_COLOR_PATTERN);
+    }
   });
 });

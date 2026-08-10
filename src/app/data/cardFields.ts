@@ -14,7 +14,14 @@ export const GRADER_COLOR: Record<string, string> = {
   FWrk: "#111111",
 };
 
-export const FOLDER_COLORS = ["#111", "#1a6cc4", "#c9a84c", "#c42020", "#2a9d8f", "#e76f51", "#6a4c93"];
+// `folders.color` is constrained to `^#[0-9a-fA-F]{6}$`, so three-digit
+// shorthand is rejected by the database. "#111" used to sit first here and is
+// what NewFolderSheet defaults to, which made creating a folder with the default
+// swatch fail outright.
+export const FOLDER_COLORS = ["#111111", "#1a6cc4", "#c9a84c", "#c42020", "#2a9d8f", "#e76f51", "#6a4c93"];
+
+/** Mirrors the `folders_color_check` constraint. */
+export const FOLDER_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
 
 export const GRADERS = ["PSA", "BGS", "SGC", "CGC", "TAG", "FWrk"];
 export const GRADES  = ["1","1.5","2","2.5","3","3.5","4","4.5","5","5.5","6","6.5","7","7.5","8","8.5","9","9.5","10"];
