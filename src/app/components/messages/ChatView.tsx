@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, Send } from "lucide-react";
 import type { ConversationSummary, DirectMessage } from "../../types";
 import { relativeTime } from "../../lib/relativeTime";
@@ -21,13 +21,22 @@ export function ChatView({
 }: ChatViewProps) {
   useEscapeClose(onBack);
   const [text, setText] = useState("");
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Opening a thread is what marks it read, so the badge clears on the way in
-  // rather than needing a separate action.
+  // Reading the thread is what marks it read. Keyed to the message count, not
+  // just the conversation id, so a message that arrives while the chat is open
+  // doesn't back out to a phantom unread badge.
   useEffect(() => {
     if (conversation.unread > 0) onMarkRead();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [conversation.id]);
+  }, [conversation.id, conversation.unread, messages.length]);
+
+  // A chat belongs at its newest message: jump there on open, follow as
+  // messages arrive or get sent.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [isLoading, messages.length]);
 
   const submit = () => {
     if (!text.trim()) return;
@@ -37,6 +46,7 @@ export function ChatView({
 
   return (
     <div className="fixed inset-0 z-50 bg-white flex flex-col">
+      <div className="app-safe-top flex-shrink-0" />
       <div className="flex items-center gap-3 px-6 pt-6 pb-4 flex-shrink-0" style={{ borderBottom: "1px solid #f4f4f5" }}>
         <button onClick={onBack} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100" aria-label="Back">
           <ChevronLeft className="w-4 h-4 text-gray-600" />
@@ -48,7 +58,7 @@ export function ChatView({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col gap-3" style={{ scrollbarWidth: "none" }}>
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-5 flex flex-col gap-3" style={{ scrollbarWidth: "none" }}>
         {isLoading ? (
           <div className="flex items-center justify-center py-10">
             <div className="w-2 h-2 rounded-full bg-gray-300 animate-pulse" />
@@ -84,11 +94,12 @@ export function ChatView({
         )}
       </div>
 
-      <div className="flex items-center gap-2 px-6 py-3 flex-shrink-0" style={{ borderTop: "1px solid #f4f4f5" }}>
+      <div className="app-sheet flex items-center gap-2 px-6 py-3 flex-shrink-0" style={{ borderTop: "1px solid #f4f4f5" }}>
         <input
           value={text}
           onChange={e => setText(e.target.value)}
           onKeyDown={e => { if (e.key === "Enter") submit(); }}
+          maxLength={4000}
           placeholder="Message…"
           className="flex-1 bg-gray-100 rounded-full px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 outline-none"
           style={{ fontFamily: "'Google Sans', sans-serif" }}

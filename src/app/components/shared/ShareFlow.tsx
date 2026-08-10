@@ -7,25 +7,30 @@ import { gradingSummary } from "../../lib/grading";
 import { useEscapeClose } from "../../hooks/useEscapeClose";
 import { Avatar } from "./Avatar";
 
+// Every entry does something real: opening the device composer, the system
+// share sheet, or the clipboard. Buttons that only pretended to share (and then
+// celebrated) taught users their share went out when nothing left the device.
 const SHARE_PLATFORMS = [
   { id: "dm",    label: "Direct message", sub: "Send to a collector you follow", icon: <Send className="w-4 h-4 text-violet-500" /> },
-  { id: "link",  label: "Copy Link",   sub: "Anyone with the link can view", icon: <Link className="w-4 h-4 text-gray-600" /> },
+  { id: "copy",  label: "Copy details", sub: "Copy a summary to your clipboard", icon: <Link className="w-4 h-4 text-gray-600" /> },
   { id: "msg",   label: "Messages",    sub: "iMessage or SMS",               icon: <MessageCircle className="w-4 h-4 text-green-500" /> },
   { id: "mail",  label: "Email",       sub: "Share as an email",             icon: <Mail className="w-4 h-4 text-blue-500" /> },
-  { id: "more",  label: "More",        sub: "Instagram, Twitter & more",     icon: <Share2 className="w-4 h-4 text-gray-400" /> },
+  { id: "more",  label: "More",        sub: "The system share sheet",        icon: <Share2 className="w-4 h-4 text-gray-400" /> },
 ];
 
 interface ShareFlowProps {
   onClose: () => void;
   allCards: Card[];
   folders: FolderType[];
+  /** The sharer's own display name, used to title a whole-collection share. */
+  ownerName: string;
   /** Collectors the user follows — the only people a DM can go to. */
   dmPeers: DbProfileStats[];
-  /** Sends the share as a real direct message. */
-  onShareViaDm: (peer: DbProfileStats, message: string) => void;
+  /** Sends the share as a real direct message; true once it actually sent. */
+  onShareViaDm: (peer: DbProfileStats, message: string) => Promise<boolean>;
 }
 
-export function ShareFlow({ onClose, allCards, folders, dmPeers, onShareViaDm }: ShareFlowProps) {
+export function ShareFlow({ onClose, allCards, folders, ownerName, dmPeers, onShareViaDm }: ShareFlowProps) {
   useEscapeClose(onClose);
   const [step, setStep] = useState<1 | 2>(1);
   const [type, setType] = useState<"collection" | "folder" | "card" | null>(null);
@@ -34,9 +39,10 @@ export function ShareFlow({ onClose, allCards, folders, dmPeers, onShareViaDm }:
   const [copied, setCopied] = useState(false);
   const [done, setDone] = useState(false);
   const [dmPicking, setDmPicking] = useState(false);
+  const [dmSending, setDmSending] = useState(false);
   const [dmRecipient, setDmRecipient] = useState<DbProfileStats | null>(null);
 
-  const shareTitle = type === "collection" ? "Andrew's Collection"
+  const shareTitle = type === "collection" ? (ownerName ? `${ownerName}'s Collection` : "My Collection")
     : type === "folder" ? selectedFolder?.name ?? ""
     : selectedCard ? `${selectedCard.player} ${selectedCard.year}` : "";
 
@@ -44,12 +50,45 @@ export function ShareFlow({ onClose, allCards, folders, dmPeers, onShareViaDm }:
     : type === "folder" ? `${selectedFolder?.cardCount} cards`
     : selectedCard ? `${gradingSummary(selectedCard)} · $${selectedCard.value.toLocaleString()}` : "";
 
+  const shareText = `${shareTitle} — ${shareSubtitle} · Card Champs`;
+
   const canContinue = type === "collection" || (type === "folder" && selectedFolder) || (type === "card" && selectedCard);
 
-  const shareViaLink = () => {
-    void navigator.clipboard?.writeText(`${shareTitle} — ${shareSubtitle}`).catch(() => {});
-    setCopied(true);
-    setTimeout(() => { setCopied(false); setDone(true); }, 800);
+  const canNativeShare = typeof navigator !== "undefined" && typeof navigator.share === "function";
+
+  const shareVia = (platform: string) => {
+    switch (platform) {
+      case "copy":
+        void navigator.clipboard?.writeText(shareText).catch(() => {});
+        setCopied(true);
+        setTimeout(() => { setCopied(false); setDone(true); }, 800);
+        break;
+      case "msg":
+        // `sms:?&body=` is the one form both iOS and Android accept.
+        window.location.href = `sms:?&body=${encodeURIComponent(shareText)}`;
+        setDone(true);
+        break;
+      case "mail":
+        window.location.href = `mailto:?subject=${encodeURIComponent(shareTitle)}&body=${encodeURIComponent(shareText)}`;
+        setDone(true);
+        break;
+      case "more":
+        // Only counts as shared if the user completes the system sheet;
+        // dismissing it rejects with AbortError and nothing is celebrated.
+        void navigator.share({ text: shareText }).then(() => setDone(true)).catch(() => {});
+        break;
+    }
+  };
+
+  const sendDm = async (peer: DbProfileStats) => {
+    if (dmSending) return;
+    setDmSending(true);
+    const ok = await onShareViaDm(peer, `${shareTitle} — ${shareSubtitle}`);
+    setDmSending(false);
+    if (ok) {
+      setDmRecipient(peer);
+      setDone(true);
+    }
   };
 
   if (done) return (
@@ -147,6 +186,9 @@ export function ShareFlow({ onClose, allCards, folders, dmPeers, onShareViaDm }:
                 </div>
               )}
 
+              {type === "card" && allCards.length === 0 && (
+                <p className="text-sm text-gray-400 py-4">Add a card to your collection first — then you can share it.</p>
+              )}
               {type === "card" && (
                 <div className="grid grid-cols-3 md:grid-cols-4 gap-2 mt-3 mb-4">
                   {allCards.map(card => (
@@ -181,15 +223,15 @@ export function ShareFlow({ onClose, allCards, folders, dmPeers, onShareViaDm }:
                 <p className="text-sm font-semibold text-gray-900">{shareTitle}</p>
                 <p className="text-xs text-gray-400 mt-0.5">{shareSubtitle}</p>
               </div>
-              {SHARE_PLATFORMS.map((p, i) => (
-                <button key={p.id} onClick={() => { if (p.id === "dm") setDmPicking(true); else if (p.id === "link") shareViaLink(); else setDone(true); }}
+              {SHARE_PLATFORMS.filter(p => p.id !== "more" || canNativeShare).map((p, i, list) => (
+                <button key={p.id} onClick={() => { if (p.id === "dm") setDmPicking(true); else shareVia(p.id); }}
                   className="w-full flex items-center gap-4 py-3.5 text-left"
-                  style={{ borderBottom: i < SHARE_PLATFORMS.length - 1 ? "1px solid #f4f4f5" : "none" }}>
+                  style={{ borderBottom: i < list.length - 1 ? "1px solid #f4f4f5" : "none" }}>
                   <div className="w-9 h-9 rounded-2xl bg-gray-50 flex items-center justify-center flex-shrink-0">
-                    {p.id === "link" && copied ? <Check className="w-4 h-4 text-emerald-500" /> : p.icon}
+                    {p.id === "copy" && copied ? <Check className="w-4 h-4 text-emerald-500" /> : p.icon}
                   </div>
                   <div className="flex-1">
-                    <p className="text-sm font-semibold text-gray-900">{p.id === "link" && copied ? "Copied!" : p.label}</p>
+                    <p className="text-sm font-semibold text-gray-900">{p.id === "copy" && copied ? "Copied!" : p.label}</p>
                     <p className="text-xs text-gray-400 mt-0.5">{p.sub}</p>
                   </div>
                   <ChevronRight className="w-4 h-4 text-gray-300 flex-shrink-0" />
@@ -208,12 +250,9 @@ export function ShareFlow({ onClose, allCards, folders, dmPeers, onShareViaDm }:
                 </p>
               ) : dmPeers.map((peer, i) => (
                 <button key={peer.profileId}
-                  onClick={() => {
-                    onShareViaDm(peer, `${shareTitle} — ${shareSubtitle}`);
-                    setDmRecipient(peer);
-                    setDone(true);
-                  }}
-                  className="w-full flex items-center gap-3 py-3 text-left"
+                  onClick={() => void sendDm(peer)}
+                  disabled={dmSending}
+                  className="w-full flex items-center gap-3 py-3 text-left disabled:opacity-50"
                   style={{ borderBottom: i < dmPeers.length - 1 ? "1px solid #f4f4f5" : "none" }}>
                   <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex-shrink-0">
                     <Avatar src={peer.avatar} name={peer.displayName} size={40} className="w-full h-full" style={{ objectFit: "cover", objectPosition: "top center" }} />

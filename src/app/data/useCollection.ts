@@ -49,10 +49,11 @@ export function useCollection(options: UseCollectionOptions = {}) {
 
       // Sub-grades live in their own table; fold them onto the cards so
       // DetailSheet keeps rendering them exactly as before.
-      const { data: subs } = await supabase
+      const { data: subs, error: subsError } = await supabase
         .from("card_copy_subgrades")
         .select("copy_id, dimension, score")
         .in("copy_id", rows.map(r => r.id));
+      if (subsError) throw subsError;
 
       const byCopy = new Map<string, Partial<SubGrades>>();
       for (const s of subs ?? []) {
@@ -247,6 +248,13 @@ export function useCollection(options: UseCollectionOptions = {}) {
     mutationFn: async (args: { profile: Profile; avatarFile?: File }) => {
       const { profile: p, avatarFile } = args;
 
+      // Until profile_stats has loaded, `profile` below is placeholder data
+      // ("Collector" / "@collector"). Saving in that window would overwrite the
+      // user's real name and handle with the placeholders.
+      if (!statsQ.data) {
+        throw new Error("Your profile is still loading — try again in a moment.");
+      }
+
       // Uploaded first so a rejected image fails before any field is written —
       // the user retries with the form still intact rather than finding half
       // their edit saved.
@@ -292,6 +300,16 @@ export function useCollection(options: UseCollectionOptions = {}) {
 
   return {
     ready: !enabled || (!cardsQ.isLoading && !foldersQ.isLoading && !statsQ.isLoading),
+    /** True when the collection failed to load. Rendering the failure as the
+     *  "No cards yet" empty state made a network blip look like data loss. */
+    loadError: cardsQ.isError || foldersQ.isError || statsQ.isError,
+    retry: () => {
+      void cardsQ.refetch();
+      void foldersQ.refetch();
+      void statsQ.refetch();
+      void chasesQ.refetch();
+      void achievementsQ.refetch();
+    },
     /** False for guests, whose every write policy would reject them anyway. */
     canWrite: enabled,
     collectionId,

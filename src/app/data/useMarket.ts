@@ -105,6 +105,8 @@ export function useMarket() {
 
   return {
     ready: !listingsQ.isLoading,
+    loadError: listingsQ.isError,
+    retry: () => { void listingsQ.refetch(); },
     canWrite,
     listings,
     /** Listings whose catalog card the user is watching. */

@@ -161,7 +161,9 @@ export async function isHandleAvailable(handle: string): Promise<boolean> {
 export async function fetchDiscoverableProfiles(excludeId?: string): Promise<DbProfileStats[]> {
   let q = supabase.from("profile_stats").select("*").eq("is_discoverable", true);
   if (excludeId) q = q.neq("profile_id", excludeId);
-  const { data, error } = await q.order("card_count", { ascending: false }).limit(50);
+  // The New Message picker and Connections search filter this list client-side,
+  // so it needs to cover the community, not just the top-50 collections.
+  const { data, error } = await q.order("card_count", { ascending: false }).limit(500);
   if (error) throw error;
 
   return (data ?? []).map(d => ({
@@ -187,16 +189,29 @@ export async function fetchDiscoverableProfiles(excludeId?: string): Promise<DbP
 // collection
 // ---------------------------------------------------------------------------
 
-export async function fetchCards(ownerId: string): Promise<DbCard[]> {
-  const { data, error } = await supabase
-    .from("collection_copy_details")
-    .select("*")
-    .eq("owner_id", ownerId)
-    .is("archived_at", null)
-    .order("created_at", { ascending: false });
-  if (error) throw error;
+/** PostgREST silently caps any response at the server's max-rows (1000), so an
+ *  unbounded select over a big collection would drop the tail without any
+ *  error. Paging until a short page is the only way to actually get every row. */
+const PAGE_SIZE = 1000;
 
-  const rows = data ?? [];
+async function fetchAllCopyRows(ownerId: string): Promise<Record<string, any>[]> {
+  const rows: Record<string, any>[] = [];
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await supabase
+      .from("collection_copy_details")
+      .select("*")
+      .eq("owner_id", ownerId)
+      .is("archived_at", null)
+      .order("created_at", { ascending: false })
+      .range(from, from + PAGE_SIZE - 1);
+    if (error) throw error;
+    rows.push(...(data ?? []));
+    if (!data || data.length < PAGE_SIZE) return rows;
+  }
+}
+
+export async function fetchCards(ownerId: string): Promise<DbCard[]> {
+  const rows = await fetchAllCopyRows(ownerId);
   // `card-images` is a private bucket, so real uploads need signed URLs. One
   // batch request covers the whole collection.
   const images = await signCardImages(rows.map(r => r.image_path));
@@ -296,28 +311,41 @@ export async function addCard(
 
   const copyId = data.id as string;
 
-  await supabase.from("card_copy_valuations").insert({
-    copy_id: copyId,
-    amount_minor: toMinor(input.value),
-    source: "user",
-    created_by: ownerId,
-  });
-
-  if (imagePath) {
-    await supabase.from("card_copy_media").insert({
+  // The follow-up rows share the copy's fate: if any of them fails, the copy is
+  // deleted again and the whole add reports failure, instead of resolving with
+  // a card that silently lost its value, photo, or history. (These errors used
+  // to be dropped entirely — the app toasted "Added" over a $0, photoless card.)
+  try {
+    const valuation = await supabase.from("card_copy_valuations").insert({
       copy_id: copyId,
-      uploaded_by: ownerId,
-      storage_path: imagePath,
-      media_type: "front",
-      is_primary: true,
+      amount_minor: toMinor(input.value),
+      source: "user",
+      created_by: ownerId,
     });
-  }
+    if (valuation.error) throw valuation.error;
 
-  await supabase.from("copy_ownership_events").insert({
-    copy_id: copyId,
-    new_owner_id: ownerId,
-    event_type: "added",
-  });
+    if (imagePath) {
+      const media = await supabase.from("card_copy_media").insert({
+        copy_id: copyId,
+        uploaded_by: ownerId,
+        storage_path: imagePath,
+        media_type: "front",
+        is_primary: true,
+      });
+      if (media.error) throw media.error;
+    }
+
+    const event = await supabase.from("copy_ownership_events").insert({
+      copy_id: copyId,
+      new_owner_id: ownerId,
+      event_type: "added",
+    });
+    if (event.error) throw event.error;
+  } catch (err) {
+    await supabase.from("card_copies").delete().eq("id", copyId);
+    if (imagePath) await supabase.storage.from("card-images").remove([imagePath]);
+    throw err;
+  }
 
   return copyId;
 }
@@ -620,13 +648,24 @@ export async function fetchFeed() {
     topicLabel: p.topic_label,
     topicEmoji: p.topic_emoji,
     body: p.body,
-    hot: Number(p.hot_score ?? 0) >= 80,
+    // Derived from real engagement. `hot_score` looked authoritative but
+    // nothing server-side ever writes it, so a >=80 threshold made Trending
+    // permanently empty and the Hot badge unreachable.
+    hot: isHotPost(p),
     createdAt: p.created_at,
     likes: p.like_count ?? 0,
     dislikes: p.dislike_count ?? 0,
     comments: p.comment_count ?? 0,
     myReaction: p.my_reaction as "like" | "dislike" | null,
   }));
+}
+
+/** Hot = real engagement while the post is still fresh: likes and comments
+ *  (comments weighted double) totalling 5+ within the last 7 days. */
+function isHotPost(p: Record<string, any>): boolean {
+  const ageDays = (Date.now() - Date.parse(p.created_at)) / 86_400_000;
+  if (!Number.isFinite(ageDays) || ageDays > 7) return false;
+  return (p.like_count ?? 0) + (p.comment_count ?? 0) * 2 >= 5;
 }
 
 export async function fetchComments(postId: string) {
@@ -733,10 +772,17 @@ export async function fetchPriceChanges(catalogCardIds: string[]): Promise<Map<s
   const ids = [...new Set(catalogCardIds.filter(Boolean))];
   if (ids.length === 0) return new Map();
 
+  // The 30-day window isn't just the semantics of the number shown — it also
+  // bounds the row count. Fetching every snapshot ever would cross PostgREST's
+  // silent 1000-row cap and drop the NEWEST rows, quietly corrupting the
+  // computed change.
+  const windowStart = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+
   const { data, error } = await supabase
     .from("market_price_snapshots")
     .select("catalog_card_id, amount_minor, observed_at")
     .in("catalog_card_id", ids)
+    .gte("observed_at", windowStart)
     .order("observed_at");
   if (error) throw error;
 
@@ -901,15 +947,7 @@ export async function removeListing(listingId: string): Promise<void> {
  * bundled `local:` artwork, which resolves fine.
  */
 export async function fetchPeerCards(profileId: string): Promise<DbCard[]> {
-  const { data, error } = await supabase
-    .from("collection_copy_details")
-    .select("*")
-    .eq("owner_id", profileId)
-    .is("archived_at", null)
-    .order("created_at", { ascending: false });
-  if (error) throw error;
-
-  const rows = data ?? [];
+  const rows = await fetchAllCopyRows(profileId);
   const images = await signCardImages(rows.map(r => r.image_path));
   return rows.map(r => mapCard(r, images));
 }
@@ -968,14 +1006,18 @@ export async function fetchConversations() {
 }
 
 export async function fetchMessages(conversationId: string) {
+  // Newest 500, then flipped back to chronological order: an unbounded
+  // ascending query would be truncated by PostgREST at 1000 rows — cutting off
+  // the NEWEST messages of a long thread, which is exactly the wrong end.
   const { data, error } = await supabase
     .from("messages")
     .select("id, body, sender_id, created_at")
     .eq("conversation_id", conversationId)
     .is("deleted_at", null)
-    .order("created_at");
+    .order("created_at", { ascending: false })
+    .limit(500);
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []).reverse();
 }
 
 /** One stable thread per pair, regardless of who starts it. */

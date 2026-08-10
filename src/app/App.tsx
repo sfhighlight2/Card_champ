@@ -43,6 +43,7 @@ import { SellFlow } from "./components/market/SellFlow";
 import { ShareFlow } from "./components/shared/ShareFlow";
 import { ConfirmDialog } from "./components/shared/ConfirmDialog";
 import { CountUp } from "./components/shared/CountUp";
+import { ErrorState } from "./components/shared/ErrorState";
 
 // Code-split: these pull in recharts (~charts) and @zxing/library (barcode
 // scanning) which most sessions never touch on first paint, plus the two
@@ -88,7 +89,7 @@ export default function App() {
   const handleAchievementsEarned = useCallback((codes: string[]) => setNewlyEarned(codes), []);
 
   const {
-    ready: collectionReady, canWrite,
+    ready: collectionReady, loadError: collectionLoadError, retry: retryCollection, canWrite,
     cards, folders, chases, achievements, earnedCount, profile, stats,
     addCard, editCard, deleteCard, deleteCards,
     createFolder, updateFolder, deleteFolder, addCardsToFolder,
@@ -96,25 +97,29 @@ export default function App() {
   } = useCollection({ onAchievementsEarned: handleAchievementsEarned });
 
   const {
-    ready: communityReady, posts, topics, createPost, setReaction, addComment,
+    ready: communityReady, loadError: communityLoadError, retry: retryCommunity,
+    posts, topics, createPost, setReaction, addComment,
   } = useCommunity();
 
   const {
-    ready: peersReady, myPeers, suggested, following, isFollowing, toggleFollow,
+    ready: peersReady, loadError: peersLoadError, retry: retryPeers,
+    myPeers, suggested, following, isFollowing, toggleFollow,
   } = usePeers();
 
   const {
-    ready: messagesReady, conversations, unreadTotal,
+    ready: messagesReady, loadError: messagesLoadError, retry: retryMessages,
+    conversations, unreadTotal,
     openConversation, sendMessage, markRead,
   } = useMessages();
 
   const {
-    ready: marketReady, listings: marketListings, watched, myListings,
+    ready: marketReady, loadError: marketLoadError, retry: retryMarket,
+    listings: marketListings, watched, myListings,
     isWatched, toggleWatchlist, createListing, updateListingStatus, removeListing,
   } = useMarket();
 
-  // Everything above is Supabase-backed. What remains local belongs to the
-  // marketplace (still mock) or is genuinely device-local preference.
+  // Everything above is Supabase-backed. What remains in localStorage is
+  // genuinely device-local preference.
   const [dismissedMovers, setDismissedMovers] = useLocalStorage<string[]>("cardchamps:watchlist-banner-dismissed", []);
   const [theme, setTheme] = useLocalStorage<"light" | "dark" | "system">("cardchamps:theme", "system");
   const [hideValues, setHideValues] = useLocalStorage<boolean>("cardchamps:privacy", false);
@@ -161,6 +166,7 @@ export default function App() {
   const [bulkPickingFolder, setBulkPickingFolder] = useState(false);
   const [confirmingBulkDelete, setConfirmingBulkDelete] = useState(false);
   const [toast, setToast] = useState("");
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [editingCardId, setEditingCardId] = useState<string | null>(null);
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
   const [confirmingDeleteFolderId, setConfirmingDeleteFolderId] = useState<string | null>(null);
@@ -266,8 +272,11 @@ export default function App() {
   const goTab = (tab: MainTab) => navigate(tab === "collection" ? "/" : `/${tab}`);
 
   const showToast = (msg: string) => {
+    // Without clearing, a toast shown while another is up gets dismissed by the
+    // first one's timer almost immediately.
+    if (toastTimer.current) clearTimeout(toastTimer.current);
     setToast(msg);
-    setTimeout(() => setToast(""), 2000);
+    toastTimer.current = setTimeout(() => setToast(""), 2000);
   };
 
   /** Guests authenticate as `authenticated` but every write policy rejects them,
@@ -295,13 +304,17 @@ export default function App() {
   }, [newlyEarned, achievements]);
 
   /** Runs a write and reports the outcome, so a rejected policy or lost
-   *  connection surfaces instead of failing silently. */
-  const runWrite = async (work: Promise<unknown>, success: string) => {
+   *  connection surfaces instead of failing silently. Resolves true only when
+   *  the write succeeded, so flows with their own success screens (Sell, Scan)
+   *  can wait for the truth instead of celebrating a failure. */
+  const runWrite = async (work: Promise<unknown>, success: string): Promise<boolean> => {
     try {
       await work;
       if (success) showToast(success);
+      return true;
     } catch (err) {
       showToast(humanizeError(err));
+      return false;
     }
   };
 
@@ -400,9 +413,8 @@ export default function App() {
     void signOut();
   };
 
-  const handleAddCard = (input: NewCardInput) => {
-    void runWrite(addCard.mutateAsync(input), `Added ${input.player}`);
-  };
+  const handleAddCard = (input: NewCardInput) =>
+    runWrite(addCard.mutateAsync(input), `Added ${input.player}`);
 
   const handleEditCard = (id: string, patch: Partial<NewCardInput>) => {
     setEditingCardId(null);
@@ -485,6 +497,8 @@ export default function App() {
       return;
     }
     if (!listing.catalogCardId) return;
+    // A double-tap would read the same pre-toggle state twice and re-apply it.
+    if (toggleWatchlist.isPending) return;
     void runWrite(
       toggleWatchlist.mutateAsync({
         catalogCardId: listing.catalogCardId,
@@ -499,6 +513,7 @@ export default function App() {
       showToast("Create an account to connect with collectors");
       return;
     }
+    if (toggleFollow.isPending) return;
     const following = isFollowing(peer.profileId);
     void runWrite(
       toggleFollow.mutateAsync({ profileId: peer.profileId, isFollowing: following }),
@@ -514,9 +529,7 @@ export default function App() {
     catalogCardId: string | null;
     graderCode: string;
     grade: string;
-  }) => {
-    void runWrite(createListing.mutateAsync(input), "Listed for sale");
-  };
+  }) => runWrite(createListing.mutateAsync(input), "Listed for sale");
 
   const handleCreatePost = (topicSlug: string, body: string) => {
     setShowNewPost(false);
@@ -529,6 +542,9 @@ export default function App() {
       showToast("Create an account to react");
       return;
     }
+    // A double-tap would read the same stale `current` twice and re-like
+    // instead of clearing.
+    if (setReaction.isPending) return;
     void runWrite(
       setReaction.mutateAsync({ postId: post.id, reaction, current: post.myReaction }),
       ""
@@ -543,13 +559,17 @@ export default function App() {
     void runWrite(sendMessage.mutateAsync({ conversationId, body: text }), "");
   };
 
-  /** Resolves the pair's thread, then posts the share into it as a real message. */
-  const handleShareViaDm = async (peer: DbProfileStats, message: string) => {
+  /** Resolves the pair's thread, then posts the share into it as a real message.
+   *  Resolves true only when the message actually sent, so the share flow's
+   *  "Sent!" screen can wait for the truth. */
+  const handleShareViaDm = async (peer: DbProfileStats, message: string): Promise<boolean> => {
     try {
       const conversationId = await openConversation.mutateAsync(peer.profileId);
       await sendMessage.mutateAsync({ conversationId, body: message });
+      return true;
     } catch (err) {
       showToast(humanizeError(err, "Could not send that message."));
+      return false;
     }
   };
 
@@ -629,7 +649,10 @@ export default function App() {
       <div className="app-shell w-full flex justify-center bg-white" style={{ fontFamily: "'Google Sans', sans-serif" }}>
         <div className="app-frame relative w-full max-w-[430px] md:max-w-2xl flex flex-col bg-white overflow-hidden">
           <ResetPasswordScreen
-            hasRecoverySession={isRecovering || isSignedIn}
+            // Guests are technically signed in (anonymously) but have no
+            // password to change; showing them the form only manufactures a
+            // server error.
+            hasRecoverySession={isRecovering || (isSignedIn && !isGuest)}
             onSubmit={updatePassword}
             onBackToSignIn={() => navigate("/")}
             isDark={isDark}
@@ -654,6 +677,11 @@ export default function App() {
             awaitingConfirmation={awaitingConfirmation}
             resetEmailSent={resetEmailSent}
             initialMode={authInitialMode}
+            onBackToSignIn={() => {
+              setAwaitingConfirmation(false);
+              setResetEmailSent(false);
+              setAuthError("");
+            }}
           />
         </div>
       </div>
@@ -706,6 +734,9 @@ export default function App() {
             </button>
             <h2 className="text-base font-semibold text-gray-900">Marketplace</h2>
           </div>
+          {marketReady && marketLoadError ? (
+            <ErrorState label="Couldn't load the marketplace" onRetry={retryMarket} />
+          ) : (
           <Suspense fallback={LOADING_FALLBACK}>
             <MarketView
               listings={marketListings}
@@ -721,6 +752,7 @@ export default function App() {
               initialQuery={shopInitialQuery}
             />
           </Suspense>
+          )}
         </div>
       </div>
     );
@@ -761,6 +793,9 @@ export default function App() {
     return (
       <div className="app-shell w-full flex justify-center bg-white" style={{ fontFamily: "'Google Sans', sans-serif" }}>
         <div className="app-frame relative w-full max-w-[430px] md:max-w-2xl flex flex-col bg-white overflow-hidden">
+          {messagesReady && messagesLoadError ? (
+            <ErrorState label="Couldn't load your messages" onRetry={retryMessages} />
+          ) : (
           <Suspense fallback={LOADING_FALLBACK}>
             <MessagesView
               conversations={conversations}
@@ -773,6 +808,7 @@ export default function App() {
               onNewMessage={() => setPickingNewMessage(true)}
             />
           </Suspense>
+          )}
         </div>
       </div>
     );
@@ -936,6 +972,8 @@ export default function App() {
                 )}
                 {!collectionReady ? (
                   LOADING_FALLBACK
+                ) : collectionLoadError ? (
+                  <ErrorState label="Couldn't load your collection" onRetry={retryCollection} />
                 ) : isGuest ? (
                   <div className="flex flex-col items-center text-center pt-16">
                     <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mb-4">
@@ -1007,6 +1045,8 @@ export default function App() {
               <ChaseView
                 chases={chases}
                 cards={cards}
+                canWrite={canWrite}
+                onGuestBlocked={() => showToast("Create an account to save a chase")}
                 onCreate={handleCreateChase}
                 onUpdate={handleUpdateChase}
                 onDelete={handleDeleteChase}
@@ -1052,7 +1092,9 @@ export default function App() {
           </div>
         )}
 
-        {mainTab === "community" && (
+        {mainTab === "community" && (communityReady && communityLoadError ? (
+          <ErrorState label="Couldn't load the feed" onRetry={retryCommunity} />
+        ) : (
           <Suspense fallback={LOADING_FALLBACK}>
             <CommunityView
               posts={posts}
@@ -1062,8 +1104,11 @@ export default function App() {
               showToast={showToast}
             />
           </Suspense>
+        ))}
+        {mainTab === "connections" && peersReady && peersLoadError && (
+          <ErrorState label="Couldn't load collectors" onRetry={retryPeers} />
         )}
-        {mainTab === "connections" && (
+        {mainTab === "connections" && !(peersReady && peersLoadError) && (
           <Suspense fallback={LOADING_FALLBACK}>
             <PeersView
               allCards={cards}
@@ -1071,6 +1116,7 @@ export default function App() {
               myPeers={myPeers}
               suggested={suggested}
               ready={peersReady}
+              ownerName={stats?.displayName ?? ""}
               isFollowing={isFollowing}
               onToggleFollow={handleToggleFollow}
               onOpenChat={openChatWith}
@@ -1177,6 +1223,7 @@ export default function App() {
           onClose={() => setShowShare(false)}
           allCards={cards}
           folders={folders}
+          ownerName={stats?.displayName ?? ""}
           dmPeers={myPeers}
           onShareViaDm={handleShareViaDm}
         />

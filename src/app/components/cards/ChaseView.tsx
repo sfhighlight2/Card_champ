@@ -1,20 +1,27 @@
 import { useMemo, useState } from "react";
-import { Eye, Plus, Search, X, Zap } from "lucide-react";
+import { Plus, Search, X, Zap } from "lucide-react";
 import type { Card, Chase } from "../../types";
+import { gradingColor } from "../../lib/grading";
 import { AnimateIn } from "../shared/AnimateIn";
+import { ConfirmDialog } from "../shared/ConfirmDialog";
 
 interface ChaseViewProps {
   chases: Chase[];
   cards: Card[];
+  /** False for guests, whose chase writes the server would reject — the form
+   *  must not open, collect typing, and then lose it to an RLS error. */
+  canWrite: boolean;
+  onGuestBlocked: () => void;
   onCreate: (chase: Omit<Chase, "id" | "createdAt">) => void;
   onUpdate: (chase: Chase) => void;
   onDelete: (id: string) => void;
 }
 
-export function ChaseView({ chases, cards, onCreate, onUpdate, onDelete }: ChaseViewProps) {
+export function ChaseView({ chases, cards, canWrite, onGuestBlocked, onCreate, onUpdate, onDelete }: ChaseViewProps) {
   const [query, setQuery] = useState("");
   const [editing, setEditing] = useState<Chase | null>(null);
   const [formOpen, setFormOpen] = useState(false);
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
 
   const visibleChases = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -27,6 +34,10 @@ export function ChaseView({ chases, cards, onCreate, onUpdate, onDelete }: Chase
   }, [cards, chases, query]);
 
   const startNew = () => {
+    if (!canWrite) {
+      onGuestBlocked();
+      return;
+    }
     setEditing(null);
     setFormOpen(true);
   };
@@ -54,12 +65,6 @@ export function ChaseView({ chases, cards, onCreate, onUpdate, onDelete }: Chase
             </button>
           )}
         </div>
-        <button
-          aria-label="Chase visibility"
-          className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 flex-shrink-0"
-        >
-          <Eye className="w-4 h-4 text-gray-500" />
-        </button>
       </div>
 
       <div className="flex-1 px-4 md:px-7 overflow-y-auto app-scroll-pad" style={{ scrollbarWidth: "none" }}>
@@ -75,7 +80,7 @@ export function ChaseView({ chases, cards, onCreate, onUpdate, onDelete }: Chase
         <div className="flex flex-col gap-5 md:gap-5">
           {visibleChases.map((chase, index) => (
             <AnimateIn key={chase.id} delay={index * 70}>
-              <ChaseCard chase={chase} onEdit={() => startEdit(chase)} onDelete={() => onDelete(chase.id)} />
+              <ChaseCard chase={chase} onEdit={() => startEdit(chase)} onDelete={() => setConfirmingDeleteId(chase.id)} />
             </AnimateIn>
           ))}
         </div>
@@ -102,6 +107,16 @@ export function ChaseView({ chases, cards, onCreate, onUpdate, onDelete }: Chase
               setFormOpen(false);
               setEditing(null);
             }}
+          />
+        )}
+
+        {confirmingDeleteId && (
+          <ConfirmDialog
+            title="Remove this chase?"
+            message="Connections will no longer see it. This can't be undone."
+            confirmLabel="Remove"
+            onConfirm={() => { onDelete(confirmingDeleteId); setConfirmingDeleteId(null); }}
+            onCancel={() => setConfirmingDeleteId(null)}
           />
         )}
 
@@ -183,7 +198,14 @@ function ChaseForm({
                 outlineOffset: 3,
               }}
             >
-              <img src={card.img} alt="" className="w-full block rounded-md bg-gray-100" draggable={false} />
+              {card.img ? (
+                <img src={card.img} alt="" className="w-full block rounded-md bg-gray-100" draggable={false} />
+              ) : (
+                <div className="w-full rounded-md flex items-center justify-center px-1"
+                  style={{ background: gradingColor(card), aspectRatio: "2.5/3.5" }}>
+                  <span className="text-white text-[8px] font-semibold text-center leading-tight">{card.player}</span>
+                </div>
+              )}
             </button>
           ))}
         </div>

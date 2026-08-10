@@ -4,6 +4,7 @@ import type { LevelInfo } from "../../lib/level";
 import { TIER_LABELS } from "../../lib/level";
 import { formatCompact } from "../../lib/format";
 import { LevelRingAvatar } from "../shared/LevelRingAvatar";
+import { CardThumb } from "../cards/CardThumb";
 
 interface ProfileViewProps {
   profile: Profile;
@@ -86,7 +87,7 @@ export function ProfileView({ profile, cards, levelInfo, changePct, onBack, onEd
           <div className="grid grid-cols-3 gap-3 mb-8">
             {featured.map(card => (
               <div key={card.id} className="rounded-xl overflow-hidden" style={{ background: "#f4f4f5" }}>
-                <img src={card.img} alt={card.player} className="w-full block" style={{ objectFit: "contain" }} draggable={false} />
+                <CardThumb card={card} />
               </div>
             ))}
           </div>

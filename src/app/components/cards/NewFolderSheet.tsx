@@ -3,6 +3,7 @@ import { Folder, Check, Search, X } from "lucide-react";
 import type { Card } from "../../types";
 import { FOLDER_COLORS } from "../../data/cardFields";
 import { useEscapeClose } from "../../hooks/useEscapeClose";
+import { CardThumb } from "./CardThumb";
 
 interface NewFolderSheetProps {
   onClose: () => void;
@@ -122,7 +123,7 @@ export function NewFolderSheet({ onClose, onCreate, allCards }: NewFolderSheetPr
                   <button key={card.id} onClick={() => setSelectedCards(prev => prev.includes(card.id) ? prev.filter(id => id !== card.id) : [...prev, card.id])}
                     className="relative focus:outline-none">
                     <div className="overflow-hidden" style={{ outline: selectedCards.includes(card.id) ? "2px solid #111" : "2px solid transparent", outlineOffset: "2px" }}>
-                      <img src={card.img} alt={card.player} className="w-full block" style={{ objectFit: "contain", background: "#f4f4f5" }} draggable={false} />
+                      <CardThumb card={card} />
                     </div>
                     {selectedCards.includes(card.id) && (
                       <div className="absolute top-1 right-1 w-5 h-5 rounded-full bg-gray-950 flex items-center justify-center">

@@ -50,7 +50,9 @@ export function CommunityView({ posts, topics, ready, onOpenPost, showToast }: C
           />
           {query && <button onClick={() => setQuery("")} aria-label="Clear search"><X className="w-3 h-3 text-gray-400" /></button>}
         </div>
-        <button onClick={() => showToast("No new notifications")} className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 flex-shrink-0" aria-label="Notifications">
+        {/* Same wording as the AppMenu stub — "No new notifications" implied a
+            notification system that doesn't exist yet. */}
+        <button onClick={() => showToast("Notifications are coming soon")} className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 flex-shrink-0" aria-label="Notifications">
           <Bell className="w-4 h-4 text-gray-500" />
         </button>
       </div>

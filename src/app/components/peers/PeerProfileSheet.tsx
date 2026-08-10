@@ -4,6 +4,7 @@ import type { Card } from "../../types";
 import type { DbProfileStats } from "../../data/repositories";
 import { usePeerCards } from "../../data/usePeers";
 import { computeLevel, tierBadgeLabel } from "../../lib/level";
+import { formatDollars } from "../../lib/format";
 import { DetailSheet } from "../cards/DetailSheet";
 import { useEscapeClose } from "../../hooks/useEscapeClose";
 import { Avatar } from "../shared/Avatar";
@@ -103,7 +104,7 @@ export function PeerProfileSheet({ peer, onClose, isFollowing, onToggleFollow }:
             <div className="w-px h-8 bg-gray-100" />
             <div>
               <p className="text-[10px] font-medium text-gray-400 tracking-widest uppercase mb-0.5">Value</p>
-              <p className="text-xl font-semibold text-gray-900">${peer.totalValue.toLocaleString()}</p>
+              <p className="text-xl font-semibold text-gray-900">{formatDollars(peer.totalValue)}</p>
             </div>
             <div className="w-px h-8 bg-gray-100" />
             <div>
@@ -116,7 +117,9 @@ export function PeerProfileSheet({ peer, onClose, isFollowing, onToggleFollow }:
                 className="px-4 py-2 rounded-full text-xs font-semibold transition-all"
                 style={{ background: isFollowing ? "#f4f4f5" : "#111", color: isFollowing ? "#888" : "#fff" }}
               >
-                {isFollowing ? "Following ✓" : "Follow"}
+                {/* "Connect", matching the Connections tab and the PeersView
+                    buttons — the same action was labelled "Follow" only here. */}
+                {isFollowing ? "Connected ✓" : "Connect"}
               </button>
             </div>
           </div>
@@ -133,13 +136,20 @@ export function PeerProfileSheet({ peer, onClose, isFollowing, onToggleFollow }:
               <div className="w-2 h-2 rounded-full bg-gray-300 animate-pulse" />
             </div>
           ) : cards.length === 0 ? (
+            // Zero rows means private OR genuinely empty — RLS returns nothing
+            // either way. profile_stats' public card count tells them apart, so
+            // an empty public collection isn't mislabelled as private.
             <div className="flex flex-col items-center text-center px-6 py-10">
               <div className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center mb-3">
                 <Lock className="w-5 h-5 text-gray-400" />
               </div>
-              <p className="text-sm font-semibold text-gray-900">This collection is private</p>
+              <p className="text-sm font-semibold text-gray-900">
+                {peer.cardCount > 0 ? "This collection is private" : "No cards yet"}
+              </p>
               <p className="text-xs text-gray-400 mt-1 max-w-[240px]">
-                {peer.displayName.split(" ")[0]} hasn't made their collection public.
+                {peer.cardCount > 0
+                  ? `${peer.displayName.split(" ")[0]} hasn't made their collection public.`
+                  : `${peer.displayName.split(" ")[0]} hasn't added any cards yet.`}
               </p>
             </div>
           ) : (

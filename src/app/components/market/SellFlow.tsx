@@ -8,7 +8,8 @@ import { useEscapeClose } from "../../hooks/useEscapeClose";
 interface SellFlowProps {
   onClose: () => void;
   allCards: Card[];
-  /** Creates a real `marketplace_listings` row owned by the seller. */
+  /** Creates a real `marketplace_listings` row owned by the seller. Resolves
+   *  true only when the row actually landed. */
   onCreate: (input: {
     copyId: string;
     title: string;
@@ -17,7 +18,7 @@ interface SellFlowProps {
     catalogCardId: string | null;
     graderCode: string;
     grade: string;
-  }) => void;
+  }) => Promise<boolean>;
 }
 
 export function SellFlow({ onClose, allCards, onCreate }: SellFlowProps) {
@@ -27,6 +28,7 @@ export function SellFlow({ onClose, allCards, onCreate }: SellFlowProps) {
   const [askingPrice, setAskingPrice] = useState("");
   const [shipsFrom, setShipsFrom] = useState("United States");
   const [done, setDone] = useState(false);
+  const [listing, setListing] = useState(false);
   const [cardSearch, setCardSearch] = useState("");
 
   const filteredCards = allCards.filter(c =>
@@ -34,22 +36,33 @@ export function SellFlow({ onClose, allCards, onCreate }: SellFlowProps) {
     c.year.includes(cardSearch)
   );
 
+  // A real positive dollar amount, or null. "0", "-3", "1e", and "" all fail —
+  // the DB would accept a $0 listing, and "1e" used to reach Review as "$NaN".
+  const parsedPrice = (() => {
+    const n = Number(askingPrice);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  })();
+
   const STEPS = ["Card", "Listing", "Review"];
 
-  const handleList = () => {
-    if (!selectedCard) return;
+  const handleList = async () => {
+    if (!selectedCard || parsedPrice == null || listing) return;
+    setListing(true);
     // A native listing on Card Champs itself — the seller's own copy, offered
     // here rather than on a third-party platform this app cannot post to.
-    onCreate({
+    // The success screen waits for the server: a rejected insert (say, this
+    // copy already has a live listing) must not be celebrated as "live".
+    const ok = await onCreate({
       copyId: selectedCard.id,
       title: [selectedCard.year, selectedCard.brand, selectedCard.player].filter(Boolean).join(" "),
-      price: parseFloat(askingPrice) || 0,
+      price: parsedPrice,
       shipsFrom,
       catalogCardId: selectedCard.catalogCardId,
       graderCode: selectedCard.grader,
       grade: selectedCard.grade,
     });
-    setDone(true);
+    setListing(false);
+    if (ok) setDone(true);
   };
 
   if (done) return (
@@ -62,7 +75,7 @@ export function SellFlow({ onClose, allCards, onCreate }: SellFlowProps) {
           <p className="text-white/60 text-xs font-medium tracking-widest uppercase mb-2">Listed</p>
           <h2 className="text-2xl font-bold text-white mb-2 leading-tight">Your card is live!</h2>
           {selectedCard && <p className="text-white/60 text-sm mb-1">{selectedCard.player} · {selectedCard.year}</p>}
-          <p className="text-white font-semibold text-lg mb-6">${parseFloat(askingPrice || "0").toLocaleString()}</p>
+          <p className="text-white font-semibold text-lg mb-6">${(parsedPrice ?? 0).toLocaleString()}</p>
           <button onClick={onClose} className="w-full py-3.5 rounded-2xl bg-white text-gray-900 text-sm font-semibold">Done</button>
         </div>
       </div>
@@ -97,6 +110,11 @@ export function SellFlow({ onClose, allCards, onCreate }: SellFlowProps) {
                   style={{ fontFamily: "'Google Sans', sans-serif" }} />
                 {cardSearch && <button onClick={() => setCardSearch("")} aria-label="Clear search"><X className="w-3.5 h-3.5 text-gray-400" /></button>}
               </div>
+              {filteredCards.length === 0 && (
+                <p className="text-sm text-gray-400 py-6 text-center">
+                  {allCards.length === 0 ? "Add a card to your collection first — then you can list it here." : "No cards match that search."}
+                </p>
+              )}
               <div className="grid grid-cols-3 md:grid-cols-4 gap-2 mb-5">
                 {filteredCards.map(card => (
                   <button key={card.id} onClick={() => setSelectedCard(card)} className="relative focus:outline-none group">
@@ -161,7 +179,10 @@ export function SellFlow({ onClose, allCards, onCreate }: SellFlowProps) {
                 className="w-full rounded-2xl bg-gray-50 px-4 py-3.5 text-sm text-gray-900 placeholder-gray-300 outline-none mb-6"
                 style={{ fontFamily: "'Google Sans', sans-serif" }} />
 
-              <button onClick={() => setStep(3)} disabled={!askingPrice.trim()}
+              {askingPrice.trim() !== "" && parsedPrice == null && (
+                <p className="text-xs text-red-500 mb-2">Enter a price above $0.</p>
+              )}
+              <button onClick={() => setStep(3)} disabled={parsedPrice == null}
                 className="w-full py-3.5 rounded-2xl bg-gray-950 text-white text-sm font-semibold disabled:opacity-30">
                 Continue
               </button>
@@ -188,7 +209,7 @@ export function SellFlow({ onClose, allCards, onCreate }: SellFlowProps) {
                 </div>
                 <div className="grid grid-cols-2 gap-px bg-gray-200">
                   {[
-                    { label: "Price", value: `$${parseFloat(askingPrice).toLocaleString()}` },
+                    { label: "Price", value: `$${(parsedPrice ?? 0).toLocaleString()}` },
                     { label: "Ships From", value: shipsFrom },
                   ].map(s => (
                     <div key={s.label} className="bg-white px-3 py-3 text-center">
@@ -199,9 +220,9 @@ export function SellFlow({ onClose, allCards, onCreate }: SellFlowProps) {
                 </div>
               </div>
 
-              <button onClick={handleList}
-                className="w-full py-3.5 rounded-2xl bg-gray-950 text-white text-sm font-semibold mb-2">
-                List for Sale
+              <button onClick={() => void handleList()} disabled={listing}
+                className="w-full py-3.5 rounded-2xl bg-gray-950 text-white text-sm font-semibold mb-2 disabled:opacity-50">
+                {listing ? "Listing…" : "List for Sale"}
               </button>
             </>
           )}

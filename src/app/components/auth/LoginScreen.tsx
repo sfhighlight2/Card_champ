@@ -3,7 +3,6 @@ import { Mail, MailCheck, Lock, Eye, EyeOff, User, AtSign, IdCard, Check, Loader
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
-import { Checkbox } from "../ui/checkbox";
 import { Separator } from "../ui/separator";
 import { AnimateIn } from "../shared/AnimateIn";
 import { cardChampsLogo, cardChampsLogoDark } from "../../data/cardImages";
@@ -46,19 +45,21 @@ interface LoginScreenProps {
   /** Which tab to open on. A guest tapping "Create an account" should land on
    *  Sign Up, not have to find the tab themselves. */
   initialMode?: "signin" | "signup";
+  /** Leaves the "check your email" screens and returns to the sign-in form —
+   *  without it those screens are dead ends this component can't escape. */
+  onBackToSignIn?: () => void;
 }
 
 export function LoginScreen({
   onSignIn, onSignUp, onGuest, onForgotPassword, isDark,
   authError = "", busy = false, awaitingConfirmation = false, resetEmailSent = false,
-  initialMode = "signin",
+  initialMode = "signin", onBackToSignIn,
 }: LoginScreenProps) {
   const [mode, setMode] = useState<"signin" | "signup">(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [remember, setRemember] = useState(true);
   const [localError, setLocalError] = useState("");
 
   // Signup-only fields. A new account used to be provisioned as "Collector" with
@@ -159,6 +160,14 @@ export function LoginScreen({
               We sent a password reset link to <span className="font-semibold text-gray-600">{email}</span>. It can
               only be used once, so open it soon.
             </p>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onBackToSignIn}
+              className="mt-6 rounded-full px-6 py-2.5 text-sm font-semibold border-gray-200"
+            >
+              Back to sign in
+            </Button>
           </div>
         </AnimateIn>
       </div>
@@ -179,6 +188,14 @@ export function LoginScreen({
               We sent a confirmation link to <span className="font-semibold text-gray-600">{email}</span>. Open it to
               finish setting up your account, then sign in.
             </p>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onBackToSignIn}
+              className="mt-6 rounded-full px-6 py-2.5 text-sm font-semibold border-gray-200"
+            >
+              Back to sign in
+            </Button>
           </div>
         </AnimateIn>
       </div>
@@ -335,18 +352,16 @@ export function LoginScreen({
 
           {error && <p className="text-xs text-red-500">{error}</p>}
 
-          <div className="flex items-center justify-between mt-1 mb-2">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <Checkbox checked={remember} onCheckedChange={v => setRemember(v === true)} />
-              <span className="text-xs text-gray-500">Remember me</span>
-            </label>
-            {mode === "signin" && (
+          {/* No "Remember me" checkbox: the session is always persisted, and a
+              control that silently does nothing is worse than none at all. */}
+          {mode === "signin" && (
+            <div className="flex justify-end mt-1 mb-2">
               <button type="button" onClick={requestReset} disabled={busy}
                 className="text-xs font-semibold text-gray-500 hover:text-gray-900 disabled:opacity-50">
                 Forgot password?
               </button>
-            )}
-          </div>
+            </div>
+          )}
 
           <Button type="submit" disabled={busy} className="w-full h-auto rounded-full py-3.5 text-sm font-semibold">
             {busy ? "Please wait…" : mode === "signin" ? "Sign In" : "Create Account"}

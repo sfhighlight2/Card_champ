@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
-import { Scan, X, Check, Share2, AlertTriangle, RotateCcw } from "lucide-react";
+import { Scan, X, Check, AlertTriangle, RotateCcw } from "lucide-react";
 import type { NewCardInput } from "../../data/repositories";
 import { GRADER_COLOR, GRADERS, GRADES, GRADE_LABELS, ALL_YEARS, BRANDS_BY_YEAR, ALL_TEAMS } from "../../data/cardFields";
-import { card2 } from "../../data/cardImages";
 import { RAW_COLOR, RAW_LABEL } from "../../lib/grading";
 import { ScrollPicker } from "../shared/ScrollPicker";
 import { useBarcodeScanner } from "../../hooks/useBarcodeScanner";
@@ -10,13 +9,15 @@ import { useEscapeClose } from "../../hooks/useEscapeClose";
 
 interface ScanCardSheetProps {
   onClose: () => void;
-  onAdd: (input: NewCardInput) => void;
+  /** Resolves true only when the card actually saved. */
+  onAdd: (input: NewCardInput) => Promise<boolean>;
 }
 
 export function ScanCardSheet({ onClose, onAdd }: ScanCardSheetProps) {
   useEscapeClose(onClose);
   const [step, setStep]         = useState(1);
   const [done, setDone]         = useState(false);
+  const [saving, setSaving]     = useState(false);
   const [player, setPlayer]     = useState("");
   const [year, setYear]         = useState("1986");
   const [brand, setBrand]       = useState("Topps");
@@ -77,14 +78,26 @@ export function ScanCardSheet({ onClose, onAdd }: ScanCardSheetProps) {
     <div className="fixed inset-0 z-50 flex flex-col items-center justify-center px-8" style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(8px)" }}>
       <div className="w-full max-w-sm rounded-3xl overflow-hidden" style={{ background: "linear-gradient(145deg, #c9a84c 0%, #e8c96e 45%, #b8903c 100%)" }}>
         <div className="flex flex-col items-center px-8 py-10 text-center">
+          {/* The user's own scan when there is one — celebrating with a stock
+              card that isn't theirs undercut the moment. */}
           <div className="relative mb-6" style={{ perspective: "600px" }}>
-            <img
-              src={card2}
-              alt="Reference card"
-              className="w-40 rounded-xl"
-              style={{ objectFit: "contain", boxShadow: "0 16px 40px rgba(0,0,0,0.35)", transform: "rotate(-2deg)" }}
-              draggable={false}
-            />
+            {scannedImage ? (
+              <img
+                src={scannedImage}
+                alt={player}
+                className="w-40 rounded-xl"
+                style={{ objectFit: "contain", boxShadow: "0 16px 40px rgba(0,0,0,0.35)", transform: "rotate(-2deg)" }}
+                draggable={false}
+              />
+            ) : (
+              <div
+                className="w-40 rounded-xl flex flex-col items-center justify-center gap-1 px-3"
+                style={{ background: isRaw ? RAW_COLOR : graderColor, aspectRatio: "2.5/3.5", boxShadow: "0 16px 40px rgba(0,0,0,0.35)", transform: "rotate(-2deg)" }}
+              >
+                <span className="text-white font-semibold text-sm text-center leading-tight">{player}</span>
+                <span className="text-white/70 text-xs">{year}</span>
+              </div>
+            )}
           </div>
           <p className="text-white/70 text-sm font-medium tracking-widest uppercase mb-2">Success</p>
           <h2 className="text-2xl font-bold text-white mb-2 leading-tight">Added to your<br />collection!</h2>
@@ -95,15 +108,7 @@ export function ScanCardSheet({ onClose, onAdd }: ScanCardSheetProps) {
             </span>
             {value && <span className="text-white font-semibold text-sm">${parseFloat(value).toLocaleString()}</span>}
           </div>
-          <button
-            onClick={() => {}}
-            className="w-full py-3.5 rounded-2xl font-semibold text-sm mb-3"
-            style={{ background: "rgba(255,255,255,0.25)", color: "#fff" }}
-          >
-            <Share2 className="inline w-4 h-4 mr-1.5 -mt-0.5" />
-            Share
-          </button>
-          <button onClick={onClose} className="w-full py-3.5 rounded-2xl font-semibold text-sm" style={{ background: "rgba(0,0,0,0.2)", color: "rgba(255,255,255,0.8)" }}>
+          <button onClick={onClose} className="w-full py-3.5 rounded-2xl font-semibold text-sm" style={{ background: "rgba(255,255,255,0.25)", color: "#fff" }}>
             Done
           </button>
         </div>
@@ -405,8 +410,13 @@ export function ScanCardSheet({ onClose, onAdd }: ScanCardSheetProps) {
               </div>
 
               <button
+                disabled={saving}
                 onClick={() => {
-                  onAdd({
+                  // The success screen waits for the server — celebrating an
+                  // insert that then fails (RLS, connection) taught users a
+                  // card was saved when it wasn't.
+                  setSaving(true);
+                  void onAdd({
                     player,
                     year,
                     brand,
@@ -419,11 +429,13 @@ export function ScanCardSheet({ onClose, onAdd }: ScanCardSheetProps) {
                     popReport: popReport ? parseInt(popReport) : null,
                     sellPrice: sellPrice ? parseFloat(sellPrice) : null,
                     imageDataUrl: scannedImage,
+                  }).then(ok => {
+                    setSaving(false);
+                    if (ok) setDone(true);
                   });
-                  setDone(true);
                 }}
-                className="w-full py-3.5 rounded-2xl bg-gray-950 text-white text-sm font-semibold">
-                Add to Collection
+                className="w-full py-3.5 rounded-2xl bg-gray-950 text-white text-sm font-semibold disabled:opacity-50">
+                {saving ? "Adding…" : "Add to Collection"}
               </button>
             </>
           )}

@@ -57,6 +57,8 @@ export function usePeers() {
 
   return {
     ready: !peersQ.isLoading && !followingQ.isLoading,
+    loadError: peersQ.isError || followingQ.isError,
+    retry: () => { void peersQ.refetch(); void followingQ.refetch(); },
     canWrite,
     /** Collectors you follow. */
     myPeers: peers.filter(p => followingSet.has(p.profileId)),

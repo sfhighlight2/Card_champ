@@ -64,14 +64,20 @@ export function DetailSheet({ card, onClose, isPeer = false, cards = [], initial
             <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100" aria-label="Close">
               <X className="w-4 h-4 text-gray-500" />
             </button>
-            {cards.length > 1 && (
+            {/* One dot per card only works for a handful; a whole collection's
+                worth of 6px dots overflowed the header and made useless tap
+                targets. Past a dozen, a position counter says the same thing. */}
+            {cards.length > 1 && cards.length <= 12 && (
               <div className="flex items-center gap-1">
                 {cards.map((_, i) => (
-                  <button key={i} onClick={() => setIdx(i)}
+                  <button key={i} onClick={() => setIdx(i)} aria-label={`Card ${i + 1}`}
                     className="w-1.5 h-1.5 rounded-full transition-all"
                     style={{ background: i === idx ? "#111" : "#e0e0e0", width: i === idx ? 16 : 6 }} />
                 ))}
               </div>
+            )}
+            {cards.length > 12 && (
+              <span className="text-xs font-semibold text-gray-400">{idx + 1} / {cards.length}</span>
             )}
             <div className="w-8" />
           </div>

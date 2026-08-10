@@ -71,6 +71,10 @@ export function useCommunity() {
 
   return {
     ready: !feedQ.isLoading && !topicsQ.isLoading,
+    /** True when the feed failed to load — the UI must distinguish this from an
+     *  actually-empty feed instead of claiming "No posts yet". */
+    loadError: feedQ.isError,
+    retry: () => { void feedQ.refetch(); void topicsQ.refetch(); },
     canWrite,
     posts: (feedQ.data ?? []) as FeedPost[],
     topics: (topicsQ.data ?? []) as CommunityTopic[],

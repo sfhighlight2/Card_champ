@@ -2,6 +2,7 @@ import { Folder } from "lucide-react";
 import type { Card, FolderType } from "../../types";
 import { AnimateIn } from "../shared/AnimateIn";
 import { Money } from "../shared/Money";
+import { CardThumb } from "./CardThumb";
 
 function hexToRgba(hex: string, alpha: number): string {
   let h = hex.replace("#", "");
@@ -47,8 +48,10 @@ export function FolderGrid({ folders, cards, hideValues, onOpen }: FolderGridPro
                     ? <img src={folder.thumbnail} alt="" className="w-full h-full" style={{ objectFit: "contain" }} draggable={false} />
                     : previewCards.length > 0
                       ? previewCards.map((card, i) => (
-                          <img key={card.id} src={card.img} alt="" draggable={false} className="absolute"
-                            style={{ width: 92, objectFit: "contain", background: "#fff", borderRadius: 4, boxShadow: "0 4px 14px rgba(0,0,0,0.18)", transform: `rotate(${PREVIEW_OFFSETS[i].rotate}) translate(${PREVIEW_OFFSETS[i].translate})`, zIndex: PREVIEW_OFFSETS[i].z }} />
+                          <div key={card.id} className="absolute"
+                            style={{ width: 92, borderRadius: 4, overflow: "hidden", boxShadow: "0 4px 14px rgba(0,0,0,0.18)", transform: `rotate(${PREVIEW_OFFSETS[i].rotate}) translate(${PREVIEW_OFFSETS[i].translate})`, zIndex: PREVIEW_OFFSETS[i].z }}>
+                            <CardThumb card={card} />
+                          </div>
                         ))
                       : <Folder className="w-8 h-8" style={{ color: hexToRgba(folder.color, 0.5) }} />
                   }

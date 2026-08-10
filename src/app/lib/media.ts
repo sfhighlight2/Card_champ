@@ -58,9 +58,11 @@ export function resolveImage(path: string | null | undefined, bucket = "catalog-
 export const resolveAvatar = (path: string | null | undefined): string =>
   resolveImage(path, "avatars");
 
-/** Signed card-image URLs live an hour — comfortably longer than a session's
- *  worth of react-query caching, and short enough that a leaked link expires. */
-const SIGNED_URL_TTL_SECONDS = 60 * 60;
+/** Signed card-image URLs live 12 hours. The cards query's observer stays
+ *  mounted for the whole app lifetime, so URLs are only re-signed when the
+ *  query refetches — on mutation or on returning to the tab/PWA. The TTL has to
+ *  outlive any realistic stretch of idle-but-open time between those. */
+const SIGNED_URL_TTL_SECONDS = 12 * 60 * 60;
 
 /**
  * Batch-signs private card-image paths in one request and returns a

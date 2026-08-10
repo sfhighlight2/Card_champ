@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Search, X, Heart, Tag, TrendingUp, TrendingDown, Store, ExternalLink } from "lucide-react";
 import type { MarketListing, MyListing } from "../../types";
 import { gradingBadge, gradingColor } from "../../lib/grading";
+import { formatDollars } from "../../lib/format";
 import { relativeTime } from "../../lib/relativeTime";
 import { AnimateIn } from "../shared/AnimateIn";
 import { MarketCardDetailSheet } from "./MarketCardDetailSheet";
@@ -133,10 +134,14 @@ export function MarketView({
                   <div className="flex items-start justify-between gap-3 mb-2">
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-gray-900 truncate">{listing.title}</p>
+                      {/* relativeTime returns "now" for fresh timestamps, which
+                          must not gain an "ago" suffix — "listed now ago". */}
                       <p className="text-xs text-gray-400 mt-0.5">
-                        ${listing.price.toLocaleString()}
+                        {formatDollars(listing.price)}
                         {listing.shipsFrom ? ` · ships from ${listing.shipsFrom}` : ""}
-                        {` · listed ${relativeTime(Date.parse(listing.createdAt))} ago`}
+                        {relativeTime(Date.parse(listing.createdAt)) === "now"
+                          ? " · listed just now"
+                          : ` · listed ${relativeTime(Date.parse(listing.createdAt))} ago`}
                       </p>
                     </div>
                     <span className="text-[10px] font-bold px-2 py-1 rounded-full flex-shrink-0 uppercase tracking-wider"
@@ -172,7 +177,11 @@ export function MarketView({
                     {listing.status === "sold" && (
                       <span className="text-xs text-gray-400">Kept as a record of the sale</span>
                     )}
-                    <span className="text-xs text-gray-400 ml-auto">{listing.views} views</span>
+                    {/* Nothing increments view_count yet; a permanent "0 views"
+                        presented as a real stat undermines the ones that are. */}
+                    {listing.views > 0 && (
+                      <span className="text-xs text-gray-400 ml-auto">{listing.views} views</span>
+                    )}
                   </div>
                 </div>
               </AnimateIn>
@@ -219,7 +228,7 @@ function ListingRow({
         </div>
         <p className="text-sm font-semibold text-gray-900 truncate">{listing.title}</p>
         <div className="flex items-center gap-2 mt-0.5">
-          <span className="text-sm font-bold text-gray-900">${listing.price.toLocaleString()}</span>
+          <span className="text-sm font-bold text-gray-900">{formatDollars(listing.price)}</span>
           {listing.change !== undefined && (
             <span className={`flex items-center gap-0.5 text-xs font-semibold ${up ? "text-emerald-600" : "text-red-500"}`}>
               {up ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}

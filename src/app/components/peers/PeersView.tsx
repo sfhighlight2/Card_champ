@@ -17,16 +17,18 @@ interface PeersViewProps {
   /** Discoverable collectors not yet followed. */
   suggested: DbProfileStats[];
   ready: boolean;
+  /** The viewer's own display name, for titling collection shares. */
+  ownerName: string;
   isFollowing: (profileId: string) => boolean;
   onToggleFollow: (peer: DbProfileStats) => void;
   onOpenChat: (peer: DbProfileStats) => void;
-  onShareViaDm: (peer: DbProfileStats, message: string) => void;
+  onShareViaDm: (peer: DbProfileStats, message: string) => Promise<boolean>;
 }
 
 const CHASING_PREVIEW_COUNT = 3;
 
 export function PeersView({
-  allCards, folders, myPeers, suggested, ready, isFollowing, onToggleFollow, onOpenChat, onShareViaDm,
+  allCards, folders, myPeers, suggested, ready, ownerName, isFollowing, onToggleFollow, onOpenChat, onShareViaDm,
 }: PeersViewProps) {
   const [selectedPeerId, setSelectedPeerId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
@@ -214,6 +216,7 @@ export function PeersView({
           onClose={() => setShowShareFlow(false)}
           allCards={allCards}
           folders={folders}
+          ownerName={ownerName}
           dmPeers={myPeers}
           onShareViaDm={onShareViaDm}
         />

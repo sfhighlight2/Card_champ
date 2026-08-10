@@ -14,6 +14,11 @@ interface CardTileProps {
 export function CardTile({ card, onClick, index = 0, selectMode = false, selected = false }: CardTileProps) {
   const tilt = use3DTilt();
   const [pressed, setPressed] = useState(false);
+  // Signed image URLs have a finite TTL; if one dies before the query refetches
+  // it, the tile falls back to the grader-coloured placeholder instead of a
+  // broken-image glyph. Keyed to the exact URL so a fresh signed URL retries.
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const img = card.img && card.img !== failedSrc ? card.img : "";
 
   /**
    * Opens immediately.
@@ -62,8 +67,8 @@ export function CardTile({ card, onClick, index = 0, selectMode = false, selecte
           onMouseLeave={tilt.onMouseLeave}
           className="relative w-full overflow-hidden"
         >
-        {card.img
-          ? <img src={card.img} alt={card.player} className="w-full block" style={{ objectFit: "contain", background: "#f4f4f5" }} draggable={false} />
+        {img
+          ? <img src={img} alt={card.player} className="w-full block" style={{ objectFit: "contain", background: "#f4f4f5" }} draggable={false} onError={() => setFailedSrc(img)} />
           : <div className="w-full flex flex-col items-center justify-center gap-1 px-1" style={{ background: gradingColor(card), aspectRatio: "2.5/3.5" }}>
               <span className="text-white font-semibold text-[10px] text-center leading-tight">{card.player}</span>
               <span className="text-white/70 text-[9px]">{card.year}</span>

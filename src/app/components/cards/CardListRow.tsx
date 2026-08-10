@@ -2,6 +2,7 @@ import { ChevronRight } from "lucide-react";
 import type { Card } from "../../types";
 import { gradingBadge, gradingColor } from "../../lib/grading";
 import { Money } from "../shared/Money";
+import { CardThumb } from "./CardThumb";
 
 interface CardListRowProps {
   card: Card;
@@ -23,7 +24,7 @@ export function CardListRow({ card, onClick, selectMode = false, selected = fals
           )}
         </div>
       )}
-      <img src={card.img} alt={card.player} className="w-11 flex-shrink-0" style={{ objectFit: "contain", background: "#f4f4f5" }} draggable={false} />
+      <CardThumb card={card} className="w-11 flex-shrink-0" />
       <div className="flex-1 text-left min-w-0">
         <p className="text-sm font-semibold text-gray-900 truncate">{card.player}</p>
         <p className="text-xs text-gray-400 mt-0.5">{card.year} · {card.brand} · {card.team}</p>

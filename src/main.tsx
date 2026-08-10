@@ -10,7 +10,12 @@ const queryClient = new QueryClient({
     queries: {
       staleTime: 30_000,
       retry: 1,
-      refetchOnWindowFocus: false,
+      // Refetching on focus matters more here than the churn it costs: card
+      // images are signed URLs with a finite TTL, and re-signing only happens
+      // when their query refetches. Returning to the tab or resuming the
+      // installed PWA is exactly the moment stale data and dying URLs need
+      // replacing.
+      refetchOnWindowFocus: true,
     },
   },
 });

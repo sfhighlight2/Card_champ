@@ -20,16 +20,20 @@ export function ShareSheet({ title, subtitle, onClose }: ShareSheetProps) {
   useEscapeClose(onClose);
   const [copied, setCopied] = useState(false);
 
+  const shareText = `${title} — ${subtitle} · Card Champs`;
+
   const copy = () => {
-    void navigator.clipboard?.writeText(`${title} — ${subtitle}`).catch(() => {});
+    void navigator.clipboard?.writeText(shareText).catch(() => {});
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // Every target does something real — these used to be dead buttons that just
+  // closed the sheet, teaching users their share went out when nothing did.
   const targets: ShareTarget[] = [
     {
-      label: "Copy Link",
-      subtitle: "Anyone with the link can view",
+      label: copied ? "Copied!" : "Copy details",
+      subtitle: "Copy a summary to your clipboard",
       icon: copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Link className="w-4 h-4 text-gray-700" />,
       action: copy,
     },
@@ -37,20 +41,22 @@ export function ShareSheet({ title, subtitle, onClose }: ShareSheetProps) {
       label: "Messages",
       subtitle: "Send via iMessage or SMS",
       icon: <MessageCircle className="w-4 h-4 text-green-500" />,
-      action: onClose,
+      action: () => { window.location.href = `sms:?&body=${encodeURIComponent(shareText)}`; onClose(); },
     },
     {
       label: "Email",
       subtitle: "Share as an email",
       icon: <Mail className="w-4 h-4 text-blue-500" />,
-      action: onClose,
+      action: () => { window.location.href = `mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(shareText)}`; onClose(); },
     },
-    {
-      label: "More options",
-      subtitle: "Instagram, Twitter & more",
-      icon: <Share2 className="w-4 h-4 text-gray-400" />,
-      action: onClose,
-    },
+    ...(typeof navigator !== "undefined" && typeof navigator.share === "function"
+      ? [{
+          label: "More options",
+          subtitle: "The system share sheet",
+          icon: <Share2 className="w-4 h-4 text-gray-400" />,
+          action: () => { void navigator.share({ text: shareText }).then(onClose).catch(() => {}); },
+        }]
+      : []),
   ];
 
   return (

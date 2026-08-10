@@ -3,6 +3,7 @@ import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "rec
 import type { MarketListing } from "../../types";
 import { useCardMarketDetail } from "../../data/useMarket";
 import { gradingBadge, gradingColor } from "../../lib/grading";
+import { formatDollars } from "../../lib/format";
 import { useEscapeClose } from "../../hooks/useEscapeClose";
 
 interface MarketCardDetailSheetProps {
@@ -31,7 +32,11 @@ export function MarketCardDetailSheet({
         <div className="flex items-start justify-between px-6 pt-4 pb-3">
           <div className="min-w-0 flex-1 pr-3">
             <h2 className="text-lg font-semibold text-gray-900 leading-tight">{listing.title}</h2>
-            <p className="text-xs text-gray-400 mt-1">Listed on {listing.source || "an external marketplace"}</p>
+            {/* Native listings have no provider — they ARE Card Champs listings,
+                and used to be mislabeled "an external marketplace". */}
+            <p className="text-xs text-gray-400 mt-1">
+              Listed on {listing.sourceType === "external" ? (listing.source || "an external marketplace") : "Card Champs"}
+            </p>
           </div>
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 flex-shrink-0" aria-label="Close">
             <X className="w-4 h-4 text-gray-500" />
@@ -43,7 +48,7 @@ export function MarketCardDetailSheet({
             <span className="text-xs font-bold px-2.5 py-1 rounded-full text-white" style={{ background: badgeColor }}>
               {gradingBadge({ grader: listing.grader, grade: listing.grade })}
             </span>
-            <span className="text-2xl font-bold text-gray-900">${listing.price.toLocaleString()}</span>
+            <span className="text-2xl font-bold text-gray-900">{formatDollars(listing.price)}</span>
             {listing.change !== undefined && (
               <span className={`flex items-center gap-0.5 text-sm font-semibold ${up ? "text-emerald-600" : "text-red-500"}`}>
                 {up ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}

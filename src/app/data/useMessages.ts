@@ -78,6 +78,8 @@ export function useMessages() {
 
   return {
     ready: !canWrite || !conversationsQ.isLoading,
+    loadError: conversationsQ.isError,
+    retry: () => { void conversationsQ.refetch(); },
     canWrite,
     conversations,
     unreadTotal: conversations.reduce((n, c) => n + c.unread, 0),

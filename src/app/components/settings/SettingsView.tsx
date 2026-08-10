@@ -36,6 +36,7 @@ export function SettingsView({
   useEscapeClose(onBack);
   const [name, setName] = useState(profile.name);
   const [handle, setHandle] = useState(profile.handle);
+  const [handleError, setHandleError] = useState("");
 
   // Keep local field state in sync when the profile changes from outside this
   // form, so a stray blur can't silently overwrite fresh values with stale ones.
@@ -47,7 +48,22 @@ export function SettingsView({
   const earnedCount = achievements.filter(a => a.earned).length;
 
   const saveProfile = () => {
-    onProfileChange({ ...profile, name: name.trim() || profile.name, handle: handle.trim() || profile.handle });
+    // Same normalization and format rule as signup — this field used to send
+    // raw text straight at the profiles_handle_format constraint, surfacing
+    // invalid handles only as a server-error toast.
+    const nextName = name.trim() || profile.name;
+    const candidate = handle.trim().toLowerCase().replace(/^@/, "").replace(/[\s-]+/g, "_")
+      || profile.handle.replace(/^@/, "");
+    if (!/^[a-z0-9_]{3,30}$/.test(candidate)) {
+      setHandleError("Handles are 3–30 characters: letters, numbers, underscores.");
+      return;
+    }
+    setHandleError("");
+    const nextHandle = `@${candidate}`;
+    setHandle(nextHandle);
+    // A blur with nothing changed shouldn't fire a write at all.
+    if (nextName === profile.name && nextHandle === profile.handle) return;
+    onProfileChange({ ...profile, name: nextName, handle: nextHandle });
   };
 
   const handleExport = () => {
@@ -70,7 +86,9 @@ export function SettingsView({
           className="w-full rounded-2xl bg-gray-50 px-4 py-3.5 text-sm text-gray-900 outline-none mb-3" />
         <p className="text-[10px] font-medium text-gray-400 tracking-widest uppercase mb-1.5">Handle</p>
         <input value={handle} onChange={e => setHandle(e.target.value)} onBlur={saveProfile}
-          className="w-full rounded-2xl bg-gray-50 px-4 py-3.5 text-sm text-gray-900 outline-none mb-8" />
+          autoCapitalize="none" spellCheck={false}
+          className={`w-full rounded-2xl bg-gray-50 px-4 py-3.5 text-sm text-gray-900 outline-none ${handleError ? "mb-1" : "mb-8"}`} />
+        {handleError && <p className="text-xs text-red-500 mb-8">{handleError}</p>}
 
         <p className="text-[10px] font-medium text-gray-400 tracking-widest uppercase mb-3">Appearance</p>
         <div className="flex items-center gap-1 p-1 rounded-2xl bg-gray-50 mb-8">

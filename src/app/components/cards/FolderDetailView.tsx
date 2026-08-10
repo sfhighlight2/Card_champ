@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ChevronLeft, Folder, Plus, Share2, X, MoreVertical, Pencil, Trash2 } from "lucide-react";
 import type { Card, FolderType } from "../../types";
 import { CardTile } from "./CardTile";
+import { CardThumb } from "./CardThumb";
 import { DetailSheet } from "./DetailSheet";
 import { ShareSheet } from "../shared/ShareSheet";
 import { useEscapeClose } from "../../hooks/useEscapeClose";
@@ -56,7 +57,7 @@ export function FolderDetailView({ folder, onBack, onSetCards, onSetThumbnail, a
         </button>
         <div className="flex-1 min-w-0">
           <h2 className="text-base font-semibold text-gray-900 leading-tight">{folder.name}</h2>
-          <p className="text-[11px] text-gray-400">{folder.cardCount} card{folder.cardCount !== 1 ? "s" : ""} · ${folder.value.toLocaleString()} <span className="text-gray-300">· eBay</span></p>
+          <p className="text-[11px] text-gray-400">{folder.cardCount} card{folder.cardCount !== 1 ? "s" : ""} · ${folder.value.toLocaleString()}</p>
         </div>
         <button onClick={() => setSharing(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-200 text-gray-600 text-xs font-semibold flex-shrink-0">
           <Share2 className="w-3 h-3" />Share
@@ -65,8 +66,11 @@ export function FolderDetailView({ folder, onBack, onSetCards, onSetThumbnail, a
           <button onClick={() => setMenuOpen(o => !o)} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100" aria-label="More options">
             <MoreVertical className="w-4 h-4 text-gray-500" />
           </button>
+          {/* Tap-away dismissal — the menu used to stay open until the kebab
+              was tapped again. */}
+          {menuOpen && <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />}
           {menuOpen && (
-            <div className="absolute right-0 top-9 z-10 w-40 rounded-2xl bg-white shadow-lg border border-gray-100 overflow-hidden">
+            <div className="absolute right-0 top-9 z-20 w-40 rounded-2xl bg-white shadow-lg border border-gray-100 overflow-hidden">
               <button onClick={() => { setMenuOpen(false); onEdit(); }} className="w-full flex items-center gap-2 px-4 py-3 text-sm text-gray-700 text-left">
                 <Pencil className="w-3.5 h-3.5" />Edit folder
               </button>
@@ -111,7 +115,7 @@ export function FolderDetailView({ folder, onBack, onSetCards, onSetThumbnail, a
               {allCards.map(card => (
                 <button key={card.id} onClick={() => toggleCard(card.id)} className="relative focus:outline-none">
                   <div className="overflow-hidden" style={{ outline: folder.cardIds.includes(card.id) ? "2px solid #111" : "2px solid transparent", outlineOffset: "2px" }}>
-                    <img src={card.img} alt={card.player} className="w-full block" style={{ objectFit: "contain", background: "#f4f4f5" }} draggable={false} />
+                    <CardThumb card={card} />
                   </div>
                   {folder.cardIds.includes(card.id) && (
                     <div className="absolute top-1 right-1 w-5 h-5 rounded-full bg-gray-950 flex items-center justify-center">
@@ -145,7 +149,7 @@ export function FolderDetailView({ folder, onBack, onSetCards, onSetThumbnail, a
                 <button key={card.id} onClick={() => { onSetThumbnail(card.id); setChangingThumb(false); }}
                   className="overflow-hidden"
                   style={{ outline: folder.thumbnailCopyId === card.id ? "2px solid #111" : "2px solid transparent", outlineOffset: "2px" }}>
-                  <img src={card.img} alt={card.player} className="w-full block" style={{ objectFit: "contain", background: "#f4f4f5" }} draggable={false} />
+                  <CardThumb card={card} />
                 </button>
               ))}
             </div>

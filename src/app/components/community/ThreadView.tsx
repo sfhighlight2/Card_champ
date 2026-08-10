@@ -45,6 +45,7 @@ export function ThreadView({
 
   return (
     <div className="fixed inset-0 z-50 bg-white flex flex-col">
+      <div className="app-safe-top flex-shrink-0" />
       <div className="flex items-center gap-3 px-6 pt-6 pb-4 flex-shrink-0" style={{ borderBottom: "1px solid #f4f4f5" }}>
         <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100" aria-label="Back">
           <ChevronLeft className="w-4 h-4 text-gray-600" />
@@ -104,12 +105,13 @@ export function ThreadView({
         )}
       </div>
 
-      <div className="flex items-center gap-2 px-6 py-3 flex-shrink-0" style={{ borderTop: "1px solid #f4f4f5" }}>
+      <div className="app-sheet flex items-center gap-2 px-6 py-3 flex-shrink-0" style={{ borderTop: "1px solid #f4f4f5" }}>
         <Avatar src={profile.avatar} name={profile.name} size={32} className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
         <input
           value={commentText}
           onChange={e => setCommentText(e.target.value)}
           onKeyDown={e => { if (e.key === "Enter") submitComment(); }}
+          maxLength={2000}
           placeholder={canWrite ? "Add a comment…" : "Create an account to comment"}
           disabled={!canWrite}
           className="flex-1 bg-gray-100 rounded-full px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 outline-none disabled:opacity-60"

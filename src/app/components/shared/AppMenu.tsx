@@ -57,6 +57,7 @@ export function AppMenu({
   return (
     <div className="fixed inset-0 z-[80] flex justify-end" style={{ background: "rgba(0,0,0,0.4)", backdropFilter: "blur(4px)" }} onClick={onClose}>
       <div className="w-full max-w-sm h-full bg-white flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="app-safe-top flex-shrink-0" />
         <div className="flex items-center justify-between px-6 pt-8 pb-4 flex-shrink-0">
           <h2 className="text-lg font-semibold text-gray-900">Menu</h2>
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100" aria-label="Close menu">

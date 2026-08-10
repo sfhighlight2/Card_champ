@@ -1,6 +1,7 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../lib/supabase";
 
 export interface AuthContextValue {
@@ -33,17 +34,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [ready, setReady] = useState(false);
   const [isRecovering, setIsRecovering] = useState(false);
+  const queryClient = useQueryClient();
+  // The last account this tab held a cache for. `undefined` = nothing cached
+  // yet, `null` = signed out.
+  const cachedUserId = useRef<string | null | undefined>(undefined);
 
   useEffect(() => {
     let active = true;
 
     supabase.auth.getSession().then(({ data }) => {
       if (!active) return;
+      if (cachedUserId.current === undefined) {
+        cachedUserId.current = data.session?.user?.id ?? null;
+      }
       setSession(data.session);
       setReady(true);
     });
 
     const { data: sub } = supabase.auth.onAuthStateChange((event, next) => {
+      // Several query keys (conversations, feed, peers) are not user-scoped, so
+      // account changes in the same tab — sign out, then someone else signs in —
+      // would otherwise serve the previous user's cached private data. Dropping
+      // the whole cache whenever the account behind this tab changes makes that
+      // impossible. A guest→permanent upgrade keeps its id and its cache.
+      const nextId = next?.user?.id ?? null;
+      if (cachedUserId.current !== undefined && cachedUserId.current !== nextId) {
+        queryClient.clear();
+      }
+      cachedUserId.current = nextId;
+
       setSession(next);
       setReady(true);
       // Fired once `detectSessionInUrl` has exchanged the recovery link. Without
@@ -57,7 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       active = false;
       sub.subscription.unsubscribe();
     };
-  }, []);
+  }, [queryClient]);
 
   const value = useMemo<AuthContextValue>(() => {
     const user = session?.user ?? null;
