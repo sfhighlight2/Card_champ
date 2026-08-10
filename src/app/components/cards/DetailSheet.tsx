@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import type { TouchEvent as ReactTouchEvent } from "react";
 import { X, Share2, Pencil, Trash2 } from "lucide-react";
 import type { Card } from "../../types";
-import { GRADER_COLOR } from "../../data/cardFields";
+import { gradingColor, gradingSummary, isGraded, RAW_LABEL } from "../../lib/grading";
 import { use3DTilt } from "../../hooks/use3DTilt";
 import { useEscapeClose } from "../../hooks/useEscapeClose";
 import { AnimateIn } from "../shared/AnimateIn";
@@ -24,7 +24,8 @@ export function DetailSheet({ card, onClose, isPeer = false, cards = [], initial
   useEscapeClose(onClose);
   const [idx, setIdx] = useState(initialIndex);
   const current = cards.length > 0 ? cards[idx] : card!;
-  const gradeColor = GRADER_COLOR[current.grader] || "#111";
+  const gradeColor = gradingColor(current);
+  const graded = isGraded(current);
   const tilt = use3DTilt();
   const [sharing, setSharing] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
@@ -89,8 +90,14 @@ export function DetailSheet({ card, onClose, isPeer = false, cards = [], initial
                   ? <img src={current.img} alt={current.player} className="w-full block" style={{ objectFit: "contain", background: "#f4f4f5" }} draggable={false} />
                   : <div className="w-full flex flex-col items-center justify-center gap-1 px-2" style={{ background: gradeColor, aspectRatio: "2.5/3.5" }}>
                       <span className="text-white font-semibold text-xs text-center">{current.player}</span>
-                      <span className="text-white font-black text-2xl">{current.grade}</span>
-                      <span className="text-white/70 text-[10px]">{current.grader}</span>
+                      {graded ? (
+                        <>
+                          <span className="text-white font-black text-2xl">{current.grade}</span>
+                          <span className="text-white/70 text-[10px]">{current.grader}</span>
+                        </>
+                      ) : (
+                        <span className="text-white/80 font-bold text-[11px] tracking-widest uppercase">{RAW_LABEL}</span>
+                      )}
                     </div>
                 }
                 <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(circle at var(--glare-x,50%) var(--glare-y,50%), rgba(255,255,255,0.2) 0%, transparent 65%)" }} />
@@ -108,8 +115,14 @@ export function DetailSheet({ card, onClose, isPeer = false, cards = [], initial
                 )}
               </div>
               <div className="flex flex-col items-center px-3.5 py-2 rounded-2xl" style={{ background: gradeColor }}>
-                <span className="text-2xl font-bold text-white leading-none">{current.grade}</span>
-                <span className="text-[9px] font-semibold tracking-widest text-white/70 mt-0.5 uppercase">{current.grader}</span>
+                {graded ? (
+                  <>
+                    <span className="text-2xl font-bold text-white leading-none">{current.grade}</span>
+                    <span className="text-[9px] font-semibold tracking-widest text-white/70 mt-0.5 uppercase">{current.grader}</span>
+                  </>
+                ) : (
+                  <span className="text-sm font-bold text-white leading-none py-1.5">{RAW_LABEL}</span>
+                )}
               </div>
             </div>
             </AnimateIn>
@@ -136,20 +149,24 @@ export function DetailSheet({ card, onClose, isPeer = false, cards = [], initial
                 ) : <p className="text-[10px] text-gray-300 mt-1">No change</p>}
               </div>
 
-              <div className="rounded-2xl bg-gray-50 px-4 py-3.5">
-                <p className="text-[10px] font-medium text-gray-400 tracking-widest uppercase mb-1">Condition</p>
-                <p className="text-sm font-semibold text-gray-800">{current.gradeLabel}</p>
-              </div>
+              {graded && current.gradeLabel && (
+                <div className="rounded-2xl bg-gray-50 px-4 py-3.5">
+                  <p className="text-[10px] font-medium text-gray-400 tracking-widest uppercase mb-1">Condition</p>
+                  <p className="text-sm font-semibold text-gray-800">{current.gradeLabel}</p>
+                </div>
+              )}
 
               <div className="rounded-2xl bg-gray-50 px-4 py-3.5">
-                <p className="text-[10px] font-medium text-gray-400 tracking-widest uppercase mb-1">Grader</p>
-                <p className="text-sm font-semibold text-gray-800">{current.grader}</p>
+                <p className="text-[10px] font-medium text-gray-400 tracking-widest uppercase mb-1">Grading</p>
+                <p className="text-sm font-semibold text-gray-800">{graded ? current.grader : "Ungraded"}</p>
               </div>
 
-              <div className="rounded-2xl bg-gray-50 px-4 py-3.5">
-                <p className="text-[10px] font-medium text-gray-400 tracking-widest uppercase mb-1">Cert #</p>
-                <p className="text-sm font-semibold text-gray-800 font-mono">{current.cert}</p>
-              </div>
+              {current.cert && (
+                <div className="rounded-2xl bg-gray-50 px-4 py-3.5">
+                  <p className="text-[10px] font-medium text-gray-400 tracking-widest uppercase mb-1">Cert #</p>
+                  <p className="text-sm font-semibold text-gray-800 font-mono">{current.cert}</p>
+                </div>
+              )}
 
               {current.popReport && (
                 <div className="rounded-2xl bg-gray-50 px-4 py-3.5">
@@ -220,7 +237,7 @@ export function DetailSheet({ card, onClose, isPeer = false, cards = [], initial
       {sharing && (
         <ShareSheet
           title={`${current.player} — ${current.year} ${current.brand}`}
-          subtitle={`${current.grader} ${current.grade} · Est. $${current.value.toLocaleString()}`}
+          subtitle={`${gradingSummary(current)} · Est. $${current.value.toLocaleString()}`}
           onClose={() => setSharing(false)}
         />
       )}

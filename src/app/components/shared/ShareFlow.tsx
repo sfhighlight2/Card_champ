@@ -3,6 +3,7 @@ import { X, Check, Share2, Link, Mail, MessageCircle, ChevronRight, ChevronLeft,
 import type { Card, FolderType } from "../../types";
 import type { DbProfileStats } from "../../data/repositories";
 import { GRADER_COLOR } from "../../data/cardFields";
+import { gradingSummary } from "../../lib/grading";
 import { useEscapeClose } from "../../hooks/useEscapeClose";
 import { Avatar } from "./Avatar";
 
@@ -41,7 +42,7 @@ export function ShareFlow({ onClose, allCards, folders, dmPeers, onShareViaDm }:
 
   const shareSubtitle = type === "collection" ? `${allCards.length} cards · Est. $${allCards.reduce((s,c)=>s+c.value,0).toLocaleString()}`
     : type === "folder" ? `${selectedFolder?.cardCount} cards`
-    : selectedCard ? `${selectedCard.grader} ${selectedCard.grade} · $${selectedCard.value.toLocaleString()}` : "";
+    : selectedCard ? `${gradingSummary(selectedCard)} · $${selectedCard.value.toLocaleString()}` : "";
 
   const canContinue = type === "collection" || (type === "folder" && selectedFolder) || (type === "card" && selectedCard);
 

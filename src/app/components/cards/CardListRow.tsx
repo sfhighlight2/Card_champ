@@ -1,6 +1,6 @@
 import { ChevronRight } from "lucide-react";
 import type { Card } from "../../types";
-import { GRADER_COLOR } from "../../data/cardFields";
+import { gradingBadge, gradingColor } from "../../lib/grading";
 import { Money } from "../shared/Money";
 
 interface CardListRowProps {
@@ -29,8 +29,8 @@ export function CardListRow({ card, onClick, selectMode = false, selected = fals
         <p className="text-xs text-gray-400 mt-0.5">{card.year} · {card.brand} · {card.team}</p>
       </div>
       <div className="flex flex-col items-end gap-1 flex-shrink-0">
-        <span className="text-xs font-bold px-2 py-0.5 rounded-full text-white" style={{ background: GRADER_COLOR[card.grader] || "#111" }}>
-          {card.grader} {card.grade}
+        <span className="text-xs font-bold px-2 py-0.5 rounded-full text-white" style={{ background: gradingColor(card) }}>
+          {gradingBadge(card)}
         </span>
         <span className="text-sm font-semibold text-gray-800"><Money value={card.value} hidden={hideValues} /></span>
       </div>

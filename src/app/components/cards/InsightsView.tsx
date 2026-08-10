@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { TrendingUp, TrendingDown, Award, PenLine, Layers } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import type { Card } from "../../types";
-import { GRADER_COLOR } from "../../data/cardFields";
+import { gradingBadge, gradingColor, isGraded, RAW_LABEL } from "../../lib/grading";
 import { CountUp } from "../shared/CountUp";
 import { AnimateIn } from "../shared/AnimateIn";
 
@@ -35,7 +35,11 @@ export function InsightsView({ cards, changePct }: InsightsViewProps) {
     const totalValue = cards.reduce((s, c) => s + c.value, 0);
 
     const graderMap = new Map<string, number>();
-    for (const c of cards) graderMap.set(c.grader, (graderMap.get(c.grader) ?? 0) + c.value);
+    // Raw cards would otherwise all collapse into an unlabelled "" row.
+    for (const c of cards) {
+      const key = isGraded(c) ? c.grader : RAW_LABEL;
+      graderMap.set(key, (graderMap.get(key) ?? 0) + c.value);
+    }
     const byGrader = [...graderMap.entries()]
       .map(([grader, value]) => ({ grader, value }))
       .sort((a, b) => b.value - a.value);
@@ -127,7 +131,7 @@ export function InsightsView({ cards, changePct }: InsightsViewProps) {
                   <span className="text-xs font-semibold text-gray-900">${g.value.toLocaleString()}</span>
                 </div>
                 <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
-                  <div className="h-full rounded-full" style={{ width: `${(g.value / maxGrader) * 100}%`, background: GRADER_COLOR[g.grader] || "#111" }} />
+                  <div className="h-full rounded-full" style={{ width: `${(g.value / maxGrader) * 100}%`, background: gradingColor({ grader: g.grader === RAW_LABEL ? "" : g.grader, grade: g.grader === RAW_LABEL ? "" : "1" }) }} />
                 </div>
               </div>
             ))}
@@ -146,10 +150,10 @@ export function InsightsView({ cards, changePct }: InsightsViewProps) {
                 <div key={c.id} className="flex items-center gap-3 py-2.5">
                   {c.img
                     ? <img src={c.img} alt="" className="w-8 h-10 object-contain rounded bg-gray-50 flex-shrink-0" draggable={false} />
-                    : <div className="w-8 h-10 rounded flex-shrink-0" style={{ background: GRADER_COLOR[c.grader] || "#888" }} />}
+                    : <div className="w-8 h-10 rounded flex-shrink-0" style={{ background: gradingColor(c) }} />}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-gray-900 truncate">{c.player}</p>
-                    <p className="text-xs text-gray-400">{c.year} · {c.grader} {c.grade}</p>
+                    <p className="text-xs text-gray-400">{c.year} · {gradingBadge(c)}</p>
                   </div>
                   <span className={`text-sm font-semibold ${cUp ? "text-emerald-500" : flat ? "text-gray-400" : "text-red-400"}`}>
                     {cUp ? "+" : ""}{c.change}%

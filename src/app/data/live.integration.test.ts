@@ -152,6 +152,29 @@ d("live: collection writes under RLS", () => {
     expect(card.createdAt).toBeTruthy();
   });
 
+  it("accepts a raw, ungraded card — no grader, grade, or cert", async () => {
+    const id = await repo.addCard(alphaId, collectionId, {
+      player: "QA Raw Card",
+      year: "1989",
+      brand: "Donruss",
+      team: "Cubs",
+      graderCode: "",
+      grade: "",
+      gradeLabel: "",
+      cert: "",
+      value: 12,
+    });
+    createdCardIds.push(id);
+
+    const card = (await repo.fetchCards(alphaId)).find(c => c.id === id)!;
+    expect(card.player).toBe("QA Raw Card");
+    expect(card.grader).toBe("");
+    expect(card.grade).toBe("");
+    expect(card.cert).toBe("");
+    // The wizard required all three before, so this path had never been written.
+    expect(card.value).toBe(12);
+  });
+
   it("clears sell price and pop report when the edit sends explicit nulls", async () => {
     const id = createdCardIds[0];
     await repo.updateCard(id, alphaId, { sellPrice: null, popReport: null });
@@ -165,12 +188,15 @@ d("live: collection writes under RLS", () => {
     const id = createdCardIds[0];
     await repo.updateCard(id, alphaId, { value: 200 });
 
-    const card = (await repo.fetchCards(alphaId)).find(c => c.id === id)!;
+    const cards = await repo.fetchCards(alphaId);
+    const card = cards.find(c => c.id === id)!;
     expect(card.value).toBe(200);
 
+    // Asserted as an invariant against the live rows rather than a fixed count,
+    // so adding a case earlier in this block cannot break it.
     const stats = await repo.fetchProfileStats(alphaId);
-    expect(stats!.cardCount).toBe(1);
-    expect(stats!.totalValue).toBe(200);
+    expect(stats!.cardCount).toBe(cards.length);
+    expect(stats!.totalValue).toBeCloseTo(cards.reduce((sum, c) => sum + c.value, 0), 2);
   });
 
   it("counts a folder from the view, and stops counting an archived card", async () => {

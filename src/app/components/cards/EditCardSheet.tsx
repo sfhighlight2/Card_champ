@@ -3,6 +3,7 @@ import { X, Check } from "lucide-react";
 import type { Card } from "../../types";
 import type { NewCardInput } from "../../data/repositories";
 import { GRADER_COLOR, GRADERS, GRADES, GRADE_LABELS } from "../../data/cardFields";
+import { RAW_LABEL } from "../../lib/grading";
 import { useEscapeClose } from "../../hooks/useEscapeClose";
 
 interface EditCardSheetProps {
@@ -27,7 +28,9 @@ export function EditCardSheet({ card, onClose, onSave }: EditCardSheetProps) {
   const [popReport, setPopReport] = useState(card.popReport ? String(card.popReport) : "");
 
   const graderColor = GRADER_COLOR[grader] || "#111";
-  const canSave = player.trim().length > 0 && grader.length > 0 && grade.length > 0 && cert.trim().length > 0 && value.trim().length > 0;
+  // Grading is optional here too, so a card can be corrected to raw — or graded
+  // later once it comes back from a grader.
+  const canSave = player.trim().length > 0 && value.trim().length > 0;
 
   const handleSave = () => {
     onSave({
@@ -81,10 +84,12 @@ export function EditCardSheet({ card, onClose, onSave }: EditCardSheetProps) {
             </div>
           </div>
 
-          <p className="text-[10px] font-medium text-gray-400 tracking-widest uppercase mb-2">Grader</p>
+          <p className="text-[10px] font-medium text-gray-400 tracking-widest uppercase mb-2">
+            Grader <span className="normal-case tracking-normal font-normal text-gray-300">— tap again to clear ({RAW_LABEL.toLowerCase()})</span>
+          </p>
           <div className="grid grid-cols-3 gap-2 mb-4">
             {GRADERS.map(g => (
-              <button key={g} onClick={() => setGrader(g)}
+              <button key={g} onClick={() => setGrader(grader === g ? "" : g)}
                 className="py-3 rounded-2xl text-sm font-bold transition-all"
                 style={{ background: grader === g ? (GRADER_COLOR[g] || "#111") : "#f4f4f5", color: grader === g ? "#fff" : "#888" }}>
                 {g}
@@ -95,7 +100,7 @@ export function EditCardSheet({ card, onClose, onSave }: EditCardSheetProps) {
           <p className="text-[10px] font-medium text-gray-400 tracking-widest uppercase mb-2">Grade</p>
           <div className="grid grid-cols-5 gap-2 mb-4">
             {GRADES.map(g => (
-              <button key={g} onClick={() => setGrade(g)}
+              <button key={g} onClick={() => setGrade(grade === g ? "" : g)}
                 className="py-3 rounded-2xl text-sm font-bold transition-all"
                 style={{ background: grade === g ? graderColor : "#f4f4f5", color: grade === g ? "#fff" : "#888" }}>
                 {g}

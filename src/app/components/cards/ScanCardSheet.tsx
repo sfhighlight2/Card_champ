@@ -3,6 +3,7 @@ import { Scan, X, Check, Share2, AlertTriangle, RotateCcw } from "lucide-react";
 import type { NewCardInput } from "../../data/repositories";
 import { GRADER_COLOR, GRADERS, GRADES, GRADE_LABELS, ALL_YEARS, BRANDS_BY_YEAR, ALL_TEAMS } from "../../data/cardFields";
 import { card2 } from "../../data/cardImages";
+import { RAW_COLOR, RAW_LABEL } from "../../lib/grading";
 import { ScrollPicker } from "../shared/ScrollPicker";
 import { useBarcodeScanner } from "../../hooks/useBarcodeScanner";
 import { useEscapeClose } from "../../hooks/useEscapeClose";
@@ -59,14 +60,18 @@ export function ScanCardSheet({ onClose, onAdd }: ScanCardSheetProps) {
   const next = () => setStep(s => s + 1);
   const back = () => setStep(s => s - 1);
 
+  // Grading is optional: raw cards are most of most collections, and requiring
+  // a grader, grade, and cert number made them impossible to add.
   const canNext = [
     true,
     player.trim().length > 0,
     true,
-    grader.length > 0 && grade.length > 0 && cert.trim().length > 0,
+    true,
     value.trim().length > 0,
     true,
   ][step - 1];
+
+  const isRaw = grader.length === 0 || grade.length === 0;
 
   if (done) return (
     <div className="fixed inset-0 z-50 flex flex-col items-center justify-center px-8" style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(8px)" }}>
@@ -86,7 +91,7 @@ export function ScanCardSheet({ onClose, onAdd }: ScanCardSheetProps) {
           <p className="text-white/70 text-sm mb-2">{player} · {year} {brand}</p>
           <div className="flex items-center gap-2 mt-1 mb-8">
             <span className="text-[11px] font-bold px-2.5 py-1 rounded-full text-white/90" style={{ background: "rgba(0,0,0,0.2)" }}>
-              {grader} {grade}
+              {grader && grade ? `${grader} ${grade}` : RAW_LABEL}
             </span>
             {value && <span className="text-white font-semibold text-sm">${parseFloat(value).toLocaleString()}</span>}
           </div>
@@ -272,9 +277,18 @@ export function ScanCardSheet({ onClose, onAdd }: ScanCardSheetProps) {
           {step === 4 && (
             <>
               <h2 className="text-xl font-semibold text-gray-900 mb-1">Grading</h2>
-              <p className="text-sm text-gray-400 mb-5">Select the grading company and score.</p>
+              <p className="text-sm text-gray-400 mb-5">
+                Skip this if the card is raw — you can always add a grade later.
+              </p>
 
-              <p className="text-[10px] font-medium text-gray-400 tracking-widest uppercase mb-2">Grader *</p>
+              <button
+                onClick={() => { setGrader(""); setGrade(""); setCert(""); next(); }}
+                className="w-full mb-5 py-3 rounded-2xl border border-gray-200 text-sm font-semibold text-gray-700 flex items-center justify-center gap-2"
+              >
+                This card isn't graded
+              </button>
+
+              <p className="text-[10px] font-medium text-gray-400 tracking-widest uppercase mb-2">Grader</p>
               <div className="grid grid-cols-3 gap-2 mb-5">
                 {GRADERS.map(g => (
                   <button key={g} onClick={() => setGrader(g)}
@@ -285,7 +299,7 @@ export function ScanCardSheet({ onClose, onAdd }: ScanCardSheetProps) {
                 ))}
               </div>
 
-              <p className="text-[10px] font-medium text-gray-400 tracking-widest uppercase mb-2">Grade *</p>
+              <p className="text-[10px] font-medium text-gray-400 tracking-widest uppercase mb-2">Grade</p>
               <div className="grid grid-cols-5 gap-2 mb-1">
                 {GRADES.map(g => (
                   <button key={g} onClick={() => setGrade(g)}
@@ -298,7 +312,7 @@ export function ScanCardSheet({ onClose, onAdd }: ScanCardSheetProps) {
               {grade && <p className="text-xs text-gray-400 mb-4">{gradeLabel}</p>}
               {!grade && <div className="mb-4" />}
 
-              <p className="text-[10px] font-medium text-gray-400 tracking-widest uppercase mb-1.5">Cert # *</p>
+              <p className="text-[10px] font-medium text-gray-400 tracking-widest uppercase mb-1.5">Cert #</p>
               <input value={cert} onChange={e => setCert(e.target.value)} placeholder="e.g. 22365223"
                 inputMode="numeric"
                 className="w-full rounded-2xl bg-gray-50 px-4 py-3.5 text-sm text-gray-900 placeholder-gray-300 outline-none font-mono mb-6" />
@@ -359,16 +373,23 @@ export function ScanCardSheet({ onClose, onAdd }: ScanCardSheetProps) {
                         {year}{brand ? ` · ${brand}` : ""}{team ? ` · ${team}` : ""}{cardNumber ? ` · ${cardNumber}` : ""}
                       </p>
                     </div>
-                    <div className="flex flex-col items-center px-3 py-1.5 rounded-2xl flex-shrink-0" style={{ background: graderColor }}>
-                      <span className="text-xl font-black text-white leading-none">{grade}</span>
-                      <span className="text-[9px] font-bold tracking-widest text-white/70 uppercase">{grader}</span>
+                    <div className="flex flex-col items-center px-3 py-1.5 rounded-2xl flex-shrink-0"
+                      style={{ background: isRaw ? RAW_COLOR : graderColor }}>
+                      {isRaw ? (
+                        <span className="text-sm font-black text-white leading-none py-1">{RAW_LABEL}</span>
+                      ) : (
+                        <>
+                          <span className="text-xl font-black text-white leading-none">{grade}</span>
+                          <span className="text-[9px] font-bold tracking-widest text-white/70 uppercase">{grader}</span>
+                        </>
+                      )}
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-2">
                     {[
-                      { label: "Cert #",     value: cert,       mono: true },
-                      { label: "Condition",  value: gradeLabel              },
+                      ...(cert ? [{ label: "Cert #", value: cert, mono: true }] : []),
+                      ...(isRaw ? [] : [{ label: "Condition", value: gradeLabel }]),
                       ...(value     ? [{ label: "Est. Value", value: `$${parseFloat(value).toLocaleString()}`,     sub: "eBay"     }] : []),
                       ...(sellPrice ? [{ label: "Sell Price", value: `$${parseFloat(sellPrice).toLocaleString()}`, sub: "Fanatics" }] : []),
                       ...(popReport ? [{ label: "Pop Report", value: popReport, sub: "PSA" }] : []),
