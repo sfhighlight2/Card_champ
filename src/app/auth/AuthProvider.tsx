@@ -16,6 +16,11 @@ export interface AuthContextValue {
   continueAsGuest: () => Promise<void>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
+  /** Completes a recovery: valid only while the recovery session from the email
+   *  link is active. */
+  updatePassword: (password: string) => Promise<void>;
+  /** True between clicking a recovery link and setting a new password. */
+  isRecovering: boolean;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -23,6 +28,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [ready, setReady] = useState(false);
+  const [isRecovering, setIsRecovering] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -33,9 +39,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setReady(true);
     });
 
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, next) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, next) => {
       setSession(next);
       setReady(true);
+      // Fired once `detectSessionInUrl` has exchanged the recovery link. Without
+      // this the app cannot tell a recovery session from a normal sign-in, and
+      // would drop the user straight into their collection.
+      if (event === "PASSWORD_RECOVERY") setIsRecovering(true);
+      if (event === "SIGNED_OUT") setIsRecovering(false);
     });
 
     return () => {
@@ -51,6 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       session,
       user,
       ready,
+      isRecovering,
       isGuest: user?.is_anonymous === true,
       isSignedIn: !!user,
 
@@ -82,8 +94,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
         if (error) throw error;
       },
+
+      async updatePassword(password) {
+        const { error } = await supabase.auth.updateUser({ password });
+        if (error) throw error;
+        setIsRecovering(false);
+      },
     };
-  }, [session, ready]);
+  }, [session, ready, isRecovering]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

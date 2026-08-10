@@ -16,16 +16,21 @@ interface LoginScreenProps {
   onSignIn: (email: string, password: string) => void;
   onSignUp: (email: string, password: string) => void;
   onGuest: () => void;
+  /** Sends a reset email; the link lands on /reset-password. */
+  onForgotPassword: (email: string) => void;
   isDark: boolean;
   /** Message from the auth call itself, e.g. wrong password. */
   authError?: string;
   busy?: boolean;
   /** Sign-up succeeded but the account needs email confirmation first. */
   awaitingConfirmation?: boolean;
+  /** A reset email has just been sent. */
+  resetEmailSent?: boolean;
 }
 
 export function LoginScreen({
-  onSignIn, onSignUp, onGuest, isDark, authError = "", busy = false, awaitingConfirmation = false,
+  onSignIn, onSignUp, onGuest, onForgotPassword, isDark,
+  authError = "", busy = false, awaitingConfirmation = false, resetEmailSent = false,
 }: LoginScreenProps) {
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
@@ -50,6 +55,35 @@ export function LoginScreen({
     if (mode === "signup") onSignUp(email, password);
     else onSignIn(email, password);
   };
+
+  const requestReset = () => {
+    if (!/^\S+@\S+\.\S+$/.test(email)) {
+      setLocalError("Enter your email address first, then tap Forgot password.");
+      return;
+    }
+    setLocalError("");
+    onForgotPassword(email);
+  };
+
+  if (resetEmailSent) {
+    return (
+      <div className="flex-1 flex flex-col justify-center px-8 py-6">
+        <AnimateIn>
+          <div className="flex flex-col items-center text-center">
+            <img src={isDark ? cardChampsLogoDark : cardChampsLogo} alt="Card Champs" className="w-36 h-auto mb-6" draggable={false} />
+            <div className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center mb-4">
+              <MailCheck className="w-6 h-6 text-emerald-600" />
+            </div>
+            <h1 className="text-xl font-semibold text-gray-900">Check your email</h1>
+            <p className="text-sm text-gray-400 mt-2 max-w-[280px]">
+              We sent a password reset link to <span className="font-semibold text-gray-600">{email}</span>. It can
+              only be used once, so open it soon.
+            </p>
+          </div>
+        </AnimateIn>
+      </div>
+    );
+  }
 
   if (awaitingConfirmation) {
     return (
@@ -143,10 +177,18 @@ export function LoginScreen({
 
           {error && <p className="text-xs text-red-500">{error}</p>}
 
-          <label className="flex items-center gap-2 mt-1 mb-2 cursor-pointer">
-            <Checkbox checked={remember} onCheckedChange={v => setRemember(v === true)} />
-            <span className="text-xs text-gray-500">Remember me</span>
-          </label>
+          <div className="flex items-center justify-between mt-1 mb-2">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <Checkbox checked={remember} onCheckedChange={v => setRemember(v === true)} />
+              <span className="text-xs text-gray-500">Remember me</span>
+            </label>
+            {mode === "signin" && (
+              <button type="button" onClick={requestReset} disabled={busy}
+                className="text-xs font-semibold text-gray-500 hover:text-gray-900 disabled:opacity-50">
+                Forgot password?
+              </button>
+            )}
+          </div>
 
           <Button type="submit" disabled={busy} className="w-full h-auto rounded-full py-3.5 text-sm font-semibold">
             {busy ? "Please wait…" : mode === "signin" ? "Sign In" : "Create Account"}
