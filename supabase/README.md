@@ -24,11 +24,16 @@ nothing is edited directly in the dashboard.
 | — | `fix_placeholder_handle_collisions` | **NO** | replaces the uuid-derived placeholder handle with a sequence |
 | — | `demo_seed` | **NO** | Andrew Cordle + peer roster, cards, folders, chases, posts, DMs, listings |
 | — | `fix_catalog_card_identity` | **NO** | gives seeded catalog cards a `card_number` so distinct players in one set stop colliding |
+| `20260810020001` | `policy_and_index_tuning` | yes | splits `FOR ALL` policies and indexes traversed foreign keys |
+| `20260810020002` | `storage_buckets` | yes | the five buckets and their access policies; `card-images` is private |
+| `20260810030001` | `anonymous_user_cleanup_job` | yes | nightly `pg_cron` purge of guest identities older than 30 days |
 | `20260810040000` | `copy_sell_price_pop_and_folder_view_fixes` | yes | `card_copies.sell_amount_minor` / `sell_currency` / `pop_report`, exposed through `collection_copy_details`; `folder_summaries` stops counting archived copies and finally honours `folders.thumbnail_copy_id` |
 | `20260810040001` | `demo_seed_sell_price_and_pop` | yes | fills the new columns for Andrew's twelve copies, and repairs one copy seeded with the unresolvable image ref `local:2023` |
+| `20260810050000` | `realtime_messages` | yes | adds `messages` to the `supabase_realtime` publication so open chats receive replies live |
 
-> **Known gap:** the last three migrations were applied to the remote database
-> but do not yet have local `.sql` files, so `migrations/` is not a complete
+> **Known gap:** the three rows marked **NO** above — `fix_placeholder_handle_collisions`,
+> `demo_seed`, and `fix_catalog_card_identity` — were applied to the remote
+> database but have no local `.sql` file, so `migrations/` is not a complete
 > record. Recover them before relying on `supabase db reset`:
 >
 > ```sh
@@ -37,8 +42,8 @@ nothing is edited directly in the dashboard.
 > ```
 
 Still to come: the `import_legacy_backup` / `restore_portable_backup` /
-`resolve_share_link` / `complete_profile_setup` RPCs, and Storage buckets
-(`avatars`, `card-images`, `community-media`, `catalog-media`, `message-media`).
+`resolve_share_link` / `complete_profile_setup` RPCs. The Storage buckets landed
+in `20260810020002`.
 
 ## Demo content
 

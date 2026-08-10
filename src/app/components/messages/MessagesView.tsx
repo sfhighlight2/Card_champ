@@ -1,8 +1,9 @@
-import { ChevronLeft, MessageCircle } from "lucide-react";
+import { ChevronLeft, MessageCircle, Plus } from "lucide-react";
 import type { ConversationSummary } from "../../types";
 import type { DbProfileStats } from "../../data/repositories";
 import { relativeTime } from "../../lib/relativeTime";
 import { AnimateIn } from "../shared/AnimateIn";
+import { Avatar } from "../shared/Avatar";
 
 interface MessagesViewProps {
   conversations: ConversationSummary[];
@@ -13,10 +14,12 @@ interface MessagesViewProps {
   onBack: () => void;
   onOpenConversation: (conversationId: string) => void;
   onStartConversation: (peer: DbProfileStats) => void;
+  /** Opens the full collector picker. */
+  onNewMessage: () => void;
 }
 
 export function MessagesView({
-  conversations, suggested, ready, currentUserId, onBack, onOpenConversation, onStartConversation,
+  conversations, suggested, ready, currentUserId, onBack, onOpenConversation, onStartConversation, onNewMessage,
 }: MessagesViewProps) {
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
@@ -25,6 +28,10 @@ export function MessagesView({
           <ChevronLeft className="w-4 h-4 text-gray-600" />
         </button>
         <h2 className="text-base font-semibold text-gray-900 flex-1">Messages</h2>
+        <button onClick={onNewMessage}
+          className="flex items-center gap-1 text-sm font-semibold" style={{ color: "#16a34a" }}>
+          <Plus className="w-4 h-4" />New
+        </button>
       </div>
 
       <div className="flex-1 px-6 overflow-y-auto" style={{ scrollbarWidth: "none", paddingBottom: "110px" }}>
@@ -38,11 +45,15 @@ export function MessagesView({
               <MessageCircle className="w-7 h-7 text-gray-400" />
             </div>
             <p className="text-base font-semibold text-gray-900">No messages yet</p>
-            <p className="text-sm text-gray-400 mt-1 max-w-[240px]">
+            <p className="text-sm text-gray-400 mt-1 mb-5 max-w-[240px]">
               {suggested.length > 0
-                ? "Start a conversation with one of your peers below."
-                : "Connect with a collector first, then you can message them."}
+                ? "Start a conversation with one of your peers below, or search for anyone."
+                : "Find a collector and start a conversation."}
             </p>
+            <button onClick={onNewMessage}
+              className="flex items-center gap-2 px-5 py-3 rounded-full bg-gray-950 text-white text-sm font-semibold">
+              <Plus className="w-4 h-4" />New message
+            </button>
           </div>
         ) : (
           <div className="flex flex-col mb-6">
@@ -54,7 +65,7 @@ export function MessagesView({
                   <button onClick={() => onOpenConversation(c.id)}
                     className="w-full flex items-center gap-3 py-3 text-left" style={{ borderBottom: "1px solid #f4f4f5" }}>
                     <div className="relative flex-shrink-0">
-                      <img src={c.peerAvatar} alt={c.peerName} className="w-11 h-11 rounded-full object-cover" draggable={false} />
+                      <Avatar src={c.peerAvatar} name={c.peerName} size={44} className="w-11 h-11 rounded-full object-cover" />
                       {c.unread > 0 && (
                         <span
                           className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-emerald-500 border-2 border-white text-[10px] font-bold text-white flex items-center justify-center"
@@ -85,7 +96,7 @@ export function MessagesView({
               {suggested.map((peer, i) => (
                 <AnimateIn key={peer.profileId} delay={i * 60}>
                   <div className="flex items-center gap-3 py-3" style={{ borderBottom: "1px solid #f4f4f5" }}>
-                    <img src={peer.avatar} alt={peer.displayName} className="w-10 h-10 rounded-full object-cover flex-shrink-0" draggable={false} />
+                    <Avatar src={peer.avatar} name={peer.displayName} size={40} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-gray-900">{peer.displayName}</p>
                       <p className="text-[11px] text-gray-400">@{peer.handle}</p>

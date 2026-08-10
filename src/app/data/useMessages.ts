@@ -1,6 +1,7 @@
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../auth/AuthProvider";
+import { supabase } from "../lib/supabase";
 import type { ConversationSummary, DirectMessage } from "../types";
 import * as repo from "./repositories";
 
@@ -48,6 +49,32 @@ export function useMessages() {
   });
 
   const conversations = (conversationsQ.data ?? []) as ConversationSummary[];
+
+  // Any message the user is allowed to see refreshes the thread list, so an
+  // incoming reply bumps the conversation and its unread badge without a reload.
+  // RLS applies to realtime, so this only fires for the user's own threads.
+  useEffect(() => {
+    if (!canWrite) return;
+
+    const channel = supabase
+      .channel("messages-inbox")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "messages" },
+        payload => {
+          const conversationId = (payload.new as { conversation_id?: string })?.conversation_id;
+          if (conversationId) {
+            void qc.invalidateQueries({ queryKey: repo.keys.messages(conversationId) });
+          }
+          void qc.invalidateQueries({ queryKey: repo.keys.conversations() });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [canWrite, qc]);
 
   return {
     ready: !canWrite || !conversationsQ.isLoading,

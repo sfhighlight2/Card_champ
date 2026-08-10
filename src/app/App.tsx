@@ -54,6 +54,7 @@ const NewPostSheet = lazy(() => import("./components/community/NewPostSheet").th
 const ThreadView = lazy(() => import("./components/community/ThreadView").then(m => ({ default: m.ThreadView })));
 const MessagesView = lazy(() => import("./components/messages/MessagesView").then(m => ({ default: m.MessagesView })));
 const ChatView = lazy(() => import("./components/messages/ChatView").then(m => ({ default: m.ChatView })));
+const NewMessageSheet = lazy(() => import("./components/messages/NewMessageSheet").then(m => ({ default: m.NewMessageSheet })));
 const ProfileView = lazy(() => import("./components/profile/ProfileView").then(m => ({ default: m.ProfileView })));
 const EditProfileSheet = lazy(() => import("./components/profile/EditProfileSheet").then(m => ({ default: m.EditProfileSheet })));
 
@@ -138,6 +139,7 @@ export default function App() {
   const [showNewPost, setShowNewPost] = useState(false);
   const [viewingPostId, setViewingPostId] = useState<string | null>(null);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+  const [pickingNewMessage, setPickingNewMessage] = useState(false);
   const [editingProfile, setEditingProfile] = useState(false);
   const [openFolderId, setOpenFolderId] = useState<string | null>(null);
   const [cardQuery, setCardQuery] = useState("");
@@ -172,7 +174,11 @@ export default function App() {
     setShowSell(false);
     setShowNewPost(false);
     setViewingPostId(null);
-    setActiveConversationId(null);
+    setPickingNewMessage(false);
+    // Opening a DM from Connections sets the conversation and *then* navigates
+    // to /messages, so clearing it unconditionally here would close the chat on
+    // arrival. Only drop it when actually leaving the messages route.
+    if (location.pathname !== "/messages") setActiveConversationId(null);
     setEditingProfile(false);
     setShowNewFolder(false);
     setSelectMode(false);
@@ -192,9 +198,13 @@ export default function App() {
   const activeConversation = conversations.find(c => c.id === activeConversationId) ?? null;
   const { messages: activeMessages, isLoading: messagesLoading } = useConversationMessages(activeConversationId);
 
-  // Peers you follow but haven't messaged, offered as a starting point.
-  const peersWithConversation = new Set(conversations.map(c => c.peerId).filter(Boolean));
+  // Peers you follow but haven't messaged, offered as a shortcut. The New
+  // Message picker covers everyone, followed or not.
+  const peersWithConversation = new Set(
+    conversations.map(c => c.peerId).filter((id): id is string => !!id)
+  );
   const peersWithoutConversation = myPeers.filter(p => !peersWithConversation.has(p.profileId));
+  const allCollectors = [...myPeers, ...suggested];
   // Derived collection numbers come from profile_stats, not client arithmetic.
   // While the stats query is in flight, the local sum keeps the header from
   // flashing zero.
@@ -566,7 +576,7 @@ export default function App() {
             <SettingsView
               onBack={() => navigate("/")}
               profile={profile}
-              onProfileChange={updated => void runWrite(saveProfile.mutateAsync(updated), "Profile updated")}
+              onProfileChange={updated => void runWrite(saveProfile.mutateAsync({ profile: updated }), "Profile updated")}
               cards={cards}
               folders={folders}
               chases={chases}
@@ -630,9 +640,9 @@ export default function App() {
               <EditProfileSheet
                 profile={profile}
                 onClose={() => setEditingProfile(false)}
-                onSave={updated => {
+                onSave={(updated, avatarFile) => {
                   setEditingProfile(false);
-                  void runWrite(saveProfile.mutateAsync(updated), "Profile updated");
+                  void runWrite(saveProfile.mutateAsync({ profile: updated, avatarFile }), "Profile updated");
                 }}
               />
             </Suspense>
@@ -655,6 +665,7 @@ export default function App() {
               onBack={() => navigate("/")}
               onOpenConversation={setActiveConversationId}
               onStartConversation={openChatWith}
+              onNewMessage={() => setPickingNewMessage(true)}
             />
           </Suspense>
         </div>
@@ -1052,6 +1063,17 @@ export default function App() {
             onToggleLike={() => handleToggleReaction(viewingPost, "like")}
             onToggleDislike={() => handleToggleReaction(viewingPost, "dislike")}
             onAddComment={text => handleAddComment(viewingPost.id, text)}
+          />
+        </Suspense>
+      )}
+      {pickingNewMessage && (
+        <Suspense fallback={LOADING_FALLBACK}>
+          <NewMessageSheet
+            collectors={allCollectors}
+            existingPeerIds={peersWithConversation}
+            isFollowing={isFollowing}
+            onClose={() => setPickingNewMessage(false)}
+            onPick={peer => { setPickingNewMessage(false); void openChatWith(peer); }}
           />
         </Suspense>
       )}
