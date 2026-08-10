@@ -11,15 +11,39 @@ export interface LevelInfo {
   maxLevel: number;
   xpFraction: number;
   tier: Tier;
+  /** Gold tier or better — the threshold the visible "PRO" mark uses. */
   isPro: boolean;
+  /** Whether any tier has actually been reached. Bronze at zero achievements is
+   *  a starting position, not an award, so it earns no badge. */
+  hasEarnedTier: boolean;
 }
+
+/** Badge artwork per tier. Bronze and silver share the plainest coin; gold and
+ *  platinum get the PRO and Hall of Fame marks. */
+export const TIER_BADGE_ART: Record<Tier, "bronze" | "pro" | "hof"> = {
+  bronze: "bronze",
+  silver: "bronze",
+  gold: "pro",
+  platinum: "hof",
+};
 
 export const MAX_LEVEL = 10;
 
 export function computeLevel(achievementsEarned: number): LevelInfo {
   const level = Math.max(0, Math.min(achievementsEarned, MAX_LEVEL));
   const tier: Tier = level >= 9 ? "platinum" : level >= 6 ? "gold" : level >= 3 ? "silver" : "bronze";
-  return { level, maxLevel: MAX_LEVEL, xpFraction: level / MAX_LEVEL, tier, isPro: achievementsEarned >= 1 };
+  return {
+    level,
+    maxLevel: MAX_LEVEL,
+    xpFraction: level / MAX_LEVEL,
+    tier,
+    // A single achievement is not PRO standing. This gates on reaching the gold
+    // tier, which is the same threshold tierBadgeLabel uses, so the "PRO" mark
+    // means one thing everywhere it appears.
+    isPro: level >= 6,
+    /** False for a brand-new account: nothing has been earned, so nothing shows. */
+    hasEarnedTier: level >= 3,
+  };
 }
 
 export const TIER_GRADIENTS: Record<Tier, string> = {

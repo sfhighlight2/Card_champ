@@ -9,12 +9,32 @@ describe("computeLevel", () => {
     expect(info.xpFraction).toBeCloseTo(0.3);
   });
 
-  it("is not pro with zero achievements", () => {
-    expect(computeLevel(0).isPro).toBe(false);
+  // isPro used to be `achievementsEarned >= 1`, which showed the PRO mark to
+  // anyone who had added a single card while tierBadgeLabel reserved it for
+  // gold. Both now agree on the gold threshold.
+  it.each([0, 1, 3, 5])("is not pro at %i achievements", n => {
+    expect(computeLevel(n).isPro).toBe(false);
   });
 
-  it("becomes pro after the first achievement", () => {
-    expect(computeLevel(1).isPro).toBe(true);
+  it.each([6, 9, 10])("is pro from the gold tier upward (%i)", n => {
+    expect(computeLevel(n).isPro).toBe(true);
+  });
+
+  it("agrees with tierBadgeLabel about who is PRO", () => {
+    for (let n = 0; n <= MAX_LEVEL; n++) {
+      const info = computeLevel(n);
+      expect(info.isPro).toBe(tierBadgeLabel(info.tier) !== null);
+    }
+  });
+
+  // A brand-new account is bronze by default, which is a starting position
+  // rather than an award, so it earns no badge.
+  it.each([0, 1, 2])("has earned no tier at %i achievements", n => {
+    expect(computeLevel(n).hasEarnedTier).toBe(false);
+  });
+
+  it.each([3, 6, 9])("has earned a tier from silver upward (%i)", n => {
+    expect(computeLevel(n).hasEarnedTier).toBe(true);
   });
 
   it("caps level at MAX_LEVEL even with more achievements than that", () => {
