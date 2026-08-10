@@ -2,13 +2,14 @@ import { useMemo } from "react";
 import { TrendingUp, TrendingDown, Award, PenLine, Layers } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import type { Card } from "../../types";
-import { GRADER_COLOR } from "../../data/mockCards";
-import { computePortfolioChangePct } from "../../lib/portfolio";
+import { GRADER_COLOR } from "../../data/cardFields";
 import { CountUp } from "../shared/CountUp";
 import { AnimateIn } from "../shared/AnimateIn";
 
 interface InsightsViewProps {
   cards: Card[];
+  /** From `profile_stats`, so this and the profile header cannot disagree. */
+  changePct: number;
 }
 
 // A collection with no history can't chart a real trend, so we derive a
@@ -29,11 +30,9 @@ function buildTrend(cards: Card[]): { d: string; v: number }[] {
   });
 }
 
-export function InsightsView({ cards }: InsightsViewProps) {
-  const { totalValue, startValue, changePct, trend, byGrader, movers, autos, gems, avgValue } = useMemo(() => {
+export function InsightsView({ cards, changePct }: InsightsViewProps) {
+  const { totalValue, trend, byGrader, movers, autos, gems } = useMemo(() => {
     const totalValue = cards.reduce((s, c) => s + c.value, 0);
-    const startValue = cards.reduce((s, c) => s + c.value / (1 + c.change / 100), 0);
-    const changePct = computePortfolioChangePct(cards);
 
     const graderMap = new Map<string, number>();
     for (const c of cards) graderMap.set(c.grader, (graderMap.get(c.grader) ?? 0) + c.value);
@@ -44,9 +43,8 @@ export function InsightsView({ cards }: InsightsViewProps) {
     const movers = [...cards].sort((a, b) => Math.abs(b.change) - Math.abs(a.change)).slice(0, 3);
     const autos = cards.filter(c => c.autograph).length;
     const gems = cards.filter(c => c.grade === "10" || c.grade === "9.5").length;
-    const avgValue = cards.length ? Math.round(totalValue / cards.length) : 0;
 
-    return { totalValue, startValue, changePct, trend: buildTrend(cards), byGrader, movers, autos, gems, avgValue };
+    return { totalValue, trend: buildTrend(cards), byGrader, movers, autos, gems };
   }, [cards]);
 
   if (cards.length === 0) {

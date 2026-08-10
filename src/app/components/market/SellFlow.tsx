@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { X, Search, Check } from "lucide-react";
 import type { Card, Listing } from "../../types";
-import { GRADER_COLOR } from "../../data/mockCards";
+import { GRADER_COLOR } from "../../data/cardFields";
 import { useEscapeClose } from "../../hooks/useEscapeClose";
 
 const SELL_PLATFORMS = ["eBay", "Fanatics", "COMC", "MySlabs", "StockX"];

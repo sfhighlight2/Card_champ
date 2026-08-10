@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { Card } from "../../types";
-import { GRADER_COLOR } from "../../data/mockCards";
+import { GRADER_COLOR } from "../../data/cardFields";
 import { use3DTilt } from "../../hooks/use3DTilt";
 
 interface CardTileProps {

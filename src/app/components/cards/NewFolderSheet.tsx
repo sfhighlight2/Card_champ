@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { Folder, Check, Search, X } from "lucide-react";
 import type { Card } from "../../types";
-import { FOLDER_COLORS } from "../../data/mockCards";
+import { FOLDER_COLORS } from "../../data/cardFields";
 import { useEscapeClose } from "../../hooks/useEscapeClose";
 
 interface NewFolderSheetProps {
   onClose: () => void;
-  onCreate: (name: string, color: string, thumbnail?: string, cardIds?: number[]) => void;
+  onCreate: (name: string, color: string, cardIds: string[]) => void;
   allCards: Card[];
 }
 
@@ -15,8 +15,7 @@ export function NewFolderSheet({ onClose, onCreate, allCards }: NewFolderSheetPr
   const [step, setStep] = useState(1);
   const [name, setName] = useState("");
   const [color, setColor] = useState(FOLDER_COLORS[0]);
-  const [thumbnail] = useState<string | undefined>(undefined);
-  const [selectedCards, setSelectedCards] = useState<number[]>([]);
+  const [selectedCards, setSelectedCards] = useState<string[]>([]);
   const [cardSearch, setCardSearch] = useState("");
 
   const filteredCards = allCards.filter(c =>
@@ -134,7 +133,7 @@ export function NewFolderSheet({ onClose, onCreate, allCards }: NewFolderSheetPr
                   </button>
                 ))}
               </div>
-              <button onClick={() => { onCreate(name.trim(), color, thumbnail, selectedCards); onClose(); }}
+              <button onClick={() => { onCreate(name.trim(), color, selectedCards); onClose(); }}
                 className="w-full py-3.5 rounded-2xl bg-gray-950 text-white text-sm font-semibold">
                 Create Folder{selectedCards.length > 0 ? ` · ${selectedCards.length} cards` : ""}
               </button>

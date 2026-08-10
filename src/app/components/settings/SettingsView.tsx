@@ -1,12 +1,15 @@
-import { useEffect, useRef, useState } from "react";
-import { ChevronLeft, Download, Upload, RotateCcw, Trophy, LogOut, Sun, Moon, Monitor } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ChevronLeft, Download, Upload, Trophy, LogOut, Sun, Moon, Monitor } from "lucide-react";
 import type { Card, Chase, FolderType, Listing, Profile } from "../../types";
-import { buildBackup, downloadBackup, parseBackupFile } from "../../lib/backup";
-import type { BackupData } from "../../lib/backup";
-import { ConfirmDialog } from "../shared/ConfirmDialog";
+import { buildBackup, downloadBackup } from "../../lib/backup";
 import { CountUp } from "../shared/CountUp";
-import { MILESTONES } from "../../data/achievements";
 import { useEscapeClose } from "../../hooks/useEscapeClose";
+
+export interface AchievementState {
+  code: string;
+  label: string;
+  earned: boolean;
+}
 
 interface SettingsViewProps {
   onBack: () => void;
@@ -18,32 +21,28 @@ interface SettingsViewProps {
   watchlist: number[];
   following: string[];
   listings: Listing[];
-  onRestore: (data: BackupData) => void;
-  onReset: () => void;
-  seenAchievements: string[];
+  /** Server-evaluated, from `achievement_definitions` + `user_achievements`. */
+  achievements: AchievementState[];
   onLogout: () => void;
   theme: "light" | "dark" | "system";
   onThemeChange: (theme: "light" | "dark" | "system") => void;
 }
 
 export function SettingsView({
-  onBack, profile, onProfileChange, cards, folders, chases, watchlist, following, listings, onRestore, onReset, seenAchievements, onLogout, theme, onThemeChange,
+  onBack, profile, onProfileChange, cards, folders, chases, watchlist, following, listings, achievements, onLogout, theme, onThemeChange,
 }: SettingsViewProps) {
   useEscapeClose(onBack);
   const [name, setName] = useState(profile.name);
   const [handle, setHandle] = useState(profile.handle);
-  const [importError, setImportError] = useState("");
-  const [confirmingImport, setConfirmingImport] = useState<BackupData | null>(null);
-  const [confirmingReset, setConfirmingReset] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Keep local field state in sync when the profile changes from outside this
-  // form (e.g. Reset all data or Import collection), so a stray blur can't
-  // silently overwrite the fresh profile with stale, pre-reset/import values.
+  // form, so a stray blur can't silently overwrite fresh values with stale ones.
   useEffect(() => {
     setName(profile.name);
     setHandle(profile.handle);
   }, [profile.name, profile.handle]);
+
+  const earnedCount = achievements.filter(a => a.earned).length;
 
   const saveProfile = () => {
     onProfileChange({ ...profile, name: name.trim() || profile.name, handle: handle.trim() || profile.handle });
@@ -51,16 +50,6 @@ export function SettingsView({
 
   const handleExport = () => {
     downloadBackup(buildBackup({ cards, folders, chases, profile, watchlist, following, listings }));
-  };
-
-  const handleFileChosen = async (file: File) => {
-    setImportError("");
-    try {
-      const data = await parseBackupFile(file);
-      setConfirmingImport(data);
-    } catch {
-      setImportError("That file isn't a valid Card Champs backup.");
-    }
   };
 
   return (
@@ -105,42 +94,30 @@ export function SettingsView({
             <p className="text-xs text-gray-400">Download everything as a JSON file</p>
           </div>
         </button>
-        <button onClick={() => fileInputRef.current?.click()}
-          className="w-full flex items-center gap-3 py-3.5 px-4 rounded-2xl bg-gray-50 mb-2 text-left">
-          <Upload className="w-4 h-4 text-gray-500" />
+        {/* Import writes a whole collection back, which needs the
+            import_legacy_backup / restore_portable_backup functions. Until they
+            exist there is no honest way to do it, so it is shown as unavailable
+            rather than wired to something that would corrupt real rows. */}
+        <div aria-disabled className="w-full flex items-center gap-3 py-3.5 px-4 rounded-2xl bg-gray-50 mb-2 text-left opacity-60">
+          <Upload className="w-4 h-4 text-gray-400" />
           <div>
-            <p className="text-sm font-semibold text-gray-900">Import collection</p>
-            <p className="text-xs text-gray-400">Restore from a backup file</p>
+            <p className="text-sm font-semibold text-gray-500">Import collection</p>
+            <p className="text-xs text-gray-400">Not available yet — restoring into a synced collection is still being built</p>
           </div>
-        </button>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="application/json"
-          className="hidden"
-          onChange={e => {
-            const file = e.target.files?.[0];
-            if (file) void handleFileChosen(file);
-            e.target.value = "";
-          }}
-        />
-        {importError && <p className="text-xs text-red-500 mb-2">{importError}</p>}
+        </div>
 
         <p className="text-[10px] font-medium text-gray-400 tracking-widest uppercase mb-3 mt-8">Achievements</p>
         <p className="text-sm text-gray-500 mb-3">
-          <CountUp to={seenAchievements.length} duration={800} /> of {MILESTONES.length} earned
+          <CountUp to={earnedCount} duration={800} /> of {achievements.length} earned
         </p>
         <div className="flex flex-wrap gap-2 mb-8">
-          {MILESTONES.map(m => {
-            const earned = seenAchievements.includes(m.id);
-            return (
-              <div key={m.id}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold ${earned ? "bg-gray-950 text-white" : "bg-gray-100 text-gray-400"}`}>
-                <Trophy className="w-3.5 h-3.5" />
-                {m.label}
-              </div>
-            );
-          })}
+          {achievements.map(a => (
+            <div key={a.code}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold ${a.earned ? "bg-gray-950 text-white" : "bg-gray-100 text-gray-400"}`}>
+              <Trophy className="w-3.5 h-3.5" />
+              {a.label}
+            </div>
+          ))}
         </div>
 
         <p className="text-[10px] font-medium text-gray-400 tracking-widest uppercase mb-3">Account</p>
@@ -152,36 +129,10 @@ export function SettingsView({
             <p className="text-xs text-gray-400">Return to the sign-in screen</p>
           </div>
         </button>
-
-        <p className="text-[10px] font-medium text-gray-400 tracking-widest uppercase mb-3">Danger Zone</p>
-        <button onClick={() => setConfirmingReset(true)}
-          className="w-full flex items-center gap-3 py-3.5 px-4 rounded-2xl bg-red-50 text-left">
-          <RotateCcw className="w-4 h-4 text-red-500" />
-          <div>
-            <p className="text-sm font-semibold text-red-600">Reset all data</p>
-            <p className="text-xs text-red-400">Erase your collection and start over</p>
-          </div>
-        </button>
+        {/* "Reset all data" used to reseed the localStorage stores. Against a
+            real collection it would mean bulk-deleting rows, which belongs
+            behind a deliberate account-deletion flow, not a settings toggle. */}
       </div>
-
-      {confirmingImport && (
-        <ConfirmDialog
-          title="Restore this backup?"
-          message="This replaces your current cards, folders, chases, watchlist, follows, and listings with the contents of the imported file."
-          confirmLabel="Restore"
-          onConfirm={() => { onRestore(confirmingImport); setConfirmingImport(null); }}
-          onCancel={() => setConfirmingImport(null)}
-        />
-      )}
-      {confirmingReset && (
-        <ConfirmDialog
-          title="Reset all data?"
-          message="This erases your added cards, folders, chases, watchlist, follows, and listings, and restores the original starter collection."
-          confirmLabel="Reset"
-          onConfirm={() => { onReset(); setConfirmingReset(false); }}
-          onCancel={() => setConfirmingReset(false)}
-        />
-      )}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { Heart } from "lucide-react";
 import { LineChart, Line, XAxis, Tooltip, ResponsiveContainer } from "recharts";
 import type { MarketItem } from "../../types";
-import { GRADER_COLOR } from "../../data/mockCards";
+import { GRADER_COLOR } from "../../data/cardFields";
 import { useEscapeClose } from "../../hooks/useEscapeClose";
 
 interface MarketCardDetailSheetProps {

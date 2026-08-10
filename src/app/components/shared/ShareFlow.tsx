@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { X, Check, Share2, Link, Mail, MessageCircle, ChevronRight, ChevronLeft, Folder, Send } from "lucide-react";
 import type { Card, FolderType, Peer } from "../../types";
-import { GRADER_COLOR } from "../../data/mockCards";
+import { GRADER_COLOR } from "../../data/cardFields";
 import { PEERS } from "../../data/mockPeers";
 import { useEscapeClose } from "../../hooks/useEscapeClose";
 
@@ -35,7 +35,7 @@ export function ShareFlow({ onClose, allCards, folders }: ShareFlowProps) {
     : selectedCard ? `${selectedCard.player} ${selectedCard.year}` : "";
 
   const shareSubtitle = type === "collection" ? `${allCards.length} cards · Est. $${allCards.reduce((s,c)=>s+c.value,0).toLocaleString()}`
-    : type === "folder" ? `${selectedFolder?.cardIds.length} cards`
+    : type === "folder" ? `${selectedFolder?.cardCount} cards`
     : selectedCard ? `${selectedCard.grader} ${selectedCard.grade} · $${selectedCard.value.toLocaleString()}` : "";
 
   const canContinue = type === "collection" || (type === "folder" && selectedFolder) || (type === "card" && selectedCard);
@@ -135,7 +135,7 @@ export function ShareFlow({ onClose, allCards, folders }: ShareFlowProps) {
                       style={{ background: selectedFolder?.id === f.id ? f.color : "#f4f4f5" }}>
                       <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: selectedFolder?.id === f.id ? "rgba(255,255,255,0.7)" : f.color }} />
                       <span className="text-sm font-semibold" style={{ color: selectedFolder?.id === f.id ? "#fff" : "#111" }}>{f.name}</span>
-                      <span className="text-xs ml-auto" style={{ color: selectedFolder?.id === f.id ? "rgba(255,255,255,0.6)" : "#aaa" }}>{f.cardIds.length} cards</span>
+                      <span className="text-xs ml-auto" style={{ color: selectedFolder?.id === f.id ? "rgba(255,255,255,0.6)" : "#aaa" }}>{f.cardCount} cards</span>
                     </button>
                   ))}
                 </div>

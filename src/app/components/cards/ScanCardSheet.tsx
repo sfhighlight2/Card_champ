@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Scan, X, Check, Share2, AlertTriangle, RotateCcw } from "lucide-react";
-import type { Card } from "../../types";
-import { GRADER_COLOR, GRADERS, GRADES, GRADE_LABELS, ALL_YEARS, BRANDS_BY_YEAR, ALL_TEAMS } from "../../data/mockCards";
+import type { NewCardInput } from "../../data/repositories";
+import { GRADER_COLOR, GRADERS, GRADES, GRADE_LABELS, ALL_YEARS, BRANDS_BY_YEAR, ALL_TEAMS } from "../../data/cardFields";
 import { card2 } from "../../data/cardImages";
 import { ScrollPicker } from "../shared/ScrollPicker";
 import { useBarcodeScanner } from "../../hooks/useBarcodeScanner";
@@ -9,7 +9,7 @@ import { useEscapeClose } from "../../hooks/useEscapeClose";
 
 interface ScanCardSheetProps {
   onClose: () => void;
-  onAdd: (card: Card) => void;
+  onAdd: (input: NewCardInput) => void;
 }
 
 export function ScanCardSheet({ onClose, onAdd }: ScanCardSheetProps) {
@@ -386,22 +386,18 @@ export function ScanCardSheet({ onClose, onAdd }: ScanCardSheetProps) {
               <button
                 onClick={() => {
                   onAdd({
-                    id: Date.now(),
-                    img: scannedImage ?? "",
                     player,
                     year,
                     brand,
                     team,
-                    grader,
+                    graderCode: grader,
                     grade,
                     gradeLabel,
                     cert,
                     value: parseFloat(value) || 0,
-                    change: 0,
-                    subGrades: null,
-                    autograph: false,
-                    popReport: popReport ? parseInt(popReport) : undefined,
-                    sellPrice: sellPrice ? parseFloat(sellPrice) : undefined,
+                    popReport: popReport ? parseInt(popReport) : null,
+                    sellPrice: sellPrice ? parseFloat(sellPrice) : null,
+                    imageDataUrl: scannedImage,
                   });
                   setDone(true);
                 }}

@@ -9,29 +9,34 @@ import { useEscapeClose } from "../../hooks/useEscapeClose";
 interface FolderDetailViewProps {
   folder: FolderType;
   onBack: () => void;
-  onUpdate: (updated: FolderType) => void;
+  /** Replaces the folder's membership wholesale. */
+  onSetCards: (cardIds: string[]) => void;
+  /** Persisted as `folders.thumbnail_copy_id`; `null` falls back to the fanned
+   *  preview of the first member cards. */
+  onSetThumbnail: (copyId: string | null) => void;
   allCards: Card[];
   onEdit: () => void;
   onDelete: () => void;
   onEditCard: (card: Card) => void;
-  onDeleteCard: (id: number) => void;
+  onDeleteCard: (id: string) => void;
 }
 
-export function FolderDetailView({ folder, onBack, onUpdate, allCards, onEdit, onDelete, onEditCard, onDeleteCard }: FolderDetailViewProps) {
+export function FolderDetailView({ folder, onBack, onSetCards, onSetThumbnail, allCards, onEdit, onDelete, onEditCard, onDeleteCard }: FolderDetailViewProps) {
   useEscapeClose(onBack);
-  const [selected, setSelected] = useState<Card | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [sharing, setSharing] = useState(false);
   const [addingCards, setAddingCards] = useState(false);
   const [changingThumb, setChangingThumb] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const cards = allCards.filter(c => folder.cardIds.includes(c.id));
-  const folderValue = cards.reduce((s, c) => s + c.value, 0);
+  const selected = cards.find(c => c.id === selectedId) ?? null;
 
-  const toggleCard = (id: number) => {
-    const next = folder.cardIds.includes(id)
-      ? folder.cardIds.filter(x => x !== id)
-      : [...folder.cardIds, id];
-    onUpdate({ ...folder, cardIds: next });
+  const toggleCard = (id: string) => {
+    onSetCards(
+      folder.cardIds.includes(id)
+        ? folder.cardIds.filter(x => x !== id)
+        : [...folder.cardIds, id]
+    );
   };
 
   return (
@@ -51,7 +56,7 @@ export function FolderDetailView({ folder, onBack, onUpdate, allCards, onEdit, o
         </button>
         <div className="flex-1 min-w-0">
           <h2 className="text-base font-semibold text-gray-900 leading-tight">{folder.name}</h2>
-          <p className="text-[11px] text-gray-400">{cards.length} cards · ${folderValue.toLocaleString()} <span className="text-gray-300">· eBay</span></p>
+          <p className="text-[11px] text-gray-400">{folder.cardCount} card{folder.cardCount !== 1 ? "s" : ""} · ${folder.value.toLocaleString()} <span className="text-gray-300">· eBay</span></p>
         </div>
         <button onClick={() => setSharing(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-200 text-gray-600 text-xs font-semibold flex-shrink-0">
           <Share2 className="w-3 h-3" />Share
@@ -84,7 +89,7 @@ export function FolderDetailView({ folder, onBack, onUpdate, allCards, onEdit, o
           <>
             <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 mb-4">
               {cards.map((card, i) => (
-                <CardTile key={card.id} card={card} index={i} onClick={() => setSelected(card)} />
+                <CardTile key={card.id} card={card} index={i} onClick={() => setSelectedId(card.id)} />
               ))}
             </div>
             <button onClick={() => setAddingCards(true)} className="w-full py-3 rounded-2xl border border-dashed border-gray-200 text-gray-400 text-sm font-medium flex items-center justify-center gap-2">
@@ -131,15 +136,15 @@ export function FolderDetailView({ folder, onBack, onUpdate, allCards, onEdit, o
               <button onClick={() => setChangingThumb(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100" aria-label="Close"><X className="w-4 h-4 text-gray-500" /></button>
             </div>
             <div className="grid grid-cols-4 gap-2 px-6 pb-10 overflow-y-auto" style={{ scrollbarWidth: "none", maxHeight: "calc(70vh - 80px)" }}>
-              <button onClick={() => { onUpdate({ ...folder, thumbnail: undefined }); setChangingThumb(false); }}
+              <button onClick={() => { onSetThumbnail(null); setChangingThumb(false); }}
                 className="aspect-square rounded-xl flex items-center justify-center"
-                style={{ background: folder.color, outline: !folder.thumbnail ? "2px solid #111" : "none", outlineOffset: "2px" }}>
+                style={{ background: folder.color, outline: !folder.thumbnailCopyId ? "2px solid #111" : "none", outlineOffset: "2px" }}>
                 <Folder className="w-5 h-5 text-white" />
               </button>
               {allCards.map(card => (
-                <button key={card.id} onClick={() => { onUpdate({ ...folder, thumbnail: card.img }); setChangingThumb(false); }}
+                <button key={card.id} onClick={() => { onSetThumbnail(card.id); setChangingThumb(false); }}
                   className="overflow-hidden"
-                  style={{ outline: folder.thumbnail === card.img ? "2px solid #111" : "2px solid transparent", outlineOffset: "2px" }}>
+                  style={{ outline: folder.thumbnailCopyId === card.id ? "2px solid #111" : "2px solid transparent", outlineOffset: "2px" }}>
                   <img src={card.img} alt={card.player} className="w-full block" style={{ objectFit: "contain", background: "#f4f4f5" }} draggable={false} />
                 </button>
               ))}
@@ -150,7 +155,7 @@ export function FolderDetailView({ folder, onBack, onUpdate, allCards, onEdit, o
 
       {selected && (
         <DetailSheet
-          onClose={() => setSelected(null)}
+          onClose={() => setSelectedId(null)}
           cards={cards}
           initialIndex={cards.findIndex(c => c.id === selected.id)}
           onEdit={onEditCard}
@@ -160,7 +165,7 @@ export function FolderDetailView({ folder, onBack, onUpdate, allCards, onEdit, o
       {sharing && (
         <ShareSheet
           title={folder.name}
-          subtitle={`${cards.length} cards · Est. $${folderValue.toLocaleString()}`}
+          subtitle={`${folder.cardCount} card${folder.cardCount !== 1 ? "s" : ""} · Est. $${folder.value.toLocaleString()}`}
           onClose={() => setSharing(false)}
         />
       )}

@@ -8,7 +8,7 @@ interface ChaseViewProps {
   cards: Card[];
   onCreate: (chase: Omit<Chase, "id" | "createdAt">) => void;
   onUpdate: (chase: Chase) => void;
-  onDelete: (id: number) => void;
+  onDelete: (id: string) => void;
 }
 
 export function ChaseView({ chases, cards, onCreate, onUpdate, onDelete }: ChaseViewProps) {
@@ -148,7 +148,7 @@ function ChaseForm({
 }) {
   const [title, setTitle] = useState(chase?.title ?? "");
   const [description, setDescription] = useState(chase?.description ?? "");
-  const [pinnedCardId, setPinnedCardId] = useState<number | undefined>(chase?.pinnedCardId ?? cards[0]?.id);
+  const [pinnedCardId, setPinnedCardId] = useState<string | undefined>(chase?.pinnedCardId ?? cards[0]?.id);
   const canSave = title.trim().length > 0 && description.trim().length > 0;
 
   return (

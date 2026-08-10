@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { Mail, Lock, Eye, EyeOff, User } from "lucide-react";
+import { Mail, MailCheck, Lock, Eye, EyeOff, User } from "lucide-react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
@@ -8,35 +8,68 @@ import { Separator } from "../ui/separator";
 import { AnimateIn } from "../shared/AnimateIn";
 import { cardChampsLogo, cardChampsLogoDark } from "../../data/cardImages";
 
+/** Supabase's own minimum. Validating below it only produced a server rejection
+ *  the form then had to explain. */
+const MIN_PASSWORD_LENGTH = 6;
+
 interface LoginScreenProps {
-  onSignIn: (email: string) => void;
-  onSignUp: (email: string) => void;
+  onSignIn: (email: string, password: string) => void;
+  onSignUp: (email: string, password: string) => void;
   onGuest: () => void;
   isDark: boolean;
+  /** Message from the auth call itself, e.g. wrong password. */
+  authError?: string;
+  busy?: boolean;
+  /** Sign-up succeeded but the account needs email confirmation first. */
+  awaitingConfirmation?: boolean;
 }
 
-export function LoginScreen({ onSignIn, onSignUp, onGuest, isDark }: LoginScreenProps) {
+export function LoginScreen({
+  onSignIn, onSignUp, onGuest, isDark, authError = "", busy = false, awaitingConfirmation = false,
+}: LoginScreenProps) {
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(true);
-  const [error, setError] = useState("");
+  const [localError, setLocalError] = useState("");
+
+  const error = localError || authError;
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
     if (!/^\S+@\S+\.\S+$/.test(email)) {
-      setError("Enter a valid email address.");
+      setLocalError("Enter a valid email address.");
       return;
     }
-    if (password.length < 4) {
-      setError("Password must be at least 4 characters.");
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      setLocalError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
       return;
     }
-    setError("");
-    if (mode === "signup") onSignUp(email);
-    else onSignIn(email);
+    setLocalError("");
+    if (mode === "signup") onSignUp(email, password);
+    else onSignIn(email, password);
   };
+
+  if (awaitingConfirmation) {
+    return (
+      <div className="flex-1 flex flex-col justify-center px-8 py-6">
+        <AnimateIn>
+          <div className="flex flex-col items-center text-center">
+            <img src={isDark ? cardChampsLogoDark : cardChampsLogo} alt="Card Champs" className="w-36 h-auto mb-6" draggable={false} />
+            <div className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center mb-4">
+              <MailCheck className="w-6 h-6 text-emerald-600" />
+            </div>
+            <h1 className="text-xl font-semibold text-gray-900">Confirm your email</h1>
+            <p className="text-sm text-gray-400 mt-2 max-w-[280px]">
+              We sent a confirmation link to <span className="font-semibold text-gray-600">{email}</span>. Open it to
+              finish setting up your account, then sign in.
+            </p>
+          </div>
+        </AnimateIn>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 flex flex-col justify-center px-8 py-6">
@@ -56,7 +89,7 @@ export function LoginScreen({ onSignIn, onSignUp, onGuest, isDark }: LoginScreen
             <button
               key={m}
               type="button"
-              onClick={() => { setMode(m); setError(""); }}
+              onClick={() => { setMode(m); setLocalError(""); }}
               className="flex-1 py-2 rounded-full text-sm font-semibold transition-colors"
               style={{ background: mode === m ? "#111" : "transparent", color: mode === m ? "#fff" : "#9ca3af" }}
             >
@@ -115,8 +148,8 @@ export function LoginScreen({ onSignIn, onSignUp, onGuest, isDark }: LoginScreen
             <span className="text-xs text-gray-500">Remember me</span>
           </label>
 
-          <Button type="submit" className="w-full h-auto rounded-full py-3.5 text-sm font-semibold">
-            {mode === "signin" ? "Sign In" : "Create Account"}
+          <Button type="submit" disabled={busy} className="w-full h-auto rounded-full py-3.5 text-sm font-semibold">
+            {busy ? "Please wait…" : mode === "signin" ? "Sign In" : "Create Account"}
           </Button>
         </form>
 
@@ -130,6 +163,7 @@ export function LoginScreen({ onSignIn, onSignUp, onGuest, isDark }: LoginScreen
           type="button"
           variant="outline"
           onClick={onGuest}
+          disabled={busy}
           className="w-full h-auto rounded-full py-3.5 text-sm font-semibold border-gray-200"
         >
           <User className="w-4 h-4" />

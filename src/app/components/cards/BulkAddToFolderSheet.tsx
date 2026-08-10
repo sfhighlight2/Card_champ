@@ -6,7 +6,7 @@ interface BulkAddToFolderSheetProps {
   folders: FolderType[];
   count: number;
   onClose: () => void;
-  onPick: (folderId: number) => void;
+  onPick: (folderId: string) => void;
 }
 
 export function BulkAddToFolderSheet({ folders, count, onClose, onPick }: BulkAddToFolderSheetProps) {
@@ -37,7 +37,7 @@ export function BulkAddToFolderSheet({ folders, count, onClose, onPick }: BulkAd
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-gray-900 truncate">{folder.name}</p>
-                    <p className="text-xs text-gray-400">{folder.cardIds.length} cards</p>
+                    <p className="text-xs text-gray-400">{folder.cardCount} card{folder.cardCount !== 1 ? "s" : ""}</p>
                   </div>
                 </button>
               ))}

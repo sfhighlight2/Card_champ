@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import type { TouchEvent as ReactTouchEvent } from "react";
 import { X, Share2, Pencil, Trash2 } from "lucide-react";
 import type { Card } from "../../types";
-import { GRADER_COLOR } from "../../data/mockCards";
+import { GRADER_COLOR } from "../../data/cardFields";
 import { use3DTilt } from "../../hooks/use3DTilt";
 import { useEscapeClose } from "../../hooks/useEscapeClose";
 import { AnimateIn } from "../shared/AnimateIn";
@@ -16,7 +16,7 @@ interface DetailSheetProps {
   cards?: Card[];
   initialIndex?: number;
   onEdit?: (card: Card) => void;
-  onDelete?: (id: number) => void;
+  onDelete?: (id: string) => void;
   onShop?: (card: Card) => void;
 }
 

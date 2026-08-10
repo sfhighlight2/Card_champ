@@ -5,8 +5,10 @@ export interface SubGrades {
   surface: string;
 }
 
+// Collection ids are Supabase UUIDs. The surfaces still running on mock data
+// (market, community, messaging) keep their numeric ids until they are rewired.
 export interface Card {
-  id: number;
+  id: string;
   img: string;
   player: string;
   year: string;
@@ -22,21 +24,30 @@ export interface Card {
   autograph: boolean;
   popReport?: number;
   sellPrice?: number;
+  /** ISO timestamp from card_copies.created_at — the only honest "recently added" sort key. */
+  createdAt: string;
+  catalogCardId: string | null;
 }
 
 export interface FolderType {
-  id: number;
+  id: string;
   name: string;
   color: string;
-  cardIds: number[];
+  cardIds: string[];
+  /** Resolved image URL of the folder's thumbnail copy, if one is set. */
   thumbnail?: string;
+  /** Copy backing `thumbnail`, so a change can be persisted as folders.thumbnail_copy_id. */
+  thumbnailCopyId?: string;
+  /** From folder_summaries — excludes archived copies. */
+  cardCount: number;
+  value: number;
 }
 
 export interface Chase {
-  id: number;
+  id: string;
   title: string;
   description: string;
-  pinnedCardId?: number;
+  pinnedCardId?: string;
   createdAt: number;
 }
 
@@ -90,7 +101,8 @@ export interface SuggestedPeer {
 
 export interface Listing {
   id: number;
-  cardId: number;
+  /** A card copy's UUID. */
+  cardId: string;
   platform: string;
   askingPrice: number;
   condition: string;
@@ -112,12 +124,6 @@ export interface Profile {
 }
 
 export type MainTab = "collection" | "community" | "connections";
-
-export interface AuthState {
-  email: string;
-  loggedIn: boolean;
-  isGuest: boolean;
-}
 
 export interface CommunityComment {
   id: number;

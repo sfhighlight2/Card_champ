@@ -1,13 +1,16 @@
 import { useState } from "react";
 import { X, Check } from "lucide-react";
 import type { Card } from "../../types";
-import { GRADER_COLOR, GRADERS, GRADES, GRADE_LABELS } from "../../data/mockCards";
+import type { NewCardInput } from "../../data/repositories";
+import { GRADER_COLOR, GRADERS, GRADES, GRADE_LABELS } from "../../data/cardFields";
 import { useEscapeClose } from "../../hooks/useEscapeClose";
 
 interface EditCardSheetProps {
   card: Card;
   onClose: () => void;
-  onSave: (updated: Card) => void;
+  /** Only the fields this sheet edits. The caller writes them and re-reads the
+   *  row, so value changes append to history rather than overwriting it. */
+  onSave: (patch: Partial<NewCardInput>) => void;
 }
 
 export function EditCardSheet({ card, onClose, onSave }: EditCardSheetProps) {
@@ -28,20 +31,20 @@ export function EditCardSheet({ card, onClose, onSave }: EditCardSheetProps) {
 
   const handleSave = () => {
     onSave({
-      ...card,
       player: player.trim(),
       year,
       brand,
       team,
-      grader,
+      graderCode: grader,
       grade,
       gradeLabel: GRADE_LABELS[grade] || card.gradeLabel,
       cert: cert.trim(),
       value: parseFloat(value) || 0,
-      sellPrice: sellPrice ? parseFloat(sellPrice) : undefined,
-      popReport: popReport ? parseInt(popReport, 10) : undefined,
+      // Explicit null, not undefined: `updateCard` skips omitted keys, so
+      // clearing a field has to say so or the old figure survives.
+      sellPrice: sellPrice ? parseFloat(sellPrice) : null,
+      popReport: popReport ? parseInt(popReport, 10) : null,
     });
-    onClose();
   };
 
   return (

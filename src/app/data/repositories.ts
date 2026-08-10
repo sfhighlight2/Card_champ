@@ -30,6 +30,8 @@ export interface DbCard {
   value: number;
   change: number;
   autograph: boolean;
+  sellPrice?: number;
+  popReport?: number;
   createdAt: string;
   catalogCardId: string | null;
 }
@@ -41,6 +43,7 @@ export interface DbFolder {
   cardCount: number;
   value: number;
   thumbnail: string;
+  thumbnailCopyId: string | null;
   cardIds: string[];
 }
 
@@ -190,6 +193,8 @@ function mapCard(d: Record<string, any>): DbCard {
     value: fromMinor(d.value_minor),
     change: Number(d.change_pct ?? 0),
     autograph: !!d.autograph,
+    sellPrice: d.sell_amount_minor == null ? undefined : fromMinor(d.sell_amount_minor),
+    popReport: d.pop_report ?? undefined,
     createdAt: d.created_at,
     catalogCardId: d.catalog_card_id ?? null,
   };
@@ -219,6 +224,11 @@ export interface NewCardInput {
   gradeLabel: string;
   cert: string;
   value: number;
+  /** What a marketplace would pay for this copy. `null` clears a stored figure;
+   *  omitting the key on an update leaves it alone. */
+  sellPrice?: number | null;
+  /** The owner's own population figure for this copy. Same null/omit contract. */
+  popReport?: number | null;
   autograph?: boolean;
   imageDataUrl?: string;
 }
@@ -244,6 +254,8 @@ export async function addCard(
       grade_label: input.gradeLabel || null,
       certificate_number: input.cert || null,
       autograph: input.autograph ?? false,
+      sell_amount_minor: input.sellPrice == null ? null : toMinor(input.sellPrice),
+      pop_report: input.popReport ?? null,
     })
     .select("id")
     .single();
@@ -290,6 +302,9 @@ export async function updateCard(
   if (patch.grade !== undefined) update.grade = patch.grade ? Number(patch.grade) : null;
   if (patch.gradeLabel !== undefined) update.grade_label = patch.gradeLabel || null;
   if (patch.cert !== undefined) update.certificate_number = patch.cert || null;
+  if (patch.autograph !== undefined) update.autograph = patch.autograph;
+  if (patch.sellPrice !== undefined) update.sell_amount_minor = patch.sellPrice == null ? null : toMinor(patch.sellPrice);
+  if (patch.popReport !== undefined) update.pop_report = patch.popReport ?? null;
   if (patch.graderCode !== undefined) update.grading_company_id = await lookupGraderId(patch.graderCode);
 
   if (Object.keys(update).length > 0) {
@@ -344,6 +359,10 @@ async function lookupGraderId(code: string): Promise<string | null> {
 // folders
 // ---------------------------------------------------------------------------
 
+/** `cardIds` is raw membership, archived copies included — `folder_summaries`
+ *  already excludes them from `card_count`/`total_value_minor`, and
+ *  `useCollection` intersects the ids with the live card set so the count the UI
+ *  renders and the cards it renders cannot disagree. */
 export async function fetchFolders(ownerId: string): Promise<DbFolder[]> {
   const { data, error } = await supabase
     .from("folder_summaries")
@@ -355,6 +374,19 @@ export async function fetchFolders(ownerId: string): Promise<DbFolder[]> {
 
   const folders = data ?? [];
   if (folders.length === 0) return [];
+
+  // thumbnail_copy_id lives on `folders`, not the summary view, and the picker
+  // needs it to show which copy is currently selected.
+  const { data: chosen, error: chosenError } = await supabase
+    .from("folders")
+    .select("id, thumbnail_copy_id")
+    .eq("owner_id", ownerId)
+    .is("archived_at", null);
+  if (chosenError) throw chosenError;
+
+  const thumbCopyByFolder = new Map<string, string | null>(
+    (chosen ?? []).map(f => [f.id as string, (f.thumbnail_copy_id as string | null) ?? null])
+  );
 
   const { data: links, error: linkError } = await supabase
     .from("folder_copies")
@@ -377,6 +409,7 @@ export async function fetchFolders(ownerId: string): Promise<DbFolder[]> {
     cardCount: f.card_count ?? 0,
     value: fromMinor(f.total_value_minor),
     thumbnail: resolveImage(f.thumbnail_path),
+    thumbnailCopyId: thumbCopyByFolder.get(f.id) ?? null,
     cardIds: byFolder.get(f.id) ?? [],
   }));
 }

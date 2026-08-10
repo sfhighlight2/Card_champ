@@ -1,22 +1,22 @@
-import { useState, useEffect, lazy, Suspense } from "react";
+import { useCallback, useState, useEffect, lazy, Suspense } from "react";
 import { useLocation, useNavigate } from "react-router";
 import {
   Scan, X, Plus, Share2, Search, TrendingUp, TrendingDown, Users, UserPlus, LayoutGrid, Tag, ChevronLeft, ChevronUp, ChevronDown, Folder, SlidersHorizontal, Trash2, FolderPlus, Menu as MenuIcon, MessageCircle,
 } from "lucide-react";
 import confetti from "canvas-confetti";
-import type { AuthState, Card, Chase, CommunityComment, CommunityPost, DirectMessage, FolderType, Listing, MainTab, MarketItem, MessageThread, Profile } from "./types";
+import type { Card, Chase, CommunityComment, CommunityPost, DirectMessage, FolderType, Listing, MainTab, MarketItem, MessageThread } from "./types";
 import { ME } from "./types";
-import { ALL_CARDS, DEFAULT_FOLDERS, GRADE_LABELS } from "./data/mockCards";
+import { GRADE_LABELS } from "./data/cardFields";
 import { MARKET_ITEMS } from "./data/mockMarket";
 import { MOCK_POSTS } from "./data/mockPosts";
 import { MOCK_THREADS } from "./data/mockThreads";
-import { MILESTONES } from "./data/achievements";
-import { profilePic } from "./data/cardImages";
+import { useAuth } from "./auth/AuthProvider";
+import { useCollection } from "./data/useCollection";
+import type { NewCardInput } from "./data/repositories";
 import { useLocalStorage } from "./hooks/useLocalStorage";
-import type { BackupData } from "./lib/backup";
 import { computeLevel } from "./lib/level";
-import { computePortfolioChangePct } from "./lib/portfolio";
 import { formatCompact } from "./lib/format";
+import { filterCards, sortCards, SORT_OPTIONS, type SortKey } from "./lib/collectionSort";
 import { LoginScreen } from "./components/auth/LoginScreen";
 import { AppMenu } from "./components/shared/AppMenu";
 import { LevelRingAvatar } from "./components/shared/LevelRingAvatar";
@@ -33,11 +33,11 @@ import { EditCardSheet } from "./components/cards/EditCardSheet";
 import { NewFolderSheet } from "./components/cards/NewFolderSheet";
 import { EditFolderSheet } from "./components/cards/EditFolderSheet";
 import { FolderDetailView } from "./components/cards/FolderDetailView";
+import { FolderGrid } from "./components/cards/FolderGrid";
 import { ChaseView } from "./components/cards/ChaseView";
 import { SellFlow } from "./components/market/SellFlow";
 import { ShareFlow } from "./components/shared/ShareFlow";
 import { ConfirmDialog } from "./components/shared/ConfirmDialog";
-import { AnimateIn } from "./components/shared/AnimateIn";
 import { CountUp } from "./components/shared/CountUp";
 
 // Code-split: these pull in recharts (~charts) and @zxing/library (barcode
@@ -62,57 +62,35 @@ const LOADING_FALLBACK = (
   </div>
 );
 
-const DEFAULT_PROFILE: Profile = {
-  name: "Andrew Cordle", handle: "@andrewcordle", avatar: profilePic, followers: 219,
-  bio: "Collector since 2018. Focused on vintage baseball and modern graded rookies.",
-  tags: ["Baseball", "Graded", "Vintage", "Rookies", "Yankees"],
-  collectingSince: "2018",
-  chasing: "Mickey Mantle 1952 Topps PSA 10",
-};
-
-const DEFAULT_CHASES: Chase[] = [
-  {
-    id: 1,
-    title: "Mickey Mantle Gem Mint",
-    description: "Looking for a 1952 Topps Mickey Mantle graded PSA 9 or higher. The holy grail - any centering, any sub-grades, as long as it's a 9+.",
-    pinnedCardId: 8,
-    createdAt: 1728000000000,
-  },
-];
-
-type SortKey = "recent" | "oldest" | "value-desc" | "value-asc" | "gain-desc" | "name" | "year";
-const SORT_OPTIONS: { key: SortKey; label: string }[] = [
-  { key: "recent", label: "Recently added" },
-  { key: "oldest", label: "Oldest added" },
-  { key: "value-desc", label: "Highest value" },
-  { key: "value-asc", label: "Lowest value" },
-  { key: "gain-desc", label: "Highest gain" },
-  { key: "name", label: "Player name" },
-  { key: "year", label: "Year" },
-];
-
-function hexToRgba(hex: string, alpha: number): string {
-  let h = hex.replace("#", "");
-  if (h.length === 3) h = h.split("").map(c => c + c).join("");
-  const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-}
-
 export default function App() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const [cards, setCards] = useLocalStorage<Card[]>("cardchamps:cards", ALL_CARDS);
-  const [folders, setFolders] = useLocalStorage<FolderType[]>("cardchamps:folders", DEFAULT_FOLDERS);
-  const [chases, setChases] = useLocalStorage<Chase[]>("cardchamps:chases", DEFAULT_CHASES);
-  const [profile, setProfile] = useLocalStorage<Profile>("cardchamps:profile", DEFAULT_PROFILE);
+  const { ready: authReady, isSignedIn, isGuest, signIn, signUp, continueAsGuest, signOut } = useAuth();
+  const [authError, setAuthError] = useState("");
+  const [authBusy, setAuthBusy] = useState(false);
+  const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
+
+  // Codes the server reported as newly earned; turned into a toast once the
+  // achievement labels are on hand.
+  const [newlyEarned, setNewlyEarned] = useState<string[]>([]);
+  const handleAchievementsEarned = useCallback((codes: string[]) => setNewlyEarned(codes), []);
+
+  const {
+    ready: collectionReady, canWrite,
+    cards, folders, chases, achievements, earnedCount, profile, stats,
+    addCard, editCard, deleteCard, deleteCards,
+    createFolder, updateFolder, deleteFolder, addCardsToFolder,
+    createChase, updateChase, deleteChase, saveProfile,
+  } = useCollection({ onAchievementsEarned: handleAchievementsEarned });
+
+  // Collection state lives in Supabase. The stores below still belong to
+  // surfaces that have not been rewired yet.
   const [watchlist, setWatchlist] = useLocalStorage<number[]>("cardchamps:watchlist", []);
   const [following, setFollowing] = useLocalStorage<string[]>("cardchamps:following", []);
   const [listings, setListings] = useLocalStorage<Listing[]>("cardchamps:listings", []);
   const [posts, setPosts] = useLocalStorage<CommunityPost[]>("cardchamps:posts", MOCK_POSTS);
   const [threads, setThreads] = useLocalStorage<MessageThread[]>("cardchamps:threads", MOCK_THREADS);
-  const [auth, setAuth] = useLocalStorage<AuthState | null>("cardchamps:auth", null);
-  const [seenAchievements, setSeenAchievements] = useLocalStorage<string[]>("cardchamps:achievements-seen", []);
   const [dismissedMovers, setDismissedMovers] = useLocalStorage<string[]>("cardchamps:watchlist-banner-dismissed", []);
   const [theme, setTheme] = useLocalStorage<"light" | "dark" | "system">("cardchamps:theme", "system");
   const [hideValues, setHideValues] = useLocalStorage<boolean>("cardchamps:privacy", false);
@@ -135,7 +113,9 @@ export default function App() {
   const [view, setView] = useState<"grid" | "list">("grid");
   const [shopInitialTab, setShopInitialTab] = useState<"browse" | "watchlist" | "listings" | undefined>(undefined);
   const [shopInitialQuery, setShopInitialQuery] = useState<string | undefined>(undefined);
-  const [selected, setSelected] = useState<Card | null>(null);
+  // Sheets hold ids, not row snapshots: every mutation now round-trips through
+  // the server, so a captured object would go stale the moment it succeeded.
+  const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [showNewFolder, setShowNewFolder] = useState(false);
   const [showScan, setShowScan] = useState(false);
   const [showShare, setShowShare] = useState(false);
@@ -144,20 +124,20 @@ export default function App() {
   const [viewingPostId, setViewingPostId] = useState<number | null>(null);
   const [activeChatHandle, setActiveChatHandle] = useState<string | null>(null);
   const [editingProfile, setEditingProfile] = useState(false);
-  const [openFolder, setOpenFolder] = useState<FolderType | null>(null);
+  const [openFolderId, setOpenFolderId] = useState<string | null>(null);
   const [cardQuery, setCardQuery] = useState("");
   const [cardsSubView, setCardsSubView] = useState<CollectionSection>("cards");
   const [sortBy, setSortBy] = useState<SortKey>("recent");
   const [filterAuto, setFilterAuto] = useState(false);
   const [filterGems, setFilterGems] = useState(false);
   const [selectMode, setSelectMode] = useState(false);
-  const [selectedCardIds, setSelectedCardIds] = useState<number[]>([]);
+  const [selectedCardIds, setSelectedCardIds] = useState<string[]>([]);
   const [bulkPickingFolder, setBulkPickingFolder] = useState(false);
   const [confirmingBulkDelete, setConfirmingBulkDelete] = useState(false);
   const [toast, setToast] = useState("");
-  const [editingCard, setEditingCard] = useState<Card | null>(null);
-  const [editingFolder, setEditingFolder] = useState<FolderType | null>(null);
-  const [confirmingDeleteFolder, setConfirmingDeleteFolder] = useState<FolderType | null>(null);
+  const [editingCardId, setEditingCardId] = useState<string | null>(null);
+  const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
+  const [confirmingDeleteFolderId, setConfirmingDeleteFolderId] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -167,11 +147,11 @@ export default function App() {
   }, [cardsSubView]);
 
   useEffect(() => {
-    setOpenFolder(null);
-    setSelected(null);
-    setEditingCard(null);
-    setEditingFolder(null);
-    setConfirmingDeleteFolder(null);
+    setOpenFolderId(null);
+    setSelectedCardId(null);
+    setEditingCardId(null);
+    setEditingFolderId(null);
+    setConfirmingDeleteFolderId(null);
     setShowScan(false);
     setShowShare(false);
     setShowSell(false);
@@ -197,13 +177,14 @@ export default function App() {
   const activeThread = activeChatHandle
     ? threads.find(t => t.peerHandle === activeChatHandle) ?? { peerHandle: activeChatHandle, messages: [] }
     : null;
-  const totalValue = cards.reduce((s, c) => s + c.value, 0);
-  const changePct = computePortfolioChangePct(cards);
-  const levelInfo = computeLevel(seenAchievements.length);
+  // Derived collection numbers come from profile_stats, not client arithmetic.
+  // While the stats query is in flight, the local sum keeps the header from
+  // flashing zero.
+  const cardCount = stats?.cardCount ?? cards.length;
+  const totalValue = stats?.totalValue ?? cards.reduce((s, c) => s + c.value, 0);
+  const changePct = stats?.changePct ?? 0;
+  const levelInfo = computeLevel(earnedCount);
   const followersLabel = formatCompact(profile.followers);
-  const displayedCards = cardQuery
-    ? cards.filter(c => c.player.toLowerCase().includes(cardQuery.toLowerCase()) || c.year.includes(cardQuery) || c.team.toLowerCase().includes(cardQuery.toLowerCase()))
-    : cards;
 
   const watchlistMovers = MARKET_ITEMS.filter(item => watchlist.includes(item.id) && Math.abs(item.change) >= 5)
     .sort((a, b) => Math.abs(b.change) - Math.abs(a.change));
@@ -212,26 +193,22 @@ export default function App() {
   const showMoverBanner = !!topMover && !!moverSignature && !dismissedMovers.includes(moverSignature);
 
   const filtersActive = filterAuto || filterGems;
-  const visibleCards = (() => {
-    let list = displayedCards;
-    if (filterAuto) list = list.filter(c => c.autograph);
-    if (filterGems) list = list.filter(c => c.grade === "10" || c.grade === "9.5");
-    const sorted = [...list];
-    switch (sortBy) {
-      case "value-desc": sorted.sort((a, b) => b.value - a.value); break;
-      case "value-asc": sorted.sort((a, b) => a.value - b.value); break;
-      case "gain-desc": sorted.sort((a, b) => b.change - a.change); break;
-      case "name": sorted.sort((a, b) => a.player.localeCompare(b.player)); break;
-      case "year": sorted.sort((a, b) => a.year.localeCompare(b.year)); break;
-      case "oldest": sorted.sort((a, b) => a.id - b.id); break;
-      case "recent": sorted.sort((a, b) => b.id - a.id); break;
-    }
-    return sorted;
-  })();
+  const visibleCards = sortCards(
+    filterCards(cards, { query: cardQuery, autographOnly: filterAuto, gemsOnly: filterGems }),
+    sortBy
+  );
 
   const displayedFolders = cardQuery
     ? folders.filter(f => f.name.toLowerCase().includes(cardQuery.toLowerCase()))
     : folders;
+
+  // Resolved from the live rows each render, so an edit or delete is reflected
+  // in whatever sheet is open rather than lingering as a stale snapshot.
+  const selected = cards.find(c => c.id === selectedCardId) ?? null;
+  const editingCard = cards.find(c => c.id === editingCardId) ?? null;
+  const openFolder = folders.find(f => f.id === openFolderId) ?? null;
+  const editingFolder = folders.find(f => f.id === editingFolderId) ?? null;
+  const confirmingDeleteFolder = folders.find(f => f.id === confirmingDeleteFolderId) ?? null;
 
   const handleClearFilters = () => {
     setSortBy("recent");
@@ -250,135 +227,182 @@ export default function App() {
     setTimeout(() => setToast(""), 2000);
   };
 
-  const myPostCount = posts.filter(p => p.authorHandle === profile.handle).length;
+  /** Guests authenticate as `authenticated` but every write policy rejects them,
+   *  so the UI explains that up front instead of opening a sheet that fails. */
+  const guardWrite = (open: () => void) => () => {
+    if (!canWrite) {
+      showToast("Create an account to do that");
+      return;
+    }
+    open();
+  };
+
   const viewingPost = viewingPostId !== null ? posts.find(p => p.id === viewingPostId) ?? null : null;
 
+  // The server decides what has been earned, from real counts, so the
+  // celebration can only fire for something it actually recorded.
   useEffect(() => {
-    if (!auth?.loggedIn) return;
-    const ctx = { cardCount: cards.length, folderCount: folders.length, listingCount: listings.length, watchlistCount: watchlist.length, postCount: myPostCount };
-    const newlyEarned = MILESTONES.filter(m => m.check(ctx) && !seenAchievements.includes(m.id));
     if (newlyEarned.length === 0) return;
-    setSeenAchievements(prev => [...prev, ...newlyEarned.map(m => m.id)]);
-    showToast(`🏆 ${newlyEarned[0].label}`);
+    const label = achievements.find(a => a.code === newlyEarned[0])?.label;
+    showToast(`🏆 ${label ?? "Achievement unlocked"}`);
     confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
+    setNewlyEarned([]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [auth?.loggedIn, cards.length, folders.length, listings.length, watchlist.length, myPostCount]);
+  }, [newlyEarned, achievements]);
 
-  const handleSignIn = (email: string) => {
-    setAuth({ email, loggedIn: true, isGuest: false });
+  /** Runs a write and reports the outcome, so a rejected policy or lost
+   *  connection surfaces instead of failing silently. */
+  const runWrite = async (work: Promise<unknown>, success: string) => {
+    try {
+      await work;
+      if (success) showToast(success);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Something went wrong");
+    }
   };
 
-  const handleSignUp = (email: string) => {
-    const uname = email.split("@")[0] || "collector";
-    setCards([]);
-    setFolders([]);
-    setChases([]);
-    setWatchlist([]);
-    setFollowing([]);
-    setListings([]);
-    setSeenAchievements([]);
-    setProfile({ name: uname, handle: `@${uname}`, avatar: profilePic, followers: 0 });
-    setAuth({ email, loggedIn: true, isGuest: false });
+  const handleSignIn = async (email: string, password: string) => {
+    setAuthBusy(true);
+    setAuthError("");
+    try {
+      await signIn(email, password);
+    } catch (err) {
+      setAuthError(err instanceof Error ? err.message : "Could not sign in.");
+    } finally {
+      setAuthBusy(false);
+    }
   };
 
-  const handleGuest = () => {
-    setAuth({ email: "", loggedIn: true, isGuest: true });
+  const handleSignUp = async (email: string, password: string) => {
+    setAuthBusy(true);
+    setAuthError("");
+    try {
+      const { needsConfirmation } = await signUp(email, password);
+      // The auth trigger provisions the profile and default collection, so
+      // there is nothing for the client to seed.
+      if (needsConfirmation) setAwaitingConfirmation(true);
+    } catch (err) {
+      setAuthError(err instanceof Error ? err.message : "Could not create the account.");
+    } finally {
+      setAuthBusy(false);
+    }
+  };
+
+  const handleGuest = async () => {
+    setAuthBusy(true);
+    setAuthError("");
+    try {
+      await continueAsGuest();
+    } catch (err) {
+      setAuthError(err instanceof Error ? err.message : "Could not continue as guest.");
+    } finally {
+      setAuthBusy(false);
+    }
   };
 
   const handleLogout = () => {
-    setAuth(null);
+    void signOut();
   };
 
-  const handleAddCard = (newCard: Card) => {
-    setCards(prev => [...prev, newCard]);
+  const handleAddCard = (input: NewCardInput) => {
+    void runWrite(addCard.mutateAsync(input), `Added ${input.player}`);
   };
 
-  const handleEditCard = (updated: Card) => {
-    setCards(prev => prev.map(c => c.id === updated.id ? updated : c));
-    showToast(`Updated ${updated.player}`);
+  const handleEditCard = (id: string, patch: Partial<NewCardInput>) => {
+    setEditingCardId(null);
+    void runWrite(editCard.mutateAsync({ id, patch }), `Updated ${patch.player ?? "card"}`);
   };
 
-  const handleDeleteCard = (id: number) => {
+  // Archiving, not deleting: ownership history and any order that referenced
+  // the copy survive. Listings are still local, so they are pruned here.
+  const handleDeleteCard = (id: string) => {
     const card = cards.find(c => c.id === id);
-    setCards(prev => prev.filter(c => c.id !== id));
-    setFolders(prev => prev.map(f => ({ ...f, cardIds: f.cardIds.filter(cid => cid !== id) })));
-    setChases(prev => prev.map(chase => chase.pinnedCardId === id ? { ...chase, pinnedCardId: undefined } : chase));
     setListings(prev => prev.filter(l => l.cardId !== id));
-    if (card) showToast(`Deleted ${card.player}`);
+    void runWrite(deleteCard.mutateAsync(id), card ? `Deleted ${card.player}` : "Card deleted");
   };
 
-  const toggleCardSelect = (id: number) => {
+  const toggleCardSelect = (id: string) => {
     setSelectedCardIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   };
 
-  const handleBulkDeleteCards = (ids: number[]) => {
+  const handleBulkDeleteCards = (ids: string[]) => {
     const idSet = new Set(ids);
-    setCards(prev => prev.filter(c => !idSet.has(c.id)));
-    setFolders(prev => prev.map(f => ({ ...f, cardIds: f.cardIds.filter(cid => !idSet.has(cid)) })));
-    setChases(prev => prev.map(chase => chase.pinnedCardId && idSet.has(chase.pinnedCardId) ? { ...chase, pinnedCardId: undefined } : chase));
     setListings(prev => prev.filter(l => !idSet.has(l.cardId)));
-    showToast(`Deleted ${ids.length} card${ids.length !== 1 ? "s" : ""}`);
     setSelectMode(false);
     setSelectedCardIds([]);
+    void runWrite(deleteCards.mutateAsync(ids), `Deleted ${ids.length} card${ids.length !== 1 ? "s" : ""}`);
   };
 
-  const handleBulkAddToFolder = (folderId: number, ids: number[]) => {
+  const handleBulkAddToFolder = (folderId: string, ids: string[]) => {
     const folder = folders.find(f => f.id === folderId);
-    setFolders(prev => prev.map(f => f.id === folderId ? { ...f, cardIds: Array.from(new Set([...f.cardIds, ...ids])) } : f));
-    if (folder) showToast(`Added ${ids.length} card${ids.length !== 1 ? "s" : ""} to ${folder.name}`);
     setBulkPickingFolder(false);
     setSelectMode(false);
     setSelectedCardIds([]);
+    void runWrite(
+      addCardsToFolder.mutateAsync({ folderId, cardIds: ids }),
+      `Added ${ids.length} card${ids.length !== 1 ? "s" : ""}${folder ? ` to ${folder.name}` : ""}`
+    );
   };
 
-  const handleUpdateFolder = (updated: FolderType) => {
-    setFolders(prev => prev.map(f => f.id === updated.id ? updated : f));
-    setOpenFolder(updated);
+  const handleSetFolderCards = (folderId: string, cardIds: string[]) => {
+    void runWrite(updateFolder.mutateAsync({ id: folderId, cardIds }), "");
   };
 
-  const handleCreateFolder = (name: string, color: string, thumbnail?: string, cardIds?: number[]) => {
-    setFolders(prev => [...prev, { id: Date.now(), name, color, cardIds: cardIds ?? [], thumbnail }]);
+  const handleSetFolderThumbnail = (folderId: string, thumbnailCopyId: string | null) => {
+    void runWrite(updateFolder.mutateAsync({ id: folderId, thumbnailCopyId }), "Thumbnail updated");
+  };
+
+  const handleEditFolder = (folderId: string, name: string, color: string) => {
+    setEditingFolderId(null);
+    void runWrite(updateFolder.mutateAsync({ id: folderId, name, color }), "Folder updated");
+  };
+
+  const handleCreateFolder = (name: string, color: string, cardIds: string[]) => {
+    void runWrite(createFolder.mutateAsync({ name, color, cardIds }), `Created ${name}`);
   };
 
   const handleDeleteFolder = (folder: FolderType) => {
-    setFolders(prev => prev.filter(f => f.id !== folder.id));
-    setOpenFolder(null);
-    showToast(`Deleted ${folder.name}`);
+    setOpenFolderId(null);
+    void runWrite(deleteFolder.mutateAsync(folder.id), `Deleted ${folder.name}`);
   };
 
-  const handleCreateChase = (data: Omit<Chase, "id" | "createdAt">) => {
-    setChases(prev => [{ id: Date.now(), createdAt: Date.now(), ...data }, ...prev]);
-    showToast("Chase saved");
+  const handleCreateChase = (data: { title: string; description: string; pinnedCardId?: string }) => {
+    void runWrite(createChase.mutateAsync(data), "Chase saved");
   };
 
   const handleUpdateChase = (updated: Chase) => {
-    setChases(prev => prev.map(chase => chase.id === updated.id ? updated : chase));
-    showToast("Chase updated");
+    void runWrite(
+      updateChase.mutateAsync({
+        id: updated.id,
+        title: updated.title,
+        description: updated.description,
+        pinnedCardId: updated.pinnedCardId,
+      }),
+      "Chase updated"
+    );
   };
 
-  const handleDeleteChase = (id: number) => {
-    setChases(prev => prev.filter(chase => chase.id !== id));
-    showToast("Chase removed");
+  const handleDeleteChase = (id: string) => {
+    void runWrite(deleteChase.mutateAsync(id), "Chase removed");
   };
 
+  // The marketplace is still mock data, but the card it produces is a real
+  // collection write rather than a fabricated local row.
   const handleBuy = (item: MarketItem) => {
-    setCards(prev => [...prev, {
-      id: Date.now(),
-      img: item.img,
-      player: item.player,
-      year: item.year,
-      brand: item.brand,
-      team: "Unknown",
-      grader: item.grader,
-      grade: item.grade,
-      gradeLabel: GRADE_LABELS[item.grade] || "",
-      cert: `MKT-${item.id}-${Date.now()}`,
-      value: item.price,
-      change: 0,
-      subGrades: null,
-      autograph: false,
-    }]);
-    showToast(`Bought ${item.player}`);
+    void runWrite(
+      addCard.mutateAsync({
+        player: item.player,
+        year: item.year,
+        brand: item.brand,
+        team: "",
+        graderCode: item.grader,
+        grade: item.grade,
+        gradeLabel: GRADE_LABELS[item.grade] || "",
+        cert: "",
+        value: item.price,
+      }),
+      `Bought ${item.player}`
+    );
   };
 
   const handleToggleWatchlist = (id: number) => {
@@ -462,7 +486,7 @@ export default function App() {
   const openChat = (peerHandle: string) => setActiveChatHandle(peerHandle);
 
   const handleShopCard = (card: Card) => {
-    setSelected(null);
+    setSelectedCardId(null);
     setShopInitialTab("browse");
     setShopInitialQuery(card.player);
     navigate("/marketplace");
@@ -478,36 +502,32 @@ export default function App() {
     showToast("Listing removed");
   };
 
-  const handleRestore = (data: BackupData) => {
-    setCards(data.cards);
-    setFolders(data.folders);
-    setChases(data.chases ?? []);
-    setProfile(data.profile);
-    setWatchlist(data.watchlist);
-    setFollowing(data.following);
-    setListings(data.listings);
-    showToast("Backup restored");
-  };
+  // Restore and Reset used to rewrite the localStorage stores wholesale. With
+  // the collection in Postgres they need the import_legacy_backup /
+  // restore_portable_backup RPCs, which do not exist yet, so SettingsView
+  // presents them as unavailable rather than corrupting real rows.
 
-  const handleReset = () => {
-    setCards(ALL_CARDS);
-    setFolders(DEFAULT_FOLDERS);
-    setChases(DEFAULT_CHASES);
-    setProfile(DEFAULT_PROFILE);
-    setWatchlist([]);
-    setFollowing([]);
-    setListings([]);
-    setPosts(MOCK_POSTS);
-    setSeenAchievements([]);
-    setOpenFolder(null);
-    showToast("Data reset");
-  };
+  if (!authReady) {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center bg-white">
+        <div className="w-2 h-2 rounded-full bg-gray-300 animate-pulse" />
+      </div>
+    );
+  }
 
-  if (!auth?.loggedIn) {
+  if (!isSignedIn) {
     return (
       <div className="min-h-screen w-full flex justify-center bg-white" style={{ fontFamily: "'Google Sans', sans-serif" }}>
         <div className="relative w-full max-w-[430px] md:max-w-2xl flex flex-col min-h-screen bg-white overflow-hidden">
-          <LoginScreen onSignIn={handleSignIn} onSignUp={handleSignUp} onGuest={handleGuest} isDark={isDark} />
+          <LoginScreen
+            onSignIn={handleSignIn}
+            onSignUp={handleSignUp}
+            onGuest={handleGuest}
+            isDark={isDark}
+            authError={authError}
+            busy={authBusy}
+            awaitingConfirmation={awaitingConfirmation}
+          />
         </div>
       </div>
     );
@@ -521,16 +541,14 @@ export default function App() {
             <SettingsView
               onBack={() => navigate("/")}
               profile={profile}
-              onProfileChange={setProfile}
+              onProfileChange={updated => void runWrite(saveProfile.mutateAsync(updated), "Profile updated")}
               cards={cards}
               folders={folders}
               chases={chases}
               watchlist={watchlist}
               following={following}
               listings={listings}
-              onRestore={handleRestore}
-              onReset={handleReset}
-              seenAchievements={seenAchievements}
+              achievements={achievements}
               onLogout={handleLogout}
               theme={theme}
               onThemeChange={setTheme}
@@ -585,7 +603,14 @@ export default function App() {
           </Suspense>
           {editingProfile && (
             <Suspense fallback={LOADING_FALLBACK}>
-              <EditProfileSheet profile={profile} onClose={() => setEditingProfile(false)} onSave={updated => { setProfile(updated); setEditingProfile(false); showToast("Profile updated"); }} />
+              <EditProfileSheet
+                profile={profile}
+                onClose={() => setEditingProfile(false)}
+                onSave={updated => {
+                  setEditingProfile(false);
+                  void runWrite(saveProfile.mutateAsync(updated), "Profile updated");
+                }}
+              />
             </Suspense>
           )}
         </div>
@@ -625,7 +650,7 @@ export default function App() {
           <h1 className="text-2xl font-bold text-gray-900 leading-none tracking-tight">{profile.handle}</h1>
           <p className="text-[15px] font-medium text-slate-500 mt-2 flex items-center gap-1.5 flex-wrap justify-center">
             <span>
-              <CountUp to={cards.length} duration={1000} suffix=" cards" />
+              <CountUp to={cardCount} duration={1000} suffix=" cards" />
             </span>
             <span className="text-gray-300">·</span>
             <span className="font-bold text-gray-900">
@@ -722,7 +747,7 @@ export default function App() {
                     className="flex-1 bg-transparent text-sm text-gray-900 placeholder-gray-400 outline-none" style={{ fontFamily: "'Google Sans', sans-serif" }} />
                   {cardQuery && <button onClick={() => setCardQuery("")} aria-label="Clear search"><X className="w-3.5 h-3.5 text-gray-400" /></button>}
                 </div>
-                <button onClick={() => setShowNewFolder(true)} aria-label="New folder"
+                <button onClick={guardWrite(() => setShowNewFolder(true))} aria-label="New folder"
                   className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 flex-shrink-0">
                   <Plus className="w-4 h-4 text-gray-500" />
                 </button>
@@ -731,14 +756,31 @@ export default function App() {
 
             {cardsSubView === "cards" && (
               <div className="flex-1 px-7 pb-10 overflow-y-auto" style={{ scrollbarWidth: "none", paddingBottom: "110px" }}>
-                {cards.length === 0 ? (
+                {!collectionReady ? (
+                  LOADING_FALLBACK
+                ) : isGuest ? (
+                  <div className="flex flex-col items-center text-center pt-16">
+                    <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mb-4">
+                      <UserPlus className="w-7 h-7 text-gray-400" />
+                    </div>
+                    <p className="text-base font-semibold text-gray-900">Browsing as a guest</p>
+                    <p className="text-sm text-gray-400 mt-1 mb-5 max-w-[260px]">
+                      Create an account to start a collection of your own. You can keep browsing the community and
+                      marketplace either way.
+                    </p>
+                    <button onClick={handleLogout}
+                      className="flex items-center gap-2 px-5 py-3 rounded-full bg-gray-950 text-white text-sm font-semibold">
+                      Create an account
+                    </button>
+                  </div>
+                ) : cards.length === 0 ? (
                   <div className="flex flex-col items-center text-center pt-16">
                     <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mb-4">
                       <Scan className="w-7 h-7 text-gray-400" />
                     </div>
                     <p className="text-base font-semibold text-gray-900">No cards yet</p>
                     <p className="text-sm text-gray-400 mt-1 mb-5 max-w-[240px]">Scan a slab or add a card to start building your collection.</p>
-                    <button onClick={() => setShowScan(true)}
+                    <button onClick={guardWrite(() => setShowScan(true))}
                       className="flex items-center gap-2 px-5 py-3 rounded-full bg-gray-950 text-white text-sm font-semibold">
                       <Scan className="w-4 h-4" /> Scan your first card
                     </button>
@@ -761,7 +803,7 @@ export default function App() {
                   <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
                     {visibleCards.map((card, i) => (
                       <CardTile key={card.id} card={card} index={i}
-                        onClick={() => selectMode ? toggleCardSelect(card.id) : setSelected(card)}
+                        onClick={() => selectMode ? toggleCardSelect(card.id) : setSelectedCardId(card.id)}
                         selectMode={selectMode} selected={selectedCardIds.includes(card.id)} />
                     ))}
                   </div>
@@ -769,7 +811,7 @@ export default function App() {
                   <div className="flex flex-col divide-y divide-gray-50">
                     {visibleCards.map(card => (
                       <CardListRow key={card.id} card={card}
-                        onClick={() => selectMode ? toggleCardSelect(card.id) : setSelected(card)}
+                        onClick={() => selectMode ? toggleCardSelect(card.id) : setSelectedCardId(card.id)}
                         selectMode={selectMode} selected={selectedCardIds.includes(card.id)} hideValues={hideValues} />
                     ))}
                   </div>
@@ -779,7 +821,7 @@ export default function App() {
 
             {cardsSubView === "insights" && (
               <Suspense fallback={LOADING_FALLBACK}>
-                <InsightsView cards={cards} />
+                <InsightsView cards={cards} changePct={changePct} />
               </Suspense>
             )}
 
@@ -805,44 +847,12 @@ export default function App() {
                     <p className="text-sm text-gray-400 mt-1 max-w-[240px]">{cardQuery ? "Try a different search." : "Tap + to create your first folder."}</p>
                   </div>
                 )}
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {displayedFolders.map((folder, fi) => {
-                    const folderValue = cards.filter(c => folder.cardIds.includes(c.id)).reduce((s, c) => s + c.value, 0);
-                    const previewCards = cards.filter(c => folder.cardIds.includes(c.id)).slice(0, 3);
-                    const offsets = [
-                      { rotate: "-8deg", translate: "-26px, 6px", z: 0 },
-                      { rotate: "-2deg", translate: "-4px, 0px", z: 1 },
-                      { rotate: "7deg",  translate: "22px, 4px", z: 2 },
-                    ];
-                    return (
-                      <AnimateIn key={folder.id} delay={fi * 80}>
-                        <button onClick={() => setOpenFolder(folder)} className="relative w-full text-left focus:outline-none pt-2.5">
-                          {/* Folder tab */}
-                          <div className="absolute top-0 left-4 w-16 h-5 rounded-t-xl" style={{ background: hexToRgba(folder.color, 0.18) }} />
-                          {/* Card body */}
-                          <div className="relative rounded-3xl p-3" style={{ background: hexToRgba(folder.color, 0.1) }}>
-                            <div className="relative rounded-2xl flex items-center justify-center overflow-hidden" style={{ height: 150, background: "rgba(255,255,255,0.6)" }}>
-                              {folder.thumbnail
-                                ? <img src={folder.thumbnail} alt="" className="w-full h-full" style={{ objectFit: "contain" }} draggable={false} />
-                                : previewCards.length > 0
-                                  ? previewCards.map((card, i) => (
-                                      <img key={card.id} src={card.img} alt="" draggable={false} className="absolute"
-                                        style={{ width: 92, objectFit: "contain", background: "#fff", borderRadius: 4, boxShadow: "0 4px 14px rgba(0,0,0,0.18)", transform: `rotate(${offsets[i].rotate}) translate(${offsets[i].translate})`, zIndex: offsets[i].z }} />
-                                    ))
-                                  : <Folder className="w-8 h-8" style={{ color: hexToRgba(folder.color, 0.5) }} />
-                              }
-                            </div>
-                            <p className="text-sm font-bold text-gray-900 leading-tight truncate mt-3">{folder.name}</p>
-                            <div className="flex items-center justify-between mt-1">
-                              <p className="text-xs text-gray-400">{folder.cardIds.length} cards</p>
-                              <p className="text-sm font-bold" style={{ color: folder.color }}><Money value={folderValue} hidden={hideValues} /></p>
-                            </div>
-                          </div>
-                        </button>
-                      </AnimateIn>
-                    );
-                  })}
-                </div>
+                <FolderGrid
+                  folders={displayedFolders}
+                  cards={cards}
+                  hideValues={hideValues}
+                  onOpen={folder => setOpenFolderId(folder.id)}
+                />
               </div>
             )}
           </>
@@ -852,12 +862,13 @@ export default function App() {
           <div className="absolute inset-0 bg-white flex flex-col">
             <FolderDetailView
               folder={openFolder}
-              onBack={() => setOpenFolder(null)}
+              onBack={() => setOpenFolderId(null)}
               allCards={cards}
-              onUpdate={handleUpdateFolder}
-              onEdit={() => setEditingFolder(openFolder)}
-              onDelete={() => setConfirmingDeleteFolder(openFolder)}
-              onEditCard={card => setEditingCard(card)}
+              onSetCards={cardIds => handleSetFolderCards(openFolder.id, cardIds)}
+              onSetThumbnail={copyId => handleSetFolderThumbnail(openFolder.id, copyId)}
+              onEdit={() => setEditingFolderId(openFolder.id)}
+              onDelete={() => setConfirmingDeleteFolderId(openFolder.id)}
+              onEditCard={card => setEditingCardId(card.id)}
               onDeleteCard={handleDeleteCard}
             />
           </div>
@@ -907,8 +918,8 @@ export default function App() {
           <div className="fixed bottom-8 left-1/2 -translate-x-1/2 flex gap-2 px-4 py-2.5 rounded-full bg-white z-40" style={{ boxShadow: "0 8px 32px rgba(0,0,0,0.12)" }}>
             {(mainTab === "community"
               ? [
-                  { label: "Scan",  icon: <Scan className="w-4 h-4" />,  active: showScan,    onClick: () => setShowScan(true)    },
-                  { label: "Post",  icon: <Plus className="w-4 h-4" />,  active: showNewPost, onClick: () => setShowNewPost(true) },
+                  { label: "Scan",  icon: <Scan className="w-4 h-4" />,  active: showScan,    onClick: guardWrite(() => setShowScan(true))    },
+                  { label: "Post",  icon: <Plus className="w-4 h-4" />,  active: showNewPost, onClick: guardWrite(() => setShowNewPost(true)) },
                   { label: "Share", icon: <Share2 className="w-4 h-4" />, active: showShare,  onClick: () => setShowShare(true)   },
                 ]
               : mainTab === "connections"
@@ -917,9 +928,9 @@ export default function App() {
                   { label: "Messages", icon: <MessageCircle className="w-4 h-4" />, active: false,      onClick: () => navigate("/messages")   },
                 ]
               : [
-                  { label: "Scan",  icon: <Scan className="w-4 h-4" />,   active: showScan,  onClick: () => setShowScan(true)  },
+                  { label: "Scan",  icon: <Scan className="w-4 h-4" />,   active: showScan,  onClick: guardWrite(() => setShowScan(true))  },
                   { label: "Share", icon: <Share2 className="w-4 h-4" />, active: showShare, onClick: () => setShowShare(true) },
-                  { label: "Sell",  icon: <Tag className="w-4 h-4" />,    active: showSell,  onClick: () => setShowSell(true)  },
+                  { label: "Sell",  icon: <Tag className="w-4 h-4" />,    active: showSell,  onClick: guardWrite(() => setShowSell(true))  },
                 ]
             ).map(btn => (
               <button key={btn.label} onClick={btn.onClick}
@@ -954,10 +965,10 @@ export default function App() {
 
       {selected && (
         <DetailSheet
-          onClose={() => setSelected(null)}
+          onClose={() => setSelectedCardId(null)}
           cards={visibleCards}
           initialIndex={visibleCards.findIndex(c => c.id === selected.id)}
-          onEdit={card => { setSelected(null); setEditingCard(card); }}
+          onEdit={card => { setSelectedCardId(null); setEditingCardId(card.id); }}
           onDelete={handleDeleteCard}
           onShop={handleShopCard}
         />
@@ -966,7 +977,7 @@ export default function App() {
         <NewFolderSheet
           onClose={() => setShowNewFolder(false)}
           allCards={cards}
-          onCreate={handleCreateFolder}
+          onCreate={(name, color, cardIds) => handleCreateFolder(name, color, cardIds)}
         />
       )}
       {showScan && (
@@ -1007,15 +1018,15 @@ export default function App() {
       {editingCard && (
         <EditCardSheet
           card={editingCard}
-          onClose={() => setEditingCard(null)}
-          onSave={handleEditCard}
+          onClose={() => setEditingCardId(null)}
+          onSave={patch => handleEditCard(editingCard.id, patch)}
         />
       )}
       {editingFolder && (
         <EditFolderSheet
           folder={editingFolder}
-          onClose={() => setEditingFolder(null)}
-          onSave={updated => { handleUpdateFolder(updated); setEditingFolder(null); }}
+          onClose={() => setEditingFolderId(null)}
+          onSave={(name, color) => handleEditFolder(editingFolder.id, name, color)}
         />
       )}
       {confirmingDeleteFolder && (
@@ -1023,8 +1034,8 @@ export default function App() {
           title="Delete this folder?"
           message={`This deletes "${confirmingDeleteFolder.name}". Cards inside it stay in your collection.`}
           confirmLabel="Delete"
-          onConfirm={() => { handleDeleteFolder(confirmingDeleteFolder); setConfirmingDeleteFolder(null); }}
-          onCancel={() => setConfirmingDeleteFolder(null)}
+          onConfirm={() => { handleDeleteFolder(confirmingDeleteFolder); setConfirmingDeleteFolderId(null); }}
+          onCancel={() => setConfirmingDeleteFolderId(null)}
         />
       )}
       {bulkPickingFolder && (

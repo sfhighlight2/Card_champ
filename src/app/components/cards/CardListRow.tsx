@@ -1,6 +1,6 @@
 import { ChevronRight } from "lucide-react";
 import type { Card } from "../../types";
-import { GRADER_COLOR } from "../../data/mockCards";
+import { GRADER_COLOR } from "../../data/cardFields";
 import { Money } from "../shared/Money";
 
 interface CardListRowProps {

@@ -1,61 +1,37 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../auth/AuthProvider";
 import { supabase } from "../lib/supabase";
+import type { Card, Chase, FolderType, Profile, SubGrades } from "../types";
 import * as repo from "./repositories";
 
-// UUID-shaped mirrors of the app's presentation types. These live here rather
-// than in ../types because src/app/types.ts still carries the prototype's
-// numeric ids; that file flips to string ids as part of the UI rewire, at
-// which point these can be deleted and re-imported from there instead.
-export interface SubGrades {
-  centering: string;
-  corners: string;
-  edges: string;
-  surface: string;
-}
+export type { Card, Chase, FolderType, Profile, SubGrades };
 
-export interface Card extends repo.DbCard {
-  subGrades: SubGrades | null;
-}
-
-export interface FolderType {
-  id: string;
-  name: string;
-  color: string;
-  cardIds: string[];
-  thumbnail?: string;
-}
-
-export interface Chase {
-  id: string;
-  title: string;
-  description: string;
-  pinnedCardId?: string;
-  createdAt: number;
-}
-
-export interface Profile {
-  name: string;
-  handle: string;
-  avatar: string;
-  followers: number;
-  bio?: string;
-  tags?: string[];
-  collectingSince?: string;
-  chasing?: string;
+export interface UseCollectionOptions {
+  /** Fired with the achievement codes the server recorded as newly earned. */
+  onAchievementsEarned?: (codes: string[]) => void;
 }
 
 /**
  * Supabase-backed replacement for the `cardchamps:cards|folders|chases|profile`
  * localStorage stores. Exposes the same shapes the existing components take, so
  * the presentation layer did not need to change alongside the data source.
+ *
+ * Everything derived — card count, portfolio value, 30-day change, follower
+ * count, level — comes from `profile_stats` and `folder_summaries` rather than
+ * client arithmetic, so a client cannot inflate its own standing.
  */
-export function useCollection() {
+export function useCollection(options: UseCollectionOptions = {}) {
   const { user, isGuest } = useAuth();
   const qc = useQueryClient();
   const ownerId = user?.id ?? "";
   const enabled = !!ownerId && !isGuest;
+
+  // Held in a ref so a fresh closure each render never re-creates the mutations.
+  const onEarned = useRef(options.onAchievementsEarned);
+  useEffect(() => {
+    onEarned.current = options.onAchievementsEarned;
+  }, [options.onAchievementsEarned]);
 
   const collectionQ = useQuery({
     queryKey: ["default-collection", ownerId],
@@ -104,16 +80,7 @@ export function useCollection() {
 
   const foldersQ = useQuery({
     queryKey: repo.keys.folders(ownerId),
-    queryFn: async (): Promise<FolderType[]> => {
-      const rows = await repo.fetchFolders(ownerId);
-      return rows.map(f => ({
-        id: f.id,
-        name: f.name,
-        color: f.color,
-        cardIds: f.cardIds,
-        thumbnail: f.thumbnail || undefined,
-      }));
-    },
+    queryFn: () => repo.fetchFolders(ownerId),
     enabled,
   });
 
@@ -144,6 +111,28 @@ export function useCollection() {
     enabled,
   });
 
+  const cards = cardsQ.data ?? [];
+
+  // `fetchFolders` returns raw membership, which keeps archived copies. The
+  // summary view already excludes them from card_count/total_value_minor;
+  // intersecting here means the ids the UI renders agree with that count.
+  const liveCardIds = useMemo(() => new Set(cards.map(c => c.id)), [cards]);
+
+  const folders = useMemo<FolderType[]>(
+    () =>
+      (foldersQ.data ?? []).map(f => ({
+        id: f.id,
+        name: f.name,
+        color: f.color,
+        cardIds: f.cardIds.filter(id => liveCardIds.has(id)),
+        thumbnail: f.thumbnail || undefined,
+        thumbnailCopyId: f.thumbnailCopyId ?? undefined,
+        cardCount: f.cardCount,
+        value: f.value,
+      })),
+    [foldersQ.data, liveCardIds]
+  );
+
   const invalidate = useCallback(() => {
     void qc.invalidateQueries({ queryKey: repo.keys.cards(ownerId) });
     void qc.invalidateQueries({ queryKey: repo.keys.folders(ownerId) });
@@ -153,10 +142,12 @@ export function useCollection() {
   }, [qc, ownerId]);
 
   /** Achievements are recomputed server-side from real counts after any change
-   *  that could earn one. */
+   *  that could earn one, so the celebration can only fire for something the
+   *  database actually recorded. */
   const afterMutation = useCallback(async () => {
     try {
-      await repo.evaluateAchievements();
+      const earned = await repo.evaluateAchievements();
+      if (earned.length > 0) onEarned.current?.(earned);
     } catch {
       // never let achievement bookkeeping fail the user's actual action
     }
@@ -196,9 +187,18 @@ export function useCollection() {
   });
 
   const updateFolder = useMutation({
-    mutationFn: async (args: { id: string; name?: string; color?: string; cardIds?: string[] }) => {
-      const { id, cardIds, ...patch } = args;
-      if (Object.keys(patch).length > 0) await repo.updateFolder(id, patch);
+    mutationFn: async (args: {
+      id: string;
+      name?: string;
+      color?: string;
+      cardIds?: string[];
+      /** `null` clears the folder's chosen thumbnail. */
+      thumbnailCopyId?: string | null;
+    }) => {
+      const { id, cardIds, thumbnailCopyId, ...patch } = args;
+      const columns: { name?: string; color?: string; thumbnail_copy_id?: string | null } = { ...patch };
+      if (thumbnailCopyId !== undefined) columns.thumbnail_copy_id = thumbnailCopyId;
+      if (Object.keys(columns).length > 0) await repo.updateFolder(id, columns);
       if (cardIds && collectionId) await repo.setFolderCards(id, ownerId, collectionId, cardIds);
     },
     onSuccess: afterMutation,
@@ -271,14 +271,18 @@ export function useCollection() {
     [stats]
   );
 
+  const achievements = achievementsQ.data ?? [];
+
   return {
     ready: !enabled || (!cardsQ.isLoading && !foldersQ.isLoading && !statsQ.isLoading),
+    /** False for guests, whose every write policy would reject them anyway. */
+    canWrite: enabled,
     collectionId,
-    cards: cardsQ.data ?? [],
-    folders: foldersQ.data ?? [],
+    cards,
+    folders,
     chases: chasesQ.data ?? [],
-    achievements: achievementsQ.data ?? [],
-    earnedCount: (achievementsQ.data ?? []).filter(a => a.earned).length,
+    achievements,
+    earnedCount: achievements.filter(a => a.earned).length,
     profile,
     stats,
     addCard,

@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { X, Check } from "lucide-react";
 import type { FolderType } from "../../types";
-import { FOLDER_COLORS } from "../../data/mockCards";
+import { FOLDER_COLORS } from "../../data/cardFields";
 import { useEscapeClose } from "../../hooks/useEscapeClose";
 
 interface EditFolderSheetProps {
   folder: FolderType;
   onClose: () => void;
-  onSave: (updated: FolderType) => void;
+  /** Only the fields this sheet edits — the caller persists them. */
+  onSave: (name: string, color: string) => void;
 }
 
 export function EditFolderSheet({ folder, onClose, onSave }: EditFolderSheetProps) {
@@ -17,8 +18,7 @@ export function EditFolderSheet({ folder, onClose, onSave }: EditFolderSheetProp
 
   const handleSave = () => {
     if (!name.trim()) return;
-    onSave({ ...folder, name: name.trim(), color });
-    onClose();
+    onSave(name.trim(), color);
   };
 
   return (
