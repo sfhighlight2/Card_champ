@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ChevronLeft, Download, Upload, Trophy, LogOut, Sun, Moon, Monitor } from "lucide-react";
+import { ChevronLeft, Download, Upload, Trophy, LogOut, Sun, Moon, Monitor, KeyRound } from "lucide-react";
 import type { Card, Chase, FolderType, Listing, Profile } from "../../types";
 import { buildBackup, downloadBackup } from "../../lib/backup";
 import { CountUp } from "../shared/CountUp";
@@ -23,13 +23,15 @@ interface SettingsViewProps {
   listings: Listing[];
   /** Server-evaluated, from `achievement_definitions` + `user_achievements`. */
   achievements: AchievementState[];
+  /** Opens the change-password sheet. Absent for guests, who have no password. */
+  onChangePassword?: () => void;
   onLogout: () => void;
   theme: "light" | "dark" | "system";
   onThemeChange: (theme: "light" | "dark" | "system") => void;
 }
 
 export function SettingsView({
-  onBack, profile, onProfileChange, cards, folders, chases, watchlist, following, listings, achievements, onLogout, theme, onThemeChange,
+  onBack, profile, onProfileChange, cards, folders, chases, watchlist, following, listings, achievements, onChangePassword, onLogout, theme, onThemeChange,
 }: SettingsViewProps) {
   useEscapeClose(onBack);
   const [name, setName] = useState(profile.name);
@@ -121,6 +123,16 @@ export function SettingsView({
         </div>
 
         <p className="text-[10px] font-medium text-gray-400 tracking-widest uppercase mb-3">Account</p>
+        {onChangePassword && (
+          <button onClick={onChangePassword}
+            className="w-full flex items-center gap-3 py-3.5 px-4 rounded-2xl bg-gray-50 mb-2 text-left">
+            <KeyRound className="w-4 h-4 text-gray-500" />
+            <div>
+              <p className="text-sm font-semibold text-gray-900">Change password</p>
+              <p className="text-xs text-gray-400">Set a new password without signing out</p>
+            </div>
+          </button>
+        )}
         <button onClick={onLogout}
           className="w-full flex items-center gap-3 py-3.5 px-4 rounded-2xl bg-gray-50 mb-8 text-left">
           <LogOut className="w-4 h-4 text-gray-500" />

@@ -53,6 +53,7 @@ export function LoginScreen({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [remember, setRemember] = useState(true);
   const [localError, setLocalError] = useState("");
 
@@ -106,6 +107,10 @@ export function LoginScreen({
       return;
     }
     if (mode === "signup") {
+      if (password !== confirmPassword) {
+        setLocalError("Those passwords don't match.");
+        return;
+      }
       if (displayName.trim().length < 1) {
         setLocalError("Add your name so other collectors know who you are.");
         return;
@@ -194,7 +199,7 @@ export function LoginScreen({
             <button
               key={m}
               type="button"
-              onClick={() => { setMode(m); setLocalError(""); }}
+              onClick={() => { setMode(m); setLocalError(""); setConfirmPassword(""); }}
               className="flex-1 py-2 rounded-full text-sm font-semibold transition-colors"
               style={{ background: mode === m ? "#111" : "transparent", color: mode === m ? "#fff" : "#9ca3af" }}
             >
@@ -300,6 +305,29 @@ export function LoginScreen({
               </button>
             </div>
           </div>
+
+          {mode === "signup" && (
+            <div>
+              <Label htmlFor="signup-confirm" className="text-[10px] font-medium text-gray-400 tracking-widest uppercase mb-1.5 block">
+                Confirm password
+              </Label>
+              <div className="relative">
+                <Lock className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <Input
+                  id="signup-confirm"
+                  type={showPassword ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={e => setConfirmPassword(e.target.value)}
+                  placeholder="••••••••"
+                  autoComplete="new-password"
+                  className="w-full h-auto rounded-2xl bg-gray-50 border-none pl-11 pr-11 py-3.5 text-sm text-gray-900 placeholder-gray-400"
+                />
+                {confirmPassword.length > 0 && password === confirmPassword && (
+                  <Check className="w-4 h-4 text-emerald-500 absolute right-4 top-1/2 -translate-y-1/2" />
+                )}
+              </div>
+            </div>
+          )}
 
           {error && <p className="text-xs text-red-500">{error}</p>}
 

@@ -16,6 +16,7 @@ import type { DbProfileStats } from "./data/repositories";
 import type { NewCardInput } from "./data/repositories";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import { computeLevel } from "./lib/level";
+import { humanizeError } from "./lib/errors";
 import { formatCompact } from "./lib/format";
 import { filterCards, sortCards, SORT_OPTIONS, type SortKey } from "./lib/collectionSort";
 import { LoginScreen } from "./components/auth/LoginScreen";
@@ -50,6 +51,7 @@ const ScanCardSheet = lazy(() => import("./components/cards/ScanCardSheet").then
 const MarketView = lazy(() => import("./components/market/MarketView").then(m => ({ default: m.MarketView })));
 const PeersView = lazy(() => import("./components/peers/PeersView").then(m => ({ default: m.PeersView })));
 const SettingsView = lazy(() => import("./components/settings/SettingsView").then(m => ({ default: m.SettingsView })));
+const ChangePasswordSheet = lazy(() => import("./components/settings/ChangePasswordSheet").then(m => ({ default: m.ChangePasswordSheet })));
 const CommunityView = lazy(() => import("./components/community/CommunityView").then(m => ({ default: m.CommunityView })));
 const NewPostSheet = lazy(() => import("./components/community/NewPostSheet").then(m => ({ default: m.NewPostSheet })));
 const ThreadView = lazy(() => import("./components/community/ThreadView").then(m => ({ default: m.ThreadView })));
@@ -157,6 +159,7 @@ export default function App() {
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
   const [confirmingDeleteFolderId, setConfirmingDeleteFolderId] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -177,6 +180,7 @@ export default function App() {
     setShowNewPost(false);
     setViewingPostId(null);
     setPickingNewMessage(false);
+    setChangingPassword(false);
     // Opening a DM from Connections sets the conversation and *then* navigates
     // to /messages, so clearing it unconditionally here would close the chat on
     // arrival. Only drop it when actually leaving the messages route.
@@ -288,7 +292,7 @@ export default function App() {
       await work;
       if (success) showToast(success);
     } catch (err) {
-      showToast(err instanceof Error ? err.message : "Something went wrong");
+      showToast(humanizeError(err));
     }
   };
 
@@ -298,7 +302,7 @@ export default function App() {
     try {
       await signIn(email, password);
     } catch (err) {
-      setAuthError(err instanceof Error ? err.message : "Could not sign in.");
+      setAuthError(humanizeError(err, "Could not sign in."));
     } finally {
       setAuthBusy(false);
     }
@@ -317,7 +321,7 @@ export default function App() {
       // there is nothing for the client to seed.
       if (needsConfirmation) setAwaitingConfirmation(true);
     } catch (err) {
-      setAuthError(err instanceof Error ? err.message : "Could not create the account.");
+      setAuthError(humanizeError(err, "Could not create the account."));
     } finally {
       setAuthBusy(false);
     }
@@ -338,7 +342,7 @@ export default function App() {
       await resetPassword(email);
       setResetEmailSent(true);
     } catch (err) {
-      setAuthError(err instanceof Error ? err.message : "Could not send the reset email.");
+      setAuthError(humanizeError(err, "Could not send the reset email."));
     } finally {
       setAuthBusy(false);
     }
@@ -350,7 +354,7 @@ export default function App() {
     try {
       await continueAsGuest();
     } catch (err) {
-      setAuthError(err instanceof Error ? err.message : "Could not continue as guest.");
+      setAuthError(humanizeError(err, "Could not continue as guest."));
     } finally {
       setAuthBusy(false);
     }
@@ -494,7 +498,7 @@ export default function App() {
       const conversationId = await openConversation.mutateAsync(peer.profileId);
       await sendMessage.mutateAsync({ conversationId, body: message });
     } catch (err) {
-      showToast(err instanceof Error ? err.message : "Could not send that message");
+      showToast(humanizeError(err, "Could not send that message."));
     }
   };
 
@@ -510,7 +514,7 @@ export default function App() {
       setActiveConversationId(conversationId);
       navigate("/messages");
     } catch (err) {
-      showToast(err instanceof Error ? err.message : "Could not open that conversation");
+      showToast(humanizeError(err, "Could not open that conversation."));
     }
   };
 
@@ -619,11 +623,21 @@ export default function App() {
               following={following}
               listings={listings}
               achievements={achievements}
+              // Guests authenticate anonymously and have no password to change.
+              onChangePassword={canWrite ? () => setChangingPassword(true) : undefined}
               onLogout={handleLogout}
               theme={theme}
               onThemeChange={setTheme}
             />
           </Suspense>
+          {changingPassword && (
+            <Suspense fallback={LOADING_FALLBACK}>
+              <ChangePasswordSheet
+                onClose={() => setChangingPassword(false)}
+                onSubmit={updatePassword}
+              />
+            </Suspense>
+          )}
         </div>
       </div>
     );

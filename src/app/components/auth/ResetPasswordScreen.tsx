@@ -5,6 +5,7 @@ import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { AnimateIn } from "../shared/AnimateIn";
 import { cardChampsLogo, cardChampsLogoDark } from "../../data/cardImages";
+import { humanizeError } from "../../lib/errors";
 
 /** Supabase's own minimum. */
 const MIN_PASSWORD_LENGTH = 6;
@@ -48,7 +49,7 @@ export function ResetPasswordScreen({
       await onSubmit(password);
       setDone(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not update the password.");
+      setError(humanizeError(err, "Could not update the password."));
     } finally {
       setBusy(false);
     }
