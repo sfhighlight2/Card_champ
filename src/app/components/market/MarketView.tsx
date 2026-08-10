@@ -47,14 +47,13 @@ interface MarketViewProps {
   listings: Listing[];
   watchlist: number[];
   onToggleWatchlist: (id: number) => void;
-  onBuy: (item: MarketItem) => void;
   onUpdateListingStatus: (id: number, status: Listing["status"]) => void;
   onRemoveListing: (id: number) => void;
   initialTab?: "browse" | "watchlist" | "listings";
   initialQuery?: string;
 }
 
-export function MarketView({ allCards, listings, watchlist, onToggleWatchlist, onBuy, onUpdateListingStatus, onRemoveListing, initialTab, initialQuery }: MarketViewProps) {
+export function MarketView({ allCards, listings, watchlist, onToggleWatchlist, onUpdateListingStatus, onRemoveListing, initialTab, initialQuery }: MarketViewProps) {
   const [query, setQuery] = useState(initialQuery ?? "");
   const [marketTab, setMarketTab] = useState<"browse" | "watchlist" | "listings">(initialTab ?? "browse");
   const [selectedItem, setSelectedItem] = useState<MarketItem | null>(null);
@@ -286,7 +285,6 @@ export function MarketView({ allCards, listings, watchlist, onToggleWatchlist, o
         <BuyConfirmSheet
           item={buyingItem}
           onClose={() => setBuyingItem(null)}
-          onConfirm={() => { onBuy(buyingItem); setBuyingItem(null); setSelectedItem(null); }}
         />
       )}
     </div>

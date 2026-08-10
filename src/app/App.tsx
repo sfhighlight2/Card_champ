@@ -4,8 +4,7 @@ import {
   Scan, X, Plus, Share2, Search, TrendingUp, TrendingDown, Users, UserPlus, LayoutGrid, Tag, ChevronLeft, ChevronUp, ChevronDown, Folder, SlidersHorizontal, Trash2, FolderPlus, Menu as MenuIcon, MessageCircle,
 } from "lucide-react";
 import confetti from "canvas-confetti";
-import type { Card, Chase, FeedPost, FolderType, Listing, MainTab, MarketItem } from "./types";
-import { GRADE_LABELS } from "./data/cardFields";
+import type { Card, Chase, FeedPost, FolderType, Listing, MainTab } from "./types";
 import { MARKET_ITEMS } from "./data/mockMarket";
 import { useAuth } from "./auth/AuthProvider";
 import { useCollection } from "./data/useCollection";
@@ -419,25 +418,6 @@ export default function App() {
     void runWrite(deleteChase.mutateAsync(id), "Chase removed");
   };
 
-  // The marketplace is still mock data, but the card it produces is a real
-  // collection write rather than a fabricated local row.
-  const handleBuy = (item: MarketItem) => {
-    void runWrite(
-      addCard.mutateAsync({
-        player: item.player,
-        year: item.year,
-        brand: item.brand,
-        team: "",
-        graderCode: item.grader,
-        grade: item.grade,
-        gradeLabel: GRADE_LABELS[item.grade] || "",
-        cert: "",
-        value: item.price,
-      }),
-      `Bought ${item.player}`
-    );
-  };
-
   const handleToggleWatchlist = (id: number) => {
     setWatchlist(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   };
@@ -620,7 +600,6 @@ export default function App() {
               listings={listings}
               watchlist={watchlist}
               onToggleWatchlist={handleToggleWatchlist}
-              onBuy={handleBuy}
               onUpdateListingStatus={handleUpdateListingStatus}
               onRemoveListing={handleRemoveListing}
               initialTab={shopInitialTab}

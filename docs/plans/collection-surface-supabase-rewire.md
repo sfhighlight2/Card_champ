@@ -244,6 +244,22 @@ the `Peer` / `SuggestedPeer` / `CommunityPost` / `CommunityComment` /
   `market_price_snapshots`, 24 `market_sale_comps`, plus `fetchListings`,
   `fetchPriceHistory`, `fetchRecentSales`, `fetchWatchlist`, `toggleWatchlist`,
   `fetchMyListings`, `createListing`, and the `place_native_order` RPC.
+
+  **Buying is disabled.** The collection pass rewired `handleBuy` from a local
+  row to a real `addCard` mutation, on the reasoning that a genuine write beat a
+  fabricated one. That was wrong: the *source* was a hardcoded storefront, so the
+  effect was to launder invented data — including a made-up value that then fed
+  the portfolio total and 30-day change — into the one surface genuinely backed
+  by Postgres. Verified no rows were ever created this way (`handleBuy` wrote
+  `certificate_number = null`, and no such row exists). `BuyConfirmSheet` now
+  explains why buying is off instead of writing, and `MarketView` no longer takes
+  an `onBuy` prop at all, so the path cannot be reconnected by accident.
+
+  A real purchase means `place_native_order` against a real listing row, which
+  transfers ownership of a copy that already exists rather than inventing one.
+
+  Selling remains inert but harmless: `SellFlow` writes a localStorage `Listing`
+  that nobody else can see. It touches no real rows.
 - **Email deliverability.** Sign-up and password reset both send through
   Supabase's built-in email, which is rate-limited to a handful per hour and not
   intended for production. Needs custom SMTP configured in the dashboard — it
