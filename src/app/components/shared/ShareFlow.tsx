@@ -4,6 +4,7 @@ import type { Card, FolderType } from "../../types";
 import type { DbProfileStats } from "../../data/repositories";
 import { GRADER_COLOR } from "../../data/cardFields";
 import { useEscapeClose } from "../../hooks/useEscapeClose";
+import { Avatar } from "./Avatar";
 
 const SHARE_PLATFORMS = [
   { id: "dm",    label: "Direct message", sub: "Send to a collector you follow", icon: <Send className="w-4 h-4 text-violet-500" /> },
@@ -214,7 +215,7 @@ export function ShareFlow({ onClose, allCards, folders, dmPeers, onShareViaDm }:
                   className="w-full flex items-center gap-3 py-3 text-left"
                   style={{ borderBottom: i < dmPeers.length - 1 ? "1px solid #f4f4f5" : "none" }}>
                   <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex-shrink-0">
-                    <img src={peer.avatar} alt={peer.displayName} className="w-full h-full" style={{ objectFit: "cover", objectPosition: "top center" }} draggable={false} />
+                    <Avatar src={peer.avatar} name={peer.displayName} size={40} className="w-full h-full" style={{ objectFit: "cover", objectPosition: "top center" }} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-gray-900 truncate">{peer.displayName}</p>

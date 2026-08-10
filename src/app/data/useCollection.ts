@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../auth/AuthProvider";
 import { supabase } from "../lib/supabase";
 import type { Card, Chase, FolderType, Profile, SubGrades } from "../types";
+import { uploadAvatar } from "../lib/uploads";
 import * as repo from "./repositories";
 
 export type { Card, Chase, FolderType, Profile, SubGrades };
@@ -243,16 +244,32 @@ export function useCollection(options: UseCollectionOptions = {}) {
   });
 
   const saveProfile = useMutation({
-    mutationFn: (p: Profile) =>
-      repo.updateProfile(ownerId, {
+    mutationFn: async (args: { profile: Profile; avatarFile?: File }) => {
+      const { profile: p, avatarFile } = args;
+
+      // Uploaded first so a rejected image fails before any field is written —
+      // the user retries with the form still intact rather than finding half
+      // their edit saved.
+      const avatarPath = avatarFile
+        ? await uploadAvatar(avatarFile, ownerId, statsQ.data?.avatarPath ?? null)
+        : undefined;
+
+      await repo.updateProfile(ownerId, {
         display_name: p.name,
         handle: p.handle.replace(/^@/, ""),
         bio: p.bio ?? null,
         chasing: p.chasing ?? null,
         collecting_since: p.collectingSince ? Number(p.collectingSince) : null,
-      }),
+        ...(avatarPath ? { avatar_path: avatarPath } : {}),
+      });
+    },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: repo.keys.stats(ownerId) });
+      // The user's avatar and handle also appear on their posts, comments, and
+      // conversation rows, all of which are cached separately.
+      void qc.invalidateQueries({ queryKey: repo.keys.feed() });
+      void qc.invalidateQueries({ queryKey: repo.keys.conversations() });
+      void qc.invalidateQueries({ queryKey: repo.keys.peers() });
     },
   });
 

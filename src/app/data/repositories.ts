@@ -60,7 +60,10 @@ export interface DbProfileStats {
   profileId: string;
   handle: string;
   displayName: string;
+  /** Resolved public URL, or "" when no picture has been uploaded. */
   avatar: string;
+  /** The raw Storage path behind `avatar`, needed to clean up on replacement. */
+  avatarPath: string | null;
   bio: string | null;
   chasing: string | null;
   collectingSince: number | null;
@@ -112,6 +115,7 @@ export async function fetchProfileStats(profileId: string): Promise<DbProfileSta
     handle: data.handle,
     displayName: data.display_name,
     avatar: resolveAvatar(data.avatar_path),
+    avatarPath: data.avatar_path ?? null,
     bio: data.bio,
     chasing: data.chasing,
     collectingSince: data.collecting_since,
@@ -133,6 +137,7 @@ export async function updateProfile(
     bio?: string | null;
     chasing?: string | null;
     collecting_since?: number | null;
+    avatar_path?: string | null;
   }
 ): Promise<void> {
   const { error } = await supabase.from("profiles").update(patch).eq("id", profileId);
@@ -150,6 +155,7 @@ export async function fetchDiscoverableProfiles(excludeId?: string): Promise<DbP
     handle: d.handle,
     displayName: d.display_name,
     avatar: resolveAvatar(d.avatar_path),
+    avatarPath: d.avatar_path ?? null,
     bio: d.bio,
     chasing: d.chasing,
     collectingSince: d.collecting_since,

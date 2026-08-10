@@ -6,6 +6,7 @@ import { usePeerCards } from "../../data/usePeers";
 import { computeLevel, tierBadgeLabel } from "../../lib/level";
 import { DetailSheet } from "../cards/DetailSheet";
 import { useEscapeClose } from "../../hooks/useEscapeClose";
+import { Avatar } from "../shared/Avatar";
 
 interface PeerProfileSheetProps {
   peer: DbProfileStats;
@@ -61,7 +62,7 @@ export function PeerProfileSheet({ peer, onClose, isFollowing, onToggleFollow }:
             <div className="flex items-center gap-3">
               <div className="relative flex-shrink-0">
                 <div className="w-14 h-14 rounded-full overflow-hidden bg-gray-100">
-                  <img src={peer.avatar} alt={peer.displayName} className="w-full h-full" style={{ objectFit: "cover", objectPosition: "top center" }} draggable={false} />
+                  <Avatar src={peer.avatar} name={peer.displayName} size={56} className="w-full h-full" style={{ objectFit: "cover", objectPosition: "top center" }} />
                 </div>
                 {peer.isVerified && (
                   <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-[#b49e63] border-2 border-white flex items-center justify-center">

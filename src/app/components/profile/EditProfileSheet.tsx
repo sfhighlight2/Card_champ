@@ -1,12 +1,14 @@
-import { useState } from "react";
-import { X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { X, Camera } from "lucide-react";
 import type { Profile } from "../../types";
 import { useEscapeClose } from "../../hooks/useEscapeClose";
+import { Avatar } from "../shared/Avatar";
 
 interface EditProfileSheetProps {
   profile: Profile;
   onClose: () => void;
-  onSave: (updated: Profile) => void;
+  /** `avatarFile` is present only when a new picture was chosen. */
+  onSave: (updated: Profile, avatarFile?: File) => void;
 }
 
 export function EditProfileSheet({ profile, onClose, onSave }: EditProfileSheetProps) {
@@ -16,17 +18,34 @@ export function EditProfileSheet({ profile, onClose, onSave }: EditProfileSheetP
   const [bio, setBio] = useState(profile.bio ?? "");
   const [chasing, setChasing] = useState(profile.chasing ?? "");
   const [tagsText, setTagsText] = useState((profile.tags ?? []).join(", "));
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Object URLs have to be revoked or the blob leaks for the page's lifetime.
+  useEffect(() => {
+    if (!avatarFile) {
+      setPreview(null);
+      return;
+    }
+    const url = URL.createObjectURL(avatarFile);
+    setPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [avatarFile]);
 
   const save = () => {
     const tags = tagsText.split(",").map(t => t.trim()).filter(Boolean);
-    onSave({
-      ...profile,
-      name: name.trim() || profile.name,
-      handle: handle.trim() || profile.handle,
-      bio: bio.trim() || undefined,
-      chasing: chasing.trim() || undefined,
-      tags: tags.length > 0 ? tags : undefined,
-    });
+    onSave(
+      {
+        ...profile,
+        name: name.trim() || profile.name,
+        handle: handle.trim() || profile.handle,
+        bio: bio.trim() || undefined,
+        chasing: chasing.trim() || undefined,
+        tags: tags.length > 0 ? tags : undefined,
+      },
+      avatarFile ?? undefined
+    );
   };
 
   return (
@@ -42,6 +61,41 @@ export function EditProfileSheet({ profile, onClose, onSave }: EditProfileSheetP
         </div>
 
         <div className="px-6 pb-8 overflow-y-auto" style={{ maxHeight: "calc(88vh - 76px)", scrollbarWidth: "none" }}>
+          <div className="flex flex-col items-center mb-6">
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="relative rounded-full focus:outline-none"
+              aria-label="Change profile picture"
+            >
+              <Avatar
+                src={preview ?? profile.avatar}
+                name={name || profile.name}
+                size={80}
+                className="w-20 h-20 rounded-full object-cover"
+              />
+              <span
+                className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-gray-950 flex items-center justify-center"
+                style={{ boxShadow: "0 0 0 2px #fff" }}
+              >
+                <Camera className="w-3.5 h-3.5 text-white" />
+              </span>
+            </button>
+            <p className="text-[11px] text-gray-400 mt-2">
+              {avatarFile ? "New picture ready — tap Save" : "Tap to change your picture"}
+            </p>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+              onChange={e => {
+                const file = e.target.files?.[0];
+                if (file) setAvatarFile(file);
+                e.target.value = "";
+              }}
+            />
+          </div>
+
           <p className="text-[10px] font-medium text-gray-400 tracking-widest uppercase mb-1.5">Name</p>
           <input value={name} onChange={e => setName(e.target.value)}
             className="w-full rounded-2xl bg-gray-50 px-4 py-3.5 text-sm text-gray-900 outline-none mb-3" />

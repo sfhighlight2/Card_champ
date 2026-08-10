@@ -1,4 +1,5 @@
 import { useId, useEffect, useState } from "react";
+import { Avatar } from "./Avatar";
 
 interface LevelRingAvatarProps {
   avatar: string;
@@ -55,13 +56,13 @@ export function LevelRingAvatar({ avatar, name, size = 128, xpFraction, tier }: 
           </linearGradient>
         </defs>
       </svg>
-      <img
-        src={avatar} alt={name} className="absolute rounded-full object-cover"
+      <Avatar
+        src={avatar} name={name} size={size - inset * 2}
+        className="absolute rounded-full object-cover"
         style={{
           top: inset, left: inset, width: size - inset * 2, height: size - inset * 2,
           boxShadow: "0 0 0 3px #fff, 0 4px 12px rgba(0,0,0,0.12)",
         }}
-        draggable={false}
       />
     </div>
   );

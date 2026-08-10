@@ -3,6 +3,7 @@ import { ChevronLeft, Send } from "lucide-react";
 import type { ConversationSummary, DirectMessage } from "../../types";
 import { relativeTime } from "../../lib/relativeTime";
 import { useEscapeClose } from "../../hooks/useEscapeClose";
+import { Avatar } from "../shared/Avatar";
 
 interface ChatViewProps {
   conversation: ConversationSummary;
@@ -40,7 +41,7 @@ export function ChatView({
         <button onClick={onBack} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100" aria-label="Back">
           <ChevronLeft className="w-4 h-4 text-gray-600" />
         </button>
-        <img src={conversation.peerAvatar} alt={conversation.peerName} className="w-8 h-8 rounded-full object-cover flex-shrink-0" draggable={false} />
+        <Avatar src={conversation.peerAvatar} name={conversation.peerName} size={32} className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
         <div className="min-w-0">
           <p className="text-sm font-semibold text-gray-900 truncate">{conversation.peerName}</p>
           <p className="text-[11px] text-gray-400 truncate">{conversation.peerHandle}</p>

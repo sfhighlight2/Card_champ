@@ -7,6 +7,7 @@ import { badgeHof, badgePro } from "../../data/cardImages";
 import { AnimateIn } from "../shared/AnimateIn";
 import { ShareFlow } from "../shared/ShareFlow";
 import { PeerProfileSheet } from "./PeerProfileSheet";
+import { Avatar } from "../shared/Avatar";
 
 interface PeersViewProps {
   allCards: Card[];
@@ -108,7 +109,7 @@ export function PeersView({
               {visibleChasing.map((peer, i) => (
                 <AnimateIn key={peer.profileId} delay={i * 60}>
                   <div className="flex items-center gap-3 rounded-2xl bg-emerald-50 px-4 py-3">
-                    <img src={peer.avatar} alt={peer.displayName} className="w-9 h-9 rounded-full object-cover flex-shrink-0" draggable={false} />
+                    <Avatar src={peer.avatar} name={peer.displayName} size={36} className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
                     <div className="flex-1 min-w-0">
                       <p className="text-[11px] font-semibold text-gray-400">@{peer.handle}</p>
                       <p className="text-sm font-semibold text-gray-900 truncate">{peer.chasing}</p>
@@ -152,7 +153,7 @@ export function PeersView({
               {filteredPeers.map((p, i) => (
                 <AnimateIn key={p.profileId} delay={i * 60}>
                   <button onClick={() => setSelectedPeerId(p.profileId)} className="w-full flex items-center gap-3 py-3 text-left" style={{ borderBottom: "1px solid #f4f4f5" }}>
-                    <img src={p.avatar} alt={p.displayName} className="w-10 h-10 rounded-full object-cover flex-shrink-0" draggable={false} />
+                    <Avatar src={p.avatar} name={p.displayName} size={40} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-gray-900">{p.displayName}</p>
                       <p className="text-[11px] text-gray-400">@{p.handle} · {p.cardCount} cards</p>
@@ -176,7 +177,7 @@ export function PeersView({
                 <AnimateIn key={s.profileId} delay={i * 70}>
                   <div className="flex items-center gap-3 py-3" style={{ borderBottom: i < filteredSuggested.length - 1 ? "1px solid #f4f4f5" : "none" }}>
                     <button onClick={() => setSelectedPeerId(s.profileId)} className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex-shrink-0">
-                      <img src={s.avatar} alt={s.displayName} className="w-full h-full" style={{ objectFit: "cover", objectPosition: "top center" }} draggable={false} />
+                      <Avatar src={s.avatar} name={s.displayName} size={40} className="w-full h-full" style={{ objectFit: "cover", objectPosition: "top center" }} />
                     </button>
                     <button onClick={() => setSelectedPeerId(s.profileId)} className="flex-1 min-w-0 text-left">
                       <p className="text-sm font-semibold text-gray-900">{s.displayName}</p>
@@ -265,9 +266,10 @@ function LevelRingAvatar({
           </linearGradient>
         </defs>
       </svg>
-      <img
+      <Avatar
         src={avatar}
-        alt={name}
+        name={name}
+        size={size - inset * 2}
         className="absolute rounded-full object-cover"
         style={{
           top: inset,
@@ -276,7 +278,6 @@ function LevelRingAvatar({
           height: size - inset * 2,
           boxShadow: "0 0 0 3px #fff",
         }}
-        draggable={false}
       />
     </div>
   );

@@ -2,6 +2,7 @@ import { ThumbsUp, MessageCircle, Flame } from "lucide-react";
 import type { FeedPost } from "../../types";
 import { authorBadgeFor } from "../../lib/community";
 import { relativeTime } from "../../lib/relativeTime";
+import { Avatar } from "../shared/Avatar";
 
 interface PostCardProps {
   post: FeedPost;
@@ -35,7 +36,7 @@ export function PostCard({ post, onOpen }: PostCardProps) {
 
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
-          <img src={post.authorAvatar} alt={post.authorName} className="w-6 h-6 rounded-full object-cover flex-shrink-0" draggable={false} />
+          <Avatar src={post.authorAvatar} name={post.authorName} size={24} className="w-6 h-6 rounded-full object-cover flex-shrink-0" />
           <span className="text-xs font-semibold text-gray-700 truncate">{post.authorName.split(" ")[0]}</span>
           {badge && (
             <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0"

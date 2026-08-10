@@ -7,6 +7,7 @@
 import { supabase } from "./supabase";
 
 const CARD_IMAGES_BUCKET = "card-images";
+const AVATARS_BUCKET = "avatars";
 
 /** Mirrors the bucket's allowed_mime_types; rejecting here gives a better
  *  message than the storage API's own error. */
@@ -18,8 +19,11 @@ const EXTENSION: Record<string, string> = {
   "image/webp": "webp",
 };
 
-/** 8 MB, matching the bucket's file_size_limit. */
+/** 8 MB, matching the card-images bucket's file_size_limit. */
 const MAX_BYTES = 8 * 1024 * 1024;
+
+/** The avatars bucket is capped lower, at 2 MB. */
+const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
 
 interface DecodedDataUrl {
   blob: Blob;
@@ -69,6 +73,46 @@ export async function uploadCardImage(dataUrl: string, userId: string): Promise<
     .from(CARD_IMAGES_BUCKET)
     .upload(path, blob, { contentType: mime, upsert: false });
   if (error) throw error;
+
+  return path;
+}
+
+/**
+ * Replaces the caller's profile picture and returns the path to store in
+ * `profiles.avatar_path`.
+ *
+ * Each upload gets a fresh filename rather than overwriting a stable one. The
+ * `avatars` bucket is public, so a stable name would keep returning the same
+ * public URL and browsers would serve the old picture from cache indefinitely —
+ * the new avatar simply would not appear. A new name sidesteps caching entirely.
+ *
+ * The previous object is then deleted on a best-effort basis: losing the cleanup
+ * is a stray 2 MB file, whereas failing the whole operation would lose the user
+ * their new picture for no good reason.
+ */
+export async function uploadAvatar(
+  file: File,
+  userId: string,
+  previousPath?: string | null
+): Promise<string> {
+  if (!ALLOWED_MIME.has(file.type)) {
+    throw new Error("Profile pictures must be a JPEG, PNG, or WebP image.");
+  }
+  if (file.size > MAX_AVATAR_BYTES) {
+    throw new Error("That image is larger than the 2 MB limit for profile pictures.");
+  }
+
+  const path = `${userId}/${crypto.randomUUID()}.${EXTENSION[file.type]}`;
+  const { error } = await supabase.storage
+    .from(AVATARS_BUCKET)
+    .upload(path, file, { contentType: file.type, upsert: false });
+  if (error) throw error;
+
+  // Only ever remove something inside the caller's own folder, and never a
+  // bundled `local:` demo reference.
+  if (previousPath && previousPath.startsWith(`${userId}/`)) {
+    await supabase.storage.from(AVATARS_BUCKET).remove([previousPath]).catch(() => {});
+  }
 
   return path;
 }
