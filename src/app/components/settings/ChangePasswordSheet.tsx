@@ -2,9 +2,7 @@ import { useState, type FormEvent } from "react";
 import { X, Lock, Eye, EyeOff, Check } from "lucide-react";
 import { useEscapeClose } from "../../hooks/useEscapeClose";
 import { humanizeError } from "../../lib/errors";
-
-/** Supabase's own minimum. */
-const MIN_PASSWORD_LENGTH = 6;
+import { passwordPolicyError, PASSWORD_HINT } from "../../lib/password";
 
 interface ChangePasswordSheetProps {
   onClose: () => void;
@@ -31,10 +29,13 @@ export function ChangePasswordSheet({ onClose, onSubmit }: ChangePasswordSheetPr
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
 
+  const policyError = password.length > 0 ? passwordPolicyError(password) : null;
+
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    if (password.length < MIN_PASSWORD_LENGTH) {
-      setError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
+    const weak = passwordPolicyError(password);
+    if (weak) {
+      setError(weak);
       return;
     }
     if (password !== confirm) {
@@ -94,6 +95,15 @@ export function ChangePasswordSheet({ onClose, onSubmit }: ChangePasswordSheetPr
                 {show ? <EyeOff className="w-4 h-4 text-gray-400" /> : <Eye className="w-4 h-4 text-gray-400" />}
               </button>
             </div>
+            <p className="text-[11px] -mt-1.5 mb-3 min-h-[15px]">
+              {password.length === 0 ? (
+                <span className="text-gray-400">{PASSWORD_HINT}</span>
+              ) : policyError ? (
+                <span className="text-red-500">{policyError}</span>
+              ) : (
+                <span className="text-emerald-600">Strong password ✓</span>
+              )}
+            </p>
 
             <p className="text-[10px] font-medium text-gray-400 tracking-widest uppercase mb-1.5">Confirm new password</p>
             <div className="relative mb-3">

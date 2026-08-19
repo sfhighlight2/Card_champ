@@ -55,6 +55,21 @@ describe("humanizeError", () => {
     expect(humanizeError(undefined, "Could not sign in.")).toBe("Could not sign in.");
   });
 
+  it("explains a password-policy rejection instead of the generic fallback", () => {
+    const friendly =
+      "Passwords need at least 8 characters, including an uppercase letter, a number, and a symbol.";
+    // The real GoTrue message is ~150 chars — past the pass-through cap, so it
+    // used to collapse into "Could not create the account."
+    expect(
+      humanizeError({
+        message:
+          "Password should contain at least one character of each: abcdefghijklmnopqrstuvwxyz, ABCDEFGHIJKLMNOPQRSTUVWXYZ, 0123456789, !@#$%^&*()_+-=[]{};'\\:\"|<>?,./`~.",
+      })
+    ).toBe(friendly);
+    expect(humanizeError({ message: "Password should be at least 8 characters." })).toBe(friendly);
+    expect(humanizeError({ message: "anything", code: "weak_password" })).toBe(friendly);
+  });
+
   it("does not dump an essay into a toast", () => {
     const long = "x".repeat(400);
     expect(humanizeError({ message: long })).toBe("Something went wrong. Please try again.");

@@ -65,6 +65,13 @@ export function humanizeError(error: unknown, fallback = "Something went wrong. 
   // Keep the real thing reachable — the point is to stop showing it, not to lose it.
   console.error("[cardchamps] operation failed:", error);
 
+  // Auth's password-policy rejection. Its raw message is ~150 chars — past the
+  // pass-through cap below — so it used to collapse into the generic fallback
+  // and a rejected signup never learned why.
+  if (err.code === "weak_password" || /^password should/i.test(raw)) {
+    return "Passwords need at least 8 characters, including an uppercase letter, a number, and a symbol.";
+  }
+
   const storage = storageMessage(raw);
   if (storage) return storage;
 

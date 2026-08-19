@@ -7,10 +7,7 @@ import { Separator } from "../ui/separator";
 import { AnimateIn } from "../shared/AnimateIn";
 import { cardChampsLogoDark } from "../../data/cardImages";
 import { isHandleAvailable } from "../../data/repositories";
-
-/** Supabase's own minimum. Validating below it only produced a server rejection
- *  the form then had to explain. */
-const MIN_PASSWORD_LENGTH = 6;
+import { passwordPolicyError, PASSWORD_HINT } from "../../lib/password";
 
 /** Matches profiles_handle_format, so the form rejects what the column would. */
 const HANDLE_PATTERN = /^[a-z0-9_]{3,30}$/;
@@ -100,17 +97,26 @@ export function LoginScreen({
     return () => { active = false; clearTimeout(timer); };
   }, [handle, mode]);
 
+  // Live policy feedback for signup, mirroring the server so a rejection can't
+  // arrive as a surprise after submit.
+  const policyError = mode === "signup" && password.length > 0 ? passwordPolicyError(password) : null;
+
   const submit = (e: FormEvent) => {
     e.preventDefault();
     if (!/^\S+@\S+\.\S+$/.test(email)) {
       setLocalError("Enter a valid email address.");
       return;
     }
-    if (password.length < MIN_PASSWORD_LENGTH) {
-      setLocalError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
+    if (password.length === 0) {
+      setLocalError("Enter your password.");
       return;
     }
     if (mode === "signup") {
+      const weak = passwordPolicyError(password);
+      if (weak) {
+        setLocalError(weak);
+        return;
+      }
       if (password !== confirmPassword) {
         setLocalError("Those passwords don't match.");
         return;
@@ -324,6 +330,21 @@ export function LoginScreen({
                 {showPassword ? <EyeOff className="w-4 h-4 text-gray-400" /> : <Eye className="w-4 h-4 text-gray-400" />}
               </button>
             </div>
+            {/* Live policy feedback, mirroring the handle-availability line: the
+                requirement while empty, exactly what's missing while typing, a
+                green check once it passes. The server enforces this policy, so
+                telling the user up front beats a post-submit rejection. */}
+            {mode === "signup" && (
+              <p className="text-[11px] mt-1.5 min-h-[15px]">
+                {password.length === 0 ? (
+                  <span className="text-gray-400">{PASSWORD_HINT}</span>
+                ) : policyError ? (
+                  <span className="text-red-500">{policyError}</span>
+                ) : (
+                  <span className="text-emerald-600">Strong password ✓</span>
+                )}
+              </p>
+            )}
           </div>
 
           {mode === "signup" && (

@@ -6,9 +6,7 @@ import { Label } from "../ui/label";
 import { AnimateIn } from "../shared/AnimateIn";
 import { cardChampsLogoDark } from "../../data/cardImages";
 import { humanizeError } from "../../lib/errors";
-
-/** Supabase's own minimum. */
-const MIN_PASSWORD_LENGTH = 6;
+import { passwordPolicyError, PASSWORD_HINT } from "../../lib/password";
 
 interface ResetPasswordScreenProps {
   /** False when the recovery link is missing, already used, or expired. */
@@ -32,10 +30,13 @@ export function ResetPasswordScreen({
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
 
+  const policyError = password.length > 0 ? passwordPolicyError(password) : null;
+
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    if (password.length < MIN_PASSWORD_LENGTH) {
-      setError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
+    const weak = passwordPolicyError(password);
+    if (weak) {
+      setError(weak);
       return;
     }
     if (password !== confirm) {
@@ -134,6 +135,17 @@ export function ResetPasswordScreen({
                 {showPassword ? <EyeOff className="w-4 h-4 text-gray-400" /> : <Eye className="w-4 h-4 text-gray-400" />}
               </button>
             </div>
+            {/* Live policy feedback: the requirement while empty, exactly
+                what's missing while typing, a green check once it passes. */}
+            <p className="text-[11px] mt-1.5 min-h-[15px]">
+              {password.length === 0 ? (
+                <span className="text-gray-400">{PASSWORD_HINT}</span>
+              ) : policyError ? (
+                <span className="text-red-500">{policyError}</span>
+              ) : (
+                <span className="text-emerald-600">Strong password ✓</span>
+              )}
+            </p>
           </div>
 
           <div>
