@@ -3,7 +3,9 @@ import { X, Lock } from "lucide-react";
 import type { Card } from "../../types";
 import type { DbProfileStats } from "../../data/repositories";
 import { usePeerCards } from "../../data/usePeers";
-import { computeLevel, tierBadgeLabel } from "../../lib/level";
+import { computeLevel, TIER_LABELS, MAX_LEVEL } from "../../lib/level";
+import { TierTag, TIER_COIN, TIER_LAUREL } from "../shared/TierTag";
+import medalChase from "@/imports/medal-chase.png";
 import { formatDollars } from "../../lib/format";
 import { DetailSheet } from "../cards/DetailSheet";
 import { useEscapeClose } from "../../hooks/useEscapeClose";
@@ -27,7 +29,7 @@ export function PeerProfileSheet({ peer, onClose, isFollowing, onToggleFollow }:
   const { cards, isLoading } = usePeerCards(peer.profileId);
   const selectedCard = cards.find(c => c.id === selectedCardId) ?? null;
 
-  const badge = tierBadgeLabel(computeLevel(peer.achievementCount).tier);
+  const level = computeLevel(peer.achievementCount);
   const topCards = [...cards].sort((a, b) => b.value - a.value).slice(0, TOP_CARD_COUNT);
 
   const CardButton = ({ card, className }: { card: Card; className?: string }) => (
@@ -65,8 +67,17 @@ export function PeerProfileSheet({ peer, onClose, isFollowing, onToggleFollow }:
                 <div className="w-14 h-14 rounded-full overflow-hidden bg-gray-100">
                   <Avatar src={peer.avatar} name={peer.displayName} size={56} className="w-full h-full" style={{ objectFit: "cover", objectPosition: "top center" }} />
                 </div>
+                {level.hasEarnedTier && (
+                  <img
+                    src={TIER_COIN[level.tier]}
+                    alt={`${TIER_LABELS[level.tier]} tier`}
+                    className="absolute -bottom-1.5 -right-1.5 w-7 h-7"
+                    style={{ filter: "drop-shadow(0 3px 6px rgba(0,0,0,0.4))" }}
+                    draggable={false}
+                  />
+                )}
                 {peer.isVerified && (
-                  <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-[#b49e63] border-2 border-white flex items-center justify-center">
+                  <div className="absolute -top-0.5 -right-0.5 w-5 h-5 rounded-full bg-[#b49e63] flex items-center justify-center" style={{ border: "2px solid #101828" }}>
                     <svg viewBox="0 0 10 10" className="w-2.5 h-2.5" fill="none">
                       <path d="M2 5l2 2 4-4" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
@@ -76,12 +87,7 @@ export function PeerProfileSheet({ peer, onClose, isFollowing, onToggleFollow }:
               <div>
                 <div className="flex items-center gap-2">
                   <h2 className="text-lg font-semibold text-gray-900">{peer.displayName}</h2>
-                  {badge && (
-                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
-                      style={{ background: badge === "HOF" ? "#f3e8ff" : "#fef9ec", color: badge === "HOF" ? "#7c3aed" : "#b45309" }}>
-                      {badge}
-                    </span>
-                  )}
+                  <TierTag levelInfo={level} />
                 </div>
                 <p className="text-xs text-gray-400 mt-0.5">
                   @{peer.handle}
@@ -126,8 +132,24 @@ export function PeerProfileSheet({ peer, onClose, isFollowing, onToggleFollow }:
 
           {peer.chasing && (
             <div className="px-6 pt-5">
-              <p className="text-xs font-semibold text-gray-400 tracking-widest uppercase mb-2">Chasing</p>
-              <p className="text-sm font-semibold text-gray-900">{peer.chasing}</p>
+              <div className="chase-card flex items-center gap-3.5 rounded-2xl px-4 py-3.5">
+                <img src={medalChase} alt="" className="w-10 h-10 flex-shrink-0" draggable={false} />
+                <div className="min-w-0">
+                  <p className="text-[10px] font-black tracking-[0.2em] uppercase" style={{ color: "#5bf092" }}>Chasing</p>
+                  <p className="text-sm font-semibold text-white leading-snug">{peer.chasing}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {level.hasEarnedTier && (
+            <div className="px-6 pt-5">
+              <div className="navy-panel rounded-3xl p-5 flex flex-col items-center text-center">
+                <img src={TIER_LAUREL[level.tier]} alt="" className="w-16 h-auto mb-2"
+                  style={{ filter: "drop-shadow(0 6px 14px rgba(0,0,0,0.45))" }} draggable={false} />
+                <p className="text-base font-bold text-white">{TIER_LABELS[level.tier]} Level</p>
+                <p className="text-xs text-gray-400 mt-0.5">{level.level} of {MAX_LEVEL} awards</p>
+              </div>
             </div>
           )}
 

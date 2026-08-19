@@ -4,6 +4,7 @@ import type { Card, Chase } from "../../types";
 import { gradingColor } from "../../lib/grading";
 import { AnimateIn } from "../shared/AnimateIn";
 import { ConfirmDialog } from "../shared/ConfirmDialog";
+import medalChase from "@/imports/medal-chase.png";
 
 interface ChaseViewProps {
   chases: Chase[];
@@ -69,8 +70,8 @@ export function ChaseView({ chases, cards, canWrite, onGuestBlocked, onCreate, o
 
       <div className="flex-1 px-4 md:px-7 overflow-y-auto app-scroll-pad" style={{ scrollbarWidth: "none" }}>
         <AnimateIn>
-          <div className="flex items-center gap-5 rounded-[28px] border border-emerald-200 bg-white px-5 md:px-4 py-6 md:py-4 mb-6 md:mb-5">
-            <ChaseMark size="sm" />
+          <div className="navy-panel flex items-center gap-4 rounded-[28px] px-5 md:px-4 py-5 md:py-4 mb-6 md:mb-5">
+            <img src={medalChase} alt="" className="w-11 h-11 flex-shrink-0" draggable={false} />
             <p className="text-[15px] md:text-base font-medium text-slate-600 leading-relaxed">
               Your chases are <span className="font-bold text-slate-700">public</span> to connections and refresh weekly.
             </p>
@@ -135,18 +136,23 @@ export function ChaseView({ chases, cards, canWrite, onGuestBlocked, onCreate, o
 }
 
 function ChaseCard({ chase, onEdit, onDelete }: { chase: Chase; onEdit: () => void; onDelete: () => void }) {
+  // The design's chase card: green→navy gradient, lightning medal, CHASING in
+  // bright mint caps, white title.
   return (
-    <div className="rounded-[28px] border border-emerald-200 bg-gradient-to-br from-emerald-100 via-emerald-50 to-white px-5 md:px-4 py-8 md:py-6 shadow-sm">
-      <div className="grid grid-cols-[82px_minmax(0,1fr)_58px] md:grid-cols-[96px_1fr_58px] gap-4 items-center">
-        <ChaseMark size="lg" />
+    <div className="chase-card rounded-[24px] px-5 md:px-4 py-6 md:py-5 shadow-lg">
+      <div className="grid grid-cols-[72px_minmax(0,1fr)_58px] md:grid-cols-[80px_1fr_58px] gap-4 items-center">
+        <img src={medalChase} alt="" className="w-16 h-16 md:w-16 md:h-16" draggable={false}
+          style={{ filter: "drop-shadow(0 6px 14px rgba(0,0,0,0.35))" }} />
         <div className="min-w-0">
-          <p className="text-[13px] md:text-[11px] font-black text-emerald-600 tracking-[0.24em] uppercase mb-2 md:mb-1.5">Chasing</p>
-          <h3 className="text-lg md:text-lg font-bold text-slate-950 leading-tight">{chase.title}</h3>
-          <p className="text-base md:text-base font-medium text-slate-500 leading-relaxed mt-2 md:mt-1.5">{chase.description}</p>
+          <p className="text-[12px] md:text-[11px] font-black tracking-[0.24em] uppercase mb-1.5" style={{ color: "#5bf092" }}>Chasing</p>
+          <h3 className="text-lg font-bold text-white leading-tight">{chase.title}</h3>
+          {chase.description && (
+            <p className="text-[15px] font-medium leading-relaxed mt-1.5" style={{ color: "rgba(255,255,255,0.75)" }}>{chase.description}</p>
+          )}
         </div>
         <div className="flex flex-col items-start gap-3 md:gap-2">
-          <button onClick={onEdit} className="text-sm font-bold text-gray-400 hover:text-gray-700">Edit</button>
-          <button onClick={onDelete} className="text-sm font-bold text-red-400 hover:text-red-500">Remove</button>
+          <button onClick={onEdit} className="text-sm font-bold hover:text-white" style={{ color: "rgba(255,255,255,0.7)" }}>Edit</button>
+          <button onClick={onDelete} className="text-sm font-bold text-red-400 hover:text-red-300">Remove</button>
         </div>
       </div>
     </div>
@@ -227,18 +233,3 @@ function ChaseForm({
   );
 }
 
-function ChaseMark({ size }: { size: "sm" | "lg" }) {
-  const outer = size === "lg" ? "w-[74px] h-[74px] md:w-[70px] md:h-[70px]" : "w-[54px] h-[54px] md:w-[44px] md:h-[44px]";
-  const icon = size === "lg" ? "w-10 h-10 md:w-9 md:h-9" : "w-8 h-8 md:w-6 md:h-6";
-  return (
-    <div
-      className={`${outer} rounded-full flex items-center justify-center flex-shrink-0 shadow-sm`}
-      style={{
-        background: "radial-gradient(circle at 70% 18%, #d9ff71 0 12%, #48e3a0 30%, #0ea56e 57%, #b7ffdc 72%, #149268 100%)",
-        boxShadow: "inset 0 0 0 2px rgba(255,255,255,0.48), inset 0 -10px 18px rgba(0,0,0,0.18), 0 8px 18px rgba(16,185,129,0.22)",
-      }}
-    >
-      <Zap className={`${icon} text-white fill-white drop-shadow`} />
-    </div>
-  );
-}

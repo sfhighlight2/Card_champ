@@ -20,10 +20,7 @@ interface ThreadViewProps {
 
 function Badge({ label, size = "xs" }: { label: "PRO" | "HOF"; size?: "xs" | "2xs" }) {
   return (
-    <span
-      className={`font-bold rounded-full flex-shrink-0 ${size === "xs" ? "text-[9px] px-1.5 py-0.5" : "text-[8px] px-1.5 py-0.5"}`}
-      style={{ background: label === "HOF" ? "#f3e8ff" : "#fef9ec", color: label === "HOF" ? "#7c3aed" : "#b45309" }}
-    >
+    <span className={`tier-tag tier-tag-${label.toLowerCase()} flex-shrink-0 ${size === "xs" ? "text-[10px]" : "text-[9px]"}`}>
       {label}
     </span>
   );

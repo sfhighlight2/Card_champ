@@ -1,10 +1,12 @@
-import { ChevronLeft, Zap, Settings } from "lucide-react";
+import { ChevronLeft, Settings } from "lucide-react";
 import type { Card, Profile } from "../../types";
 import type { LevelInfo } from "../../lib/level";
 import { TIER_LABELS } from "../../lib/level";
 import { formatCompact } from "../../lib/format";
 import { LevelRingAvatar } from "../shared/LevelRingAvatar";
+import { TierTag, TIER_LAUREL } from "../shared/TierTag";
 import { CardThumb } from "../cards/CardThumb";
+import medalChase from "@/imports/medal-chase.png";
 
 interface ProfileViewProps {
   profile: Profile;
@@ -30,13 +32,20 @@ export function ProfileView({ profile, cards, levelInfo, changePct, onBack, onEd
 
       <div className="flex-1 overflow-y-auto px-7 pb-10" style={{ scrollbarWidth: "none" }}>
         <div className="flex flex-col items-center text-center mb-5">
-          <div className="mb-3">
+          <div className="relative mb-4">
             <LevelRingAvatar avatar={profile.avatar} name={profile.name} size={104} xpFraction={levelInfo.xpFraction} />
+            {levelInfo.hasEarnedTier && (
+              <img src={TIER_LAUREL[levelInfo.tier]} alt={`${TIER_LABELS[levelInfo.tier]} tier`}
+                className="absolute left-1/2 -translate-x-1/2 w-11 h-auto pointer-events-none"
+                style={{ bottom: -14, filter: "drop-shadow(0 4px 10px rgba(0,0,0,0.45))" }} draggable={false} />
+            )}
           </div>
           <h1 className="text-xl font-semibold text-gray-900">{profile.name}</h1>
-          <p className="text-sm text-gray-400 mt-1">
-            {profile.handle} · {formatCompact(profile.followers)} followers
-            {profile.collectingSince && ` · Collecting since ${profile.collectingSince}`}
+          <p className="text-sm text-gray-400 mt-1 flex items-center justify-center gap-1.5 flex-wrap">
+            <span>{profile.handle}</span>
+            <TierTag levelInfo={levelInfo} />
+            <span>· {formatCompact(profile.followers)} followers</span>
+            {profile.collectingSince && <span>· Collecting since {profile.collectingSince}</span>}
           </p>
 
           {profile.bio && <p className="text-sm text-gray-600 mt-4 leading-relaxed max-w-sm">{profile.bio}</p>}
@@ -67,13 +76,11 @@ export function ProfileView({ profile, cards, levelInfo, changePct, onBack, onEd
         </div>
 
         {profile.chasing && (
-          <div className="flex items-center gap-3 rounded-2xl bg-emerald-50 px-4 py-3.5 mb-6">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "#10b981" }}>
-              <Zap className="w-4 h-4 text-white" fill="white" />
-            </div>
+          <div className="chase-card flex items-center gap-3 rounded-2xl px-4 py-3.5 mb-6">
+            <img src={medalChase} alt="" className="w-10 h-10 flex-shrink-0" draggable={false} />
             <div className="min-w-0">
-              <p className="text-[10px] font-bold text-emerald-600 tracking-widest uppercase">Chasing</p>
-              <p className="text-sm font-semibold text-gray-900 truncate">{profile.chasing}</p>
+              <p className="text-[10px] font-black tracking-[0.2em] uppercase" style={{ color: "#5bf092" }}>Chasing</p>
+              <p className="text-sm font-semibold text-white truncate">{profile.chasing}</p>
             </div>
           </div>
         )}

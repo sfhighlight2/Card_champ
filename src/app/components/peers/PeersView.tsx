@@ -3,7 +3,7 @@ import { Share2, Search, X, ChevronDown, ChevronUp, Send, Users } from "lucide-r
 import type { Card, FolderType } from "../../types";
 import type { DbProfileStats } from "../../data/repositories";
 import { computeLevel, tierBadgeLabel, TIER_RING_STOPS } from "../../lib/level";
-import { badgeHof, badgePro } from "../../data/cardImages";
+import { TierTag, TIER_COIN } from "../shared/TierTag";
 import { AnimateIn } from "../shared/AnimateIn";
 import { ShareFlow } from "../shared/ShareFlow";
 import { PeerProfileSheet } from "./PeerProfileSheet";
@@ -68,14 +68,16 @@ export function PeersView({
               <p className="text-xs text-gray-400 mt-1 max-w-[240px]">Connect with a collector below and they'll show up here.</p>
             </div>
           ) : (
-            <div className="flex gap-6 px-6 overflow-x-auto md:justify-center" style={{ scrollbarWidth: "none" }}>
+            // The design's 3-across grid of ringed avatars, each with its coin
+            // medal and tier mark under the handle.
+            <div className="grid grid-cols-3 gap-y-6 px-6">
               {myPeers.map((peer, i) => {
                 const level = computeLevel(peer.achievementCount);
                 return (
                   <AnimateIn key={peer.profileId} delay={i * 80}>
                     <button
                       onClick={() => setSelectedPeerId(peer.profileId)}
-                      className="flex w-[86px] flex-col items-center gap-2 focus:outline-none flex-shrink-0"
+                      className="w-full flex flex-col items-center gap-2 focus:outline-none"
                     >
                       <div className="relative">
                         <LevelRingAvatar
@@ -84,10 +86,18 @@ export function PeersView({
                           progress={level.xpFraction}
                           colors={TIER_RING_STOPS[level.tier]}
                         />
-                        <PeerTierBadge badge={tierBadgeLabel(level.tier)} />
+                        {level.hasEarnedTier && (
+                          <img
+                            src={TIER_COIN[level.tier]}
+                            alt={`${tierBadgeLabel(level.tier) ?? "tier"} medal`}
+                            className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-8 h-8"
+                            style={{ filter: "drop-shadow(0 3px 8px rgba(0,0,0,0.4))" }}
+                            draggable={false}
+                          />
+                        )}
                       </div>
-                      <p className="text-sm font-bold text-gray-900 leading-tight text-center max-w-[86px] truncate">@{peer.handle}</p>
-                      <p className="text-xs font-bold text-gray-400 leading-none">{peer.cardCount} cards</p>
+                      <p className="text-sm font-bold text-gray-900 leading-tight text-center max-w-[100px] truncate">@{peer.handle}</p>
+                      <TierTag levelInfo={level} />
                     </button>
                   </AnimateIn>
                 );
@@ -106,31 +116,36 @@ export function PeersView({
 
         {chasingPeers.length > 0 && (
           <div className="px-6 mb-6">
-            <p className="text-xs font-semibold text-gray-400 tracking-widest uppercase mb-3">What They're Chasing</p>
-            <div className="flex flex-col gap-2">
-              {visibleChasing.map((peer, i) => (
-                <AnimateIn key={peer.profileId} delay={i * 60}>
-                  <div className="flex items-center gap-3 rounded-2xl bg-emerald-50 px-4 py-3">
-                    <Avatar src={peer.avatar} name={peer.displayName} size={36} className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[11px] font-semibold text-gray-400">@{peer.handle}</p>
-                      <p className="text-sm font-semibold text-gray-900 truncate">{peer.chasing}</p>
+            <div className="navy-panel rounded-3xl p-4">
+              <div className="flex items-baseline justify-between mb-3">
+                <p className="text-sm font-bold text-white">What are they chasing</p>
+                <span className="text-xs text-gray-400">{chasingPeers.length} total</span>
+              </div>
+              <div className="flex flex-col gap-2.5">
+                {visibleChasing.map((peer, i) => (
+                  <AnimateIn key={peer.profileId} delay={i * 60}>
+                    <div className="chase-row flex items-center gap-3 rounded-2xl px-4 py-3">
+                      <Avatar src={peer.avatar} name={peer.displayName} size={36} className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[11px] font-semibold" style={{ color: "rgba(255,255,255,0.7)" }}>@{peer.handle}</p>
+                        <p className="text-sm font-semibold text-white truncate">{peer.chasing}</p>
+                      </div>
+                      <button onClick={() => onOpenChat(peer)}
+                        className="dm-btn flex-shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold">
+                        <Send className="w-3 h-3" />DM
+                      </button>
                     </div>
-                    <button onClick={() => onOpenChat(peer)}
-                      className="flex-shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold text-white" style={{ background: "#16a34a" }}>
-                      <Send className="w-3 h-3" />DM
-                    </button>
-                  </div>
-                </AnimateIn>
-              ))}
+                  </AnimateIn>
+                ))}
+              </div>
+              {chasingPeers.length > CHASING_PREVIEW_COUNT && (
+                <button onClick={() => setShowAllChasing(v => !v)} className="w-full flex items-center justify-center gap-1 pt-3 text-xs font-semibold text-gray-400">
+                  {showAllChasing
+                    ? <>Show less <ChevronUp className="w-3.5 h-3.5" /></>
+                    : <>Load more chases ({chasingPeers.length - CHASING_PREVIEW_COUNT} more) <ChevronDown className="w-3.5 h-3.5" /></>}
+                </button>
+              )}
             </div>
-            {chasingPeers.length > CHASING_PREVIEW_COUNT && (
-              <button onClick={() => setShowAllChasing(v => !v)} className="w-full flex items-center justify-center gap-1 py-3 text-xs font-semibold text-gray-400">
-                {showAllChasing
-                  ? <>Show less <ChevronUp className="w-3.5 h-3.5" /></>
-                  : <>View more ({chasingPeers.length - CHASING_PREVIEW_COUNT} more) <ChevronDown className="w-3.5 h-3.5" /></>}
-              </button>
-            )}
           </div>
         )}
 
@@ -286,17 +301,3 @@ function LevelRingAvatar({
   );
 }
 
-function PeerTierBadge({ badge }: { badge: "PRO" | "HOF" | null }) {
-  if (!badge) return null;
-  const src = badge === "HOF" ? badgeHof : badgePro;
-  const label = badge === "HOF" ? "Hall of Fame tier" : "PRO tier";
-
-  return (
-    <div
-      className="absolute -bottom-1.5 -right-1.5 w-8 h-8 rounded-full bg-white p-0.5 z-10"
-      style={{ boxShadow: "0 3px 10px rgba(0,0,0,0.18)" }}
-    >
-      <img src={src} alt={label} title={label} className="w-full h-full rounded-full object-contain" draggable={false} />
-    </div>
-  );
-}

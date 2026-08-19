@@ -77,11 +77,11 @@ export function GettingStarted({ achievements, onDismiss, onGo }: GettingStarted
               >
                 <span
                   className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
-                  style={{ background: complete ? "#111111" : isNext ? "#f0fdf4" : "#1d2534" }}
+                  style={{ background: complete ? "#1d2e4e" : isNext ? "rgba(22,163,74,0.18)" : "#1d2534" }}
                 >
                   {complete
                     ? <Check className="w-3.5 h-3.5 text-white" />
-                    : <Icon className="w-3.5 h-3.5" style={{ color: isNext ? "#16a34a" : "#9ca3af" }} />}
+                    : <Icon className="w-3.5 h-3.5" style={{ color: isNext ? "#5bf092" : "#8492ac" }} />}
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className={`block text-sm ${complete ? "text-gray-400 line-through" : "font-semibold text-gray-900"}`}>

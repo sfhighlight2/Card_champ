@@ -4,7 +4,7 @@ import {
 } from "lucide-react";
 import type { LevelInfo } from "../../lib/level";
 import { TIER_LABELS, MAX_LEVEL } from "../../lib/level";
-import { badgeHof } from "../../data/cardImages";
+import { TIER_LAUREL } from "./TierTag";
 import { useEscapeClose } from "../../hooks/useEscapeClose";
 
 interface MenuItem {
@@ -71,9 +71,9 @@ export function AppMenu({
           <MenuSection title="Social" items={social} />
           <MenuSection title="Discover" items={discover} />
 
-          <div className="rounded-3xl p-5 mt-2 mb-4" style={{ background: "linear-gradient(135deg, #6d5bd0 0%, #8b7ae8 100%)" }}>
+          <div className="rounded-3xl p-5 mt-2 mb-4" style={{ background: "linear-gradient(135deg, #1d2e4e 0%, #39558e 100%)" }}>
             <div className="flex items-center gap-3 mb-3">
-              <img src={badgeHof} alt="Hall of Fame" className="w-12 h-12 flex-shrink-0" style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.25))" }} draggable={false} />
+              <img src={TIER_LAUREL[levelInfo.tier]} alt={TIER_LABELS[levelInfo.tier]} className="w-12 h-auto flex-shrink-0" style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.35))" }} draggable={false} />
               <div>
                 <p className="text-[10px] font-bold text-white/60 tracking-widest uppercase">Level {levelInfo.level}/{MAX_LEVEL} · {TIER_LABELS[levelInfo.tier]}</p>
                 <p className="text-white font-semibold text-sm leading-tight">

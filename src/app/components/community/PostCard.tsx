@@ -15,34 +15,34 @@ export function PostCard({ post, onOpen }: PostCardProps) {
   const badge = authorBadgeFor(post.authorAchievements);
 
   return (
-    <button onClick={onOpen} className="w-full text-left rounded-3xl bg-gray-50 p-4 mb-3 focus:outline-none">
+    <button onClick={onOpen} className="navy-panel w-full text-left rounded-3xl p-4 mb-3 focus:outline-none">
       <div className="flex items-center justify-between mb-2 gap-2">
         <div className="flex items-center gap-1.5 min-w-0">
-          <span className="text-xs font-semibold px-2 py-1 rounded-full bg-white text-gray-700 flex-shrink-0">
+          {/* The design's topic tag: warm orange on a dark amber well. */}
+          <span className="text-xs font-semibold px-2 py-1 rounded-full flex-shrink-0"
+            style={{ background: "rgba(232,130,26,0.14)", color: "#e8821a" }}>
             {post.topicEmoji} {post.topicLabel}
           </span>
           {post.hot && (
-            <span className="flex items-center gap-0.5 text-xs font-semibold px-2 py-1 rounded-full text-orange-600 flex-shrink-0" style={{ background: "#fff4ea" }}>
-              <Flame className="w-3 h-3" />Hot
+            <span className="flex items-center gap-0.5 text-xs font-semibold px-2 py-1 rounded-full flex-shrink-0"
+              style={{ background: "rgba(255,105,0,0.14)", color: "#ff6900" }}>
+              <Flame className="w-3 h-3" />Hot take
             </span>
           )}
         </div>
         <span className="text-xs text-gray-400 flex-shrink-0">{relativeTime(Date.parse(post.createdAt))}</span>
       </div>
 
-      <p className="text-sm text-gray-900 mb-3 leading-snug" style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+      <p className="text-[15px] font-semibold text-white mb-3 leading-snug" style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
         {post.body}
       </p>
 
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
           <Avatar src={post.authorAvatar} name={post.authorName} size={24} className="w-6 h-6 rounded-full object-cover flex-shrink-0" />
-          <span className="text-xs font-semibold text-gray-700 truncate">{post.authorName.split(" ")[0]}</span>
+          <span className="text-xs font-semibold text-gray-700 truncate">@{post.authorHandle.replace(/^@/, "")}</span>
           {badge && (
-            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0"
-              style={{ background: badge === "HOF" ? "#f3e8ff" : "#fef9ec", color: badge === "HOF" ? "#7c3aed" : "#b45309" }}>
-              {badge}
-            </span>
+            <span className={`tier-tag tier-tag-${badge.toLowerCase()} text-[10px] flex-shrink-0`}>{badge}</span>
           )}
         </div>
         <div className="flex items-center gap-3 flex-shrink-0 text-gray-400">
