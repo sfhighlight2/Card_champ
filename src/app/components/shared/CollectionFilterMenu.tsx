@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { ReactNode } from "react";
-import { Eye, X, Check, CheckSquare, EyeOff } from "lucide-react";
+import { Eye, X, Check, CheckSquare, EyeOff, SlidersHorizontal } from "lucide-react";
 import { useEscapeClose } from "../../hooks/useEscapeClose";
 
 interface SortOption { key: string; label: string }
@@ -36,7 +36,7 @@ export function CollectionFilterMenu(props: CollectionFilterMenuProps) {
         aria-haspopup="dialog"
         className="relative w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 flex-shrink-0"
       >
-        <Eye className="w-4 h-4 text-gray-500" />
+        <SlidersHorizontal className="w-4 h-4 text-gray-500" />
         {activeCount > 0 && (
           <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-gray-950 text-white text-[10px] font-bold flex items-center justify-center border border-white">
             {activeCount}
