@@ -1,30 +1,63 @@
 @custom-variant dark (&:is(.dark *));
 
+/*
+ * The navy theme, extracted from the Card Champs Figma file (see
+ * docs/design/figma-navy-redesign.md for the full mapping). This is the app's
+ * single visual identity — the design defines one look, so there is no
+ * light/dark switch.
+ */
 :root {
   --font-size: 16px;
-  --background: #ffffff;
-  --foreground: #111111;
-  --card: #ffffff;
-  --card-foreground: #111111;
-  --popover: #ffffff;
-  --popover-foreground: #111111;
-  --primary: #111111;
+
+  /* Design tokens (Figma-exact) */
+  --navy-page-top: #111f3b;
+  --navy-page-bottom: #0e1014;
+  --page-gradient: linear-gradient(180deg, var(--navy-page-top) 0%, var(--navy-page-bottom) 100%);
+  --panel: #101828;
+  --panel-gradient: linear-gradient(180deg, #111621 0%, #101828 100%);
+  --surface: #1d2534;
+  --surface-2: #26324a;
+  --line: #1c2740;
+  --line-strong: #2a3a5e;
+  --active-gradient: linear-gradient(180deg, #1d2e4e 0%, #11203e 100%);
+  --stat-border: #39558e;
+  --text-strong: #ffffff;
+  --text-body: #dce4f6;
+  --text-mid: #99a1af;
+  --text-dim: #8492ac;
+  --text-faint: #6a7282;
+  --chase-gradient: linear-gradient(135deg, #008f31 0%, #152648 100%);
+  --chase-active-gradient: linear-gradient(180deg, #16a34a 0%, #134342 100%);
+  --chase-text: #5bf092;
+  --dm-gradient: linear-gradient(135deg, #16a34a 0%, #22c55e 100%);
+  --hot-orange: #ff6900;
+  --topic-orange: #e8821a;
+
+  /* Semantic tokens used by components/ui/ */
+  --background: #101828;
+  --foreground: #ffffff;
+  --card: #101828;
+  --card-foreground: #ffffff;
+  --popover: #131c2e;
+  --popover-foreground: #ffffff;
+  --primary: #1d2e4e;
   --primary-foreground: #ffffff;
-  --secondary: #f4f4f5;
-  --secondary-foreground: #111111;
-  --muted: #f4f4f5;
-  --muted-foreground: #888893;
-  --accent: #111111;
+  --secondary: #1d2534;
+  --secondary-foreground: #dce4f6;
+  --muted: #1d2534;
+  --muted-foreground: #8492ac;
+  --accent: #1d2e4e;
   --accent-foreground: #ffffff;
-  --destructive: #d4183d;
+  --destructive: #e7000b;
   --destructive-foreground: #ffffff;
-  --border: rgba(0, 0, 0, 0.08);
-  --input: #f4f4f5;
-  --input-background: #f4f4f5;
-  --switch-background: #cbced4;
+  --border: rgba(57, 85, 142, 0.35);
+  --input: #1d2534;
+  --input-background: #1d2534;
+  --switch-background: #33415e;
   --font-weight-medium: 500;
   --font-weight-normal: 400;
-  --ring: #111111;
+  --ring: #39558e;
+  color-scheme: dark;
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -41,71 +74,117 @@
   --sidebar-ring: oklch(0.708 0 0);
 }
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.145 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.145 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.985 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.396 0.141 25.723);
-  --destructive-foreground: oklch(0.637 0.237 25.331);
-  --border: oklch(0.269 0 0);
-  --input: oklch(0.269 0 0);
-  --ring: oklch(0.439 0 0);
-  --font-weight-medium: 500;
-  --font-weight-normal: 400;
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.269 0 0);
-  --sidebar-ring: oklch(0.439 0 0);
-}
-
 /*
  * The hand-written app screens (everything outside components/ui/) use
  * literal Tailwind utility classes like bg-white / text-gray-900 rather
  * than the semantic --background/--foreground tokens above. Retrofitting
- * every element with dark: variants would touch ~25 files, so instead we
- * override what those utility classes resolve to once .dark is present on
- * a root ancestor — same effect, one place to maintain.
+ * every element would touch ~25 files, so the light-utility vocabulary is
+ * remapped to the navy palette once, here. Distinctive structures (stat
+ * cards, medals, chase cards, topic tiles) are styled in their components.
  */
-.dark {
-  color-scheme: dark;
+.bg-white { background-color: var(--panel); }
+.bg-gray-50 { background-color: #121a2b; }
+.bg-gray-100 { background-color: var(--surface); }
+.bg-gray-200 { background-color: var(--surface-2); }
+.hover\:bg-gray-200:hover { background-color: var(--surface-2); }
+.bg-gray-300 { background-color: #33415e; }
+
+/* Primary CTAs were near-black pills on white; in the navy system they are the
+   active-gradient pill. One rule restyles every primary button. */
+.bg-gray-950, .bg-slate-950, .bg-gray-900 {
+  background-color: #11203e;
+  background-image: var(--active-gradient);
+  border: 1px solid rgba(57, 85, 142, 0.45);
 }
-.dark .bg-white { background-color: #171717; }
-.dark .bg-gray-50 { background-color: #262626; }
-.dark .bg-gray-100 { background-color: #333336; }
-.dark .bg-gray-200 { background-color: #3f3f46; }
-.dark .hover\:bg-gray-200:hover { background-color: #3f3f46; }
-.dark .text-gray-900 { color: #f4f4f5; }
-.dark .text-gray-950 { color: #f4f4f5; }
-.dark .text-gray-800 { color: #e4e4e7; }
-.dark .text-gray-700 { color: #d4d4d8; }
-.dark .text-gray-600 { color: #a1a1aa; }
-.dark .border-gray-50 { border-color: #262626; }
-.dark .border-gray-100 { border-color: #3f3f46; }
-.dark .border-gray-200 { border-color: #52525b; }
-.dark .divide-gray-50 > :not([hidden]) ~ :not([hidden]) { border-color: #27272a; }
-.dark ::placeholder { color: #71717a; }
-.dark .bg-red-50 { background-color: #2c1517; }
-.dark .bg-emerald-50 { background-color: #12261c; }
+
+.text-gray-900, .text-gray-950, .text-slate-950 { color: var(--text-strong); }
+.text-gray-800 { color: #e6ebf5; }
+.text-gray-700, .text-slate-700 { color: #cbd5e4; }
+.text-gray-600, .text-slate-600 { color: var(--text-mid); }
+.text-gray-500, .text-slate-500 { color: var(--text-dim); }
+.text-gray-400, .text-slate-400 { color: var(--text-faint); }
+.text-gray-300 { color: #4a5565; }
+.text-gray-200 { color: #3c4a68; }
+
+.border-gray-50 { border-color: #15203a; }
+.border-gray-100 { border-color: var(--line); }
+.border-gray-200 { border-color: var(--line-strong); }
+.divide-gray-50 > :not([hidden]) ~ :not([hidden]) { border-color: #17233c; }
+.divide-gray-100 > :not([hidden]) ~ :not([hidden]) { border-color: var(--line); }
+
+::placeholder { color: var(--text-faint); }
+.placeholder-gray-300::placeholder, .placeholder-gray-400::placeholder { color: #5b6880; }
+
+/* Tinted wells keep their hue, tuned for the navy ground. */
+.bg-red-50 { background-color: #2b1518; }
+.bg-emerald-50 { background-color: #0d281c; }
+.bg-amber-50 { background-color: #2b2113; }
+.border-emerald-200 { border-color: #1d5c3e; }
+.border-red-200 { border-color: #6b2129; }
+.border-amber-200 { border-color: #6b5121; }
+
+/* Status colors brightened to hold contrast on navy. */
+.text-emerald-600 { color: #34d399; }
+.text-red-600 { color: #f87171; }
+.text-amber-600 { color: #fbbf24; }
+.text-orange-600 { color: var(--topic-orange); }
+
+/* ---------------------------------------------------------------------------
+ * Navy design-system pieces (Figma-exact), used by the hand-built components.
+ * ------------------------------------------------------------------------- */
+
+/* Section panel: subtle vertical gradient with a blue hairline. */
+.navy-panel {
+  background: var(--panel-gradient);
+  border: 1px solid rgba(33, 50, 85, 0.6);
+}
+
+/* The Cards / Value / Connections stat row. */
+.stat-row {
+  border: 1px solid rgba(57, 85, 142, 0.55);
+}
+.stat-row > * + * {
+  border-left: 1px solid rgba(57, 85, 142, 0.45);
+}
+
+/* Active pill (tabs, footer buttons, CTAs). */
+.pill-active {
+  background-color: #11203e;
+  background-image: var(--active-gradient);
+  border: 1px solid rgba(57, 85, 142, 0.45);
+  color: #fff;
+}
+
+/* Tier tags: gradient text next to a tiny icon (PRO ★ / HOF crown / RKE trophy). */
+.tier-tag {
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.tier-tag-pro { background-image: linear-gradient(180deg, #ffffff, #75ebf7); }
+.tier-tag-hof { background-image: linear-gradient(180deg, #ffffff, #ef9ff6); }
+.tier-tag-rke { background-image: linear-gradient(180deg, #ffffff, #76ffda); }
+
+/* Chase system. */
+.chase-card {
+  background: var(--chase-gradient);
+  border: 1px solid rgba(187, 247, 208, 0.35);
+}
+.chase-pill-active {
+  background-image: var(--chase-active-gradient);
+  border: 1px solid rgba(91, 240, 146, 0.4);
+  color: #fff;
+}
+.chase-row {
+  background: linear-gradient(135deg, #16a34a 0%, #101828 85%);
+  border: 1px solid rgba(187, 247, 208, 0.3);
+}
+.dm-btn {
+  background-image: var(--dm-gradient);
+  color: #fff;
+}
 
 @theme inline {
   --color-background: var(--background);

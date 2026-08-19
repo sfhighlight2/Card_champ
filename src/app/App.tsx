@@ -121,24 +121,10 @@ export default function App() {
   // Everything above is Supabase-backed. What remains in localStorage is
   // genuinely device-local preference.
   const [dismissedMovers, setDismissedMovers] = useLocalStorage<string[]>("cardchamps:watchlist-banner-dismissed", []);
-  const [theme, setTheme] = useLocalStorage<"light" | "dark" | "system">("cardchamps:theme", "system");
   const [hideValues, setHideValues] = useLocalStorage<boolean>("cardchamps:privacy", false);
   const [onboardingDismissed, setOnboardingDismissed] = useLocalStorage<boolean>("cardchamps:onboarding-dismissed", false);
-  const [isDark, setIsDark] = useState(false);
-
-  useEffect(() => {
-    const root = document.documentElement;
-    const apply = () => {
-      const dark = theme === "dark" || (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
-      root.classList.toggle("dark", dark);
-      setIsDark(dark);
-    };
-    apply();
-    if (theme !== "system") return;
-    const mql = window.matchMedia("(prefers-color-scheme: dark)");
-    mql.addEventListener("change", apply);
-    return () => mql.removeEventListener("change", apply);
-  }, [theme]);
+  // No theme state: the navy design (docs/design/figma-navy-redesign.md) is the
+  // app's single visual identity, so the old light/dark toggle is gone.
 
   const [view, setView] = useState<"grid" | "list">("grid");
   const [shopInitialTab, setShopInitialTab] = useState<"browse" | "watchlist" | "listings" | undefined>(undefined);
@@ -655,7 +641,6 @@ export default function App() {
             hasRecoverySession={isRecovering || (isSignedIn && !isGuest)}
             onSubmit={updatePassword}
             onBackToSignIn={() => navigate("/")}
-            isDark={isDark}
           />
         </div>
       </div>
@@ -671,7 +656,6 @@ export default function App() {
             onSignUp={handleSignUp}
             onGuest={handleGuest}
             onForgotPassword={handleForgotPassword}
-            isDark={isDark}
             authError={authError}
             busy={authBusy}
             awaitingConfirmation={awaitingConfirmation}
@@ -707,8 +691,6 @@ export default function App() {
               // Guests authenticate anonymously and have no password to change.
               onChangePassword={canWrite ? () => setChangingPassword(true) : undefined}
               onLogout={handleLogout}
-              theme={theme}
-              onThemeChange={setTheme}
             />
           </Suspense>
           {changingPassword && (

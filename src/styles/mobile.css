@@ -31,11 +31,16 @@
 .app-shell {
   min-height: 100vh;
   min-height: 100dvh;
+  /* The page outside the phone column: the gradient's dark end. */
+  background: var(--navy-page-bottom);
 }
 
 .app-frame {
   min-height: 100vh;
   min-height: 100dvh;
+  /* The navy identity gradient. Declared after theme.css, so it wins over the
+     remapped bg-white that most frames also carry. */
+  background: var(--page-gradient);
   /* Zero in a normal browser tab; real insets when installed to the home
      screen, where black-translucent puts content under the status bar. */
   padding-top: var(--safe-top);

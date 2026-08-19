@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ChevronLeft, Download, Upload, Trophy, LogOut, Sun, Moon, Monitor, KeyRound } from "lucide-react";
+import { ChevronLeft, Download, Upload, Trophy, LogOut, KeyRound } from "lucide-react";
 import type { Card, Chase, FolderType, Profile } from "../../types";
 import { buildBackup, downloadBackup } from "../../lib/backup";
 import { CountUp } from "../shared/CountUp";
@@ -26,12 +26,10 @@ interface SettingsViewProps {
   /** Opens the change-password sheet. Absent for guests, who have no password. */
   onChangePassword?: () => void;
   onLogout: () => void;
-  theme: "light" | "dark" | "system";
-  onThemeChange: (theme: "light" | "dark" | "system") => void;
 }
 
 export function SettingsView({
-  onBack, profile, onProfileChange, cards, folders, chases, watchlist, following, listings, achievements, onChangePassword, onLogout, theme, onThemeChange,
+  onBack, profile, onProfileChange, cards, folders, chases, watchlist, following, listings, achievements, onChangePassword, onLogout,
 }: SettingsViewProps) {
   useEscapeClose(onBack);
   const [name, setName] = useState(profile.name);
@@ -89,21 +87,6 @@ export function SettingsView({
           autoCapitalize="none" spellCheck={false}
           className={`w-full rounded-2xl bg-gray-50 px-4 py-3.5 text-sm text-gray-900 outline-none ${handleError ? "mb-1" : "mb-8"}`} />
         {handleError && <p className="text-xs text-red-500 mb-8">{handleError}</p>}
-
-        <p className="text-[10px] font-medium text-gray-400 tracking-widest uppercase mb-3">Appearance</p>
-        <div className="flex items-center gap-1 p-1 rounded-2xl bg-gray-50 mb-8">
-          {([
-            { id: "light" as const, label: "Light", icon: Sun },
-            { id: "dark" as const, label: "Dark", icon: Moon },
-            { id: "system" as const, label: "System", icon: Monitor },
-          ]).map(({ id, label, icon: Icon }) => (
-            <button key={id} onClick={() => onThemeChange(id)}
-              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold transition-colors"
-              style={{ background: theme === id ? "#111" : "transparent", color: theme === id ? "#fff" : "#888" }}>
-              <Icon className="w-3.5 h-3.5" />{label}
-            </button>
-          ))}
-        </div>
 
         <p className="text-[10px] font-medium text-gray-400 tracking-widest uppercase mb-3">Backup</p>
         <button onClick={handleExport}

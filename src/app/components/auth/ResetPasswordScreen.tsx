@@ -4,7 +4,7 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { AnimateIn } from "../shared/AnimateIn";
-import { cardChampsLogo, cardChampsLogoDark } from "../../data/cardImages";
+import { cardChampsLogoDark } from "../../data/cardImages";
 import { humanizeError } from "../../lib/errors";
 
 /** Supabase's own minimum. */
@@ -15,7 +15,6 @@ interface ResetPasswordScreenProps {
   hasRecoverySession: boolean;
   onSubmit: (password: string) => Promise<void>;
   onBackToSignIn: () => void;
-  isDark: boolean;
 }
 
 /**
@@ -24,7 +23,7 @@ interface ResetPasswordScreenProps {
  * pointed at, and which previously did not exist.
  */
 export function ResetPasswordScreen({
-  hasRecoverySession, onSubmit, onBackToSignIn, isDark,
+  hasRecoverySession, onSubmit, onBackToSignIn,
 }: ResetPasswordScreenProps) {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -56,7 +55,7 @@ export function ResetPasswordScreen({
   };
 
   const logo = (
-    <img src={isDark ? cardChampsLogoDark : cardChampsLogo} alt="Card Champs" className="w-36 h-auto mb-6" draggable={false} />
+    <img src={cardChampsLogoDark} alt="Card Champs" className="w-36 h-auto mb-6" draggable={false} />
   );
 
   if (!hasRecoverySession) {

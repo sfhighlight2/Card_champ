@@ -5,7 +5,7 @@ import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Separator } from "../ui/separator";
 import { AnimateIn } from "../shared/AnimateIn";
-import { cardChampsLogo, cardChampsLogoDark } from "../../data/cardImages";
+import { cardChampsLogoDark } from "../../data/cardImages";
 import { isHandleAvailable } from "../../data/repositories";
 
 /** Supabase's own minimum. Validating below it only produced a server rejection
@@ -34,7 +34,6 @@ interface LoginScreenProps {
   onGuest: () => void;
   /** Sends a reset email; the link lands on /reset-password. */
   onForgotPassword: (email: string) => void;
-  isDark: boolean;
   /** Message from the auth call itself, e.g. wrong password. */
   authError?: string;
   busy?: boolean;
@@ -51,7 +50,7 @@ interface LoginScreenProps {
 }
 
 export function LoginScreen({
-  onSignIn, onSignUp, onGuest, onForgotPassword, isDark,
+  onSignIn, onSignUp, onGuest, onForgotPassword,
   authError = "", busy = false, awaitingConfirmation = false, resetEmailSent = false,
   initialMode = "signin", onBackToSignIn,
 }: LoginScreenProps) {
@@ -151,7 +150,7 @@ export function LoginScreen({
       <div className="flex-1 flex flex-col justify-center px-8 py-6">
         <AnimateIn>
           <div className="flex flex-col items-center text-center">
-            <img src={isDark ? cardChampsLogoDark : cardChampsLogo} alt="Card Champs" className="w-36 h-auto mb-6" draggable={false} />
+            <img src={cardChampsLogoDark} alt="Card Champs" className="w-36 h-auto mb-6" draggable={false} />
             <div className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center mb-4">
               <MailCheck className="w-6 h-6 text-emerald-600" />
             </div>
@@ -179,7 +178,7 @@ export function LoginScreen({
       <div className="flex-1 flex flex-col justify-center px-8 py-6">
         <AnimateIn>
           <div className="flex flex-col items-center text-center">
-            <img src={isDark ? cardChampsLogoDark : cardChampsLogo} alt="Card Champs" className="w-36 h-auto mb-6" draggable={false} />
+            <img src={cardChampsLogoDark} alt="Card Champs" className="w-36 h-auto mb-6" draggable={false} />
             <div className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center mb-4">
               <MailCheck className="w-6 h-6 text-emerald-600" />
             </div>
@@ -206,7 +205,7 @@ export function LoginScreen({
     <div className="flex-1 flex flex-col justify-center px-8 py-6">
       <AnimateIn>
         <div className="flex flex-col items-center mb-5">
-          <img src={isDark ? cardChampsLogoDark : cardChampsLogo} alt="Card Champs" className="w-36 h-auto mb-2" draggable={false} />
+          <img src={cardChampsLogoDark} alt="Card Champs" className="w-36 h-auto mb-2" draggable={false} />
           <h1 className="sr-only">Card Champs</h1>
           <p className="text-sm text-gray-400">
             {mode === "signin" ? "Welcome back, collector." : "Start building your collection."}
