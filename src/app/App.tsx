@@ -9,7 +9,7 @@ import { isSupabaseConfigured } from "./lib/supabase";
 import { useAuth } from "./auth/AuthProvider";
 import { useCollection } from "./data/useCollection";
 import { useCommunity, usePostComments } from "./data/useCommunity";
-import { usePeers } from "./data/usePeers";
+import { usePeers, usePeerProfile } from "./data/usePeers";
 import { useMessages, useConversationMessages } from "./data/useMessages";
 import { useMarket } from "./data/useMarket";
 import type { DbProfileStats } from "./data/repositories";
@@ -41,6 +41,7 @@ import { GettingStarted } from "./components/cards/GettingStarted";
 import { ChaseView } from "./components/cards/ChaseView";
 import { SellFlow } from "./components/market/SellFlow";
 import { ShareFlow } from "./components/shared/ShareFlow";
+import { PeerProfileSheet } from "./components/peers/PeerProfileSheet";
 import { ConfirmDialog } from "./components/shared/ConfirmDialog";
 import { CountUp } from "./components/shared/CountUp";
 import { ErrorState } from "./components/shared/ErrorState";
@@ -140,6 +141,9 @@ export default function App() {
   const [viewingPostId, setViewingPostId] = useState<string | null>(null);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [pickingNewMessage, setPickingNewMessage] = useState(false);
+  // Any collector tapped anywhere — post author, comment author, chat header —
+  // opens their profile sheet, not just the Connections roster.
+  const [viewingPeerId, setViewingPeerId] = useState<string | null>(null);
   const [editingProfile, setEditingProfile] = useState(false);
   const [openFolderId, setOpenFolderId] = useState<string | null>(null);
   const [cardQuery, setCardQuery] = useState("");
@@ -183,6 +187,7 @@ export default function App() {
     // to /messages, so clearing it unconditionally here would close the chat on
     // arrival. Only drop it when actually leaving the messages route.
     if (location.pathname !== "/messages") setActiveConversationId(null);
+    setViewingPeerId(null);
     setEditingProfile(false);
     setShowNewFolder(false);
     setSelectMode(false);
@@ -277,6 +282,43 @@ export default function App() {
 
   const viewingPost = viewingPostId !== null ? posts.find(p => p.id === viewingPostId) ?? null : null;
   const { comments: viewingPostComments, isLoading: commentsLoading } = usePostComments(viewingPostId);
+
+  /** Opens any collector's profile: own id routes to My Profile, roster peers
+   *  resolve from cache, and anyone else (a post author who isn't in the
+   *  discoverable roster yet) is fetched by id. */
+  const openPeerProfile = (profileId: string | null | undefined) => {
+    if (!profileId) return;
+    if (profileId === user?.id) {
+      navigate("/profile");
+      return;
+    }
+    setViewingPeerId(profileId);
+  };
+  const knownViewingPeer = viewingPeerId ? allCollectors.find(p => p.profileId === viewingPeerId) ?? null : null;
+  const { peer: fetchedViewingPeer, isFetched: viewingPeerFetched } =
+    usePeerProfile(viewingPeerId && !knownViewingPeer ? viewingPeerId : null);
+  const viewingPeer = knownViewingPeer ?? fetchedViewingPeer;
+
+  // A profile RLS hides (non-discoverable) fetches as null — explain rather
+  // than leaving a tap that silently does nothing.
+  useEffect(() => {
+    if (viewingPeerId && !knownViewingPeer && viewingPeerFetched && !fetchedViewingPeer) {
+      setViewingPeerId(null);
+      showToast("That collector's profile is private");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewingPeerId, knownViewingPeer, viewingPeerFetched, fetchedViewingPeer]);
+
+  // Rendered in every branch a profile can be opened from (main tabs and the
+  // messages route both return before the shared overlay block).
+  const peerProfileOverlay = viewingPeerId && viewingPeer ? (
+    <PeerProfileSheet
+      peer={viewingPeer}
+      onClose={() => setViewingPeerId(null)}
+      isFollowing={isFollowing(viewingPeer.profileId)}
+      onToggleFollow={() => handleToggleFollow(viewingPeer)}
+    />
+  ) : null;
 
   // The server decides what has been earned, from real counts, so the
   // celebration can only fire for something it actually recorded.
@@ -788,9 +830,36 @@ export default function App() {
               onOpenConversation={setActiveConversationId}
               onStartConversation={openChatWith}
               onNewMessage={() => setPickingNewMessage(true)}
+              onOpenProfile={openPeerProfile}
             />
           </Suspense>
           )}
+          {pickingNewMessage && (
+            <Suspense fallback={LOADING_FALLBACK}>
+              <NewMessageSheet
+                collectors={allCollectors}
+                existingPeerIds={peersWithConversation}
+                isFollowing={isFollowing}
+                onClose={() => setPickingNewMessage(false)}
+                onPick={peer => { setPickingNewMessage(false); void openChatWith(peer); }}
+              />
+            </Suspense>
+          )}
+          {activeConversation && (
+            <Suspense fallback={LOADING_FALLBACK}>
+              <ChatView
+                conversation={activeConversation}
+                messages={activeMessages}
+                isLoading={messagesLoading}
+                currentUserId={user?.id ?? ""}
+                onBack={() => setActiveConversationId(null)}
+                onSend={text => handleSendMessage(activeConversation.id, text)}
+                onMarkRead={() => markRead.mutate(activeConversation.id)}
+                onOpenProfile={() => openPeerProfile(activeConversation.peerId)}
+              />
+            </Suspense>
+          )}
+          {peerProfileOverlay}
         </div>
       </div>
     );
@@ -1114,6 +1183,7 @@ export default function App() {
               topics={topics}
               ready={communityReady}
               onOpenPost={post => setViewingPostId(post.id)}
+              onOpenProfile={openPeerProfile}
               showToast={showToast}
             />
           </Suspense>
@@ -1261,33 +1331,14 @@ export default function App() {
             onToggleLike={() => handleToggleReaction(viewingPost, "like")}
             onToggleDislike={() => handleToggleReaction(viewingPost, "dislike")}
             onAddComment={text => handleAddComment(viewingPost.id, text)}
+            onOpenProfile={openPeerProfile}
           />
         </Suspense>
       )}
-      {pickingNewMessage && (
-        <Suspense fallback={LOADING_FALLBACK}>
-          <NewMessageSheet
-            collectors={allCollectors}
-            existingPeerIds={peersWithConversation}
-            isFollowing={isFollowing}
-            onClose={() => setPickingNewMessage(false)}
-            onPick={peer => { setPickingNewMessage(false); void openChatWith(peer); }}
-          />
-        </Suspense>
-      )}
-      {activeConversation && (
-        <Suspense fallback={LOADING_FALLBACK}>
-          <ChatView
-            conversation={activeConversation}
-            messages={activeMessages}
-            isLoading={messagesLoading}
-            currentUserId={user?.id ?? ""}
-            onBack={() => setActiveConversationId(null)}
-            onSend={text => handleSendMessage(activeConversation.id, text)}
-            onMarkRead={() => markRead.mutate(activeConversation.id)}
-          />
-        </Suspense>
-      )}
+      {/* ChatView and NewMessageSheet render inside the /messages branch — this
+          main return never renders on that route, so copies here were dead code
+          (and the reason conversation taps used to show nothing). */}
+      {peerProfileOverlay}
       {editingCard && (
         <EditCardSheet
           card={editingCard}

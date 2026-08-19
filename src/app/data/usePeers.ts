@@ -70,6 +70,18 @@ export function usePeers() {
   };
 }
 
+/** One collector's public profile stats, for opening a profile from anywhere
+ *  (post author, comment author, chat header) — not just the peers roster.
+ *  Resolves null for non-discoverable profiles, which RLS hides. */
+export function usePeerProfile(profileId: string | null) {
+  const statsQ = useQuery({
+    queryKey: ["peer-profile", profileId],
+    queryFn: () => repo.fetchProfileStats(profileId as string),
+    enabled: !!profileId,
+  });
+  return { peer: statsQ.data ?? null, isFetched: statsQ.isFetched };
+}
+
 /** A peer's public collection, loaded only when their profile is opened. */
 export function usePeerCards(profileId: string | null) {
   const cardsQ = useQuery({

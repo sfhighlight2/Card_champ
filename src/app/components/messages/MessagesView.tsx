@@ -14,12 +14,15 @@ interface MessagesViewProps {
   onBack: () => void;
   onOpenConversation: (conversationId: string) => void;
   onStartConversation: (peer: DbProfileStats) => void;
+  /** Tapping a conversation's avatar opens the peer's profile; the row itself
+   *  still opens the chat. */
+  onOpenProfile: (peerId: string) => void;
   /** Opens the full collector picker. */
   onNewMessage: () => void;
 }
 
 export function MessagesView({
-  conversations, suggested, ready, currentUserId, onBack, onOpenConversation, onStartConversation, onNewMessage,
+  conversations, suggested, ready, currentUserId, onBack, onOpenConversation, onStartConversation, onNewMessage, onOpenProfile,
 }: MessagesViewProps) {
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
@@ -64,7 +67,12 @@ export function MessagesView({
                 <AnimateIn key={c.id} delay={i * 60}>
                   <button onClick={() => onOpenConversation(c.id)}
                     className="w-full flex items-center gap-3 py-3 text-left" style={{ borderBottom: "1px solid #1c2740" }}>
-                    <div className="relative flex-shrink-0">
+                    <span
+                      role={c.peerId ? "button" : undefined}
+                      onClick={c.peerId ? e => { e.stopPropagation(); onOpenProfile(c.peerId as string); } : undefined}
+                      className="relative flex-shrink-0 block"
+                      aria-label={c.peerId ? `View ${c.peerName}'s profile` : undefined}
+                    >
                       <Avatar src={c.peerAvatar} name={c.peerName} size={44} className="w-11 h-11 rounded-full object-cover" />
                       {c.unread > 0 && (
                         <span
@@ -74,7 +82,7 @@ export function MessagesView({
                           {c.unread > 9 ? "9+" : c.unread}
                         </span>
                       )}
-                    </div>
+                    </span>
                     <div className="flex-1 min-w-0">
                       <p className={`text-sm text-gray-900 ${c.unread > 0 ? "font-bold" : "font-semibold"}`}>{c.peerName}</p>
                       <p className={`text-xs truncate ${c.unread > 0 ? "text-gray-600 font-medium" : "text-gray-400"}`}>{preview}</p>

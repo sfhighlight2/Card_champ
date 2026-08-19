@@ -16,6 +16,8 @@ interface ThreadViewProps {
   onToggleLike: () => void;
   onToggleDislike: () => void;
   onAddComment: (text: string) => void;
+  /** Opens a collector's profile from the post's or a comment's author row. */
+  onOpenProfile?: (profileId: string) => void;
 }
 
 function Badge({ label, size = "xs" }: { label: "PRO" | "HOF"; size?: "xs" | "2xs" }) {
@@ -28,7 +30,7 @@ function Badge({ label, size = "xs" }: { label: "PRO" | "HOF"; size?: "xs" | "2x
 
 export function ThreadView({
   post, comments, commentsLoading, profile, canWrite,
-  onClose, onToggleLike, onToggleDislike, onAddComment,
+  onClose, onToggleLike, onToggleDislike, onAddComment, onOpenProfile,
 }: ThreadViewProps) {
   useEscapeClose(onClose);
   const [commentText, setCommentText] = useState("");
@@ -51,16 +53,21 @@ export function ThreadView({
       </div>
 
       <div className="flex-1 overflow-y-auto px-6 py-5" style={{ scrollbarWidth: "none" }}>
-        <div className="flex items-center gap-2.5 mb-3">
+        <button
+          onClick={onOpenProfile ? () => onOpenProfile(post.authorId) : undefined}
+          disabled={!onOpenProfile}
+          className="flex items-center gap-2.5 mb-3 w-full text-left focus:outline-none"
+          aria-label={`View ${post.authorName}'s profile`}
+        >
           <Avatar src={post.authorAvatar} name={post.authorName} size={40} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1.5">
+          <span className="min-w-0 flex-1">
+            <span className="flex items-center gap-1.5">
               <span className="text-sm font-semibold text-gray-900 truncate">{post.authorName}</span>
               {badge && <Badge label={badge} />}
-            </div>
-            <p className="text-xs text-gray-400">{post.authorHandle} · {relativeTime(Date.parse(post.createdAt))}</p>
-          </div>
-        </div>
+            </span>
+            <span className="block text-xs text-gray-400">{post.authorHandle} · {relativeTime(Date.parse(post.createdAt))}</span>
+          </span>
+        </button>
 
         <p className="text-sm text-gray-800 mb-4 leading-relaxed">{post.body}</p>
 
@@ -88,7 +95,14 @@ export function ThreadView({
           <div className="flex flex-col gap-4">
             {comments.map(c => (
               <div key={c.id} className="flex items-start gap-2.5">
-                <Avatar src={c.authorAvatar} name={c.authorName} size={32} className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
+                <button
+                  onClick={onOpenProfile ? () => onOpenProfile(c.authorId) : undefined}
+                  disabled={!onOpenProfile}
+                  className="flex-shrink-0 focus:outline-none"
+                  aria-label={`View ${c.authorName}'s profile`}
+                >
+                  <Avatar src={c.authorAvatar} name={c.authorName} size={32} className="w-8 h-8 rounded-full object-cover" />
+                </button>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
                     <span className="text-xs font-semibold text-gray-900">{c.authorName}</span>

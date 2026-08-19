@@ -7,9 +7,11 @@ import { Avatar } from "../shared/Avatar";
 interface PostCardProps {
   post: FeedPost;
   onOpen: () => void;
+  /** Tapping the author row opens their profile instead of the thread. */
+  onAuthorClick?: () => void;
 }
 
-export function PostCard({ post, onOpen }: PostCardProps) {
+export function PostCard({ post, onOpen, onAuthorClick }: PostCardProps) {
   // Derived from the author's earned achievements, the same way the profile
   // header derives its own tier — no per-handle badge map.
   const badge = authorBadgeFor(post.authorAchievements);
@@ -38,13 +40,19 @@ export function PostCard({ post, onOpen }: PostCardProps) {
       </p>
 
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0">
+        {/* span, not button: the whole card is already a button, and nested
+            buttons are invalid HTML. */}
+        <span
+          role={onAuthorClick ? "button" : undefined}
+          onClick={onAuthorClick ? e => { e.stopPropagation(); onAuthorClick(); } : undefined}
+          className="flex items-center gap-2 min-w-0"
+        >
           <Avatar src={post.authorAvatar} name={post.authorName} size={24} className="w-6 h-6 rounded-full object-cover flex-shrink-0" />
           <span className="text-xs font-semibold text-gray-700 truncate">@{post.authorHandle.replace(/^@/, "")}</span>
           {badge && (
             <span className={`tier-tag tier-tag-${badge.toLowerCase()} text-[10px] flex-shrink-0`}>{badge}</span>
           )}
-        </div>
+        </span>
         <div className="flex items-center gap-3 flex-shrink-0 text-gray-400">
           <span className="flex items-center gap-1 text-xs font-semibold"><ThumbsUp className="w-3.5 h-3.5" />{post.likes}</span>
           <span className="flex items-center gap-1 text-xs font-semibold"><MessageCircle className="w-3.5 h-3.5" />{post.comments}</span>

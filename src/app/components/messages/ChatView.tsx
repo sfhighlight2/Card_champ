@@ -14,10 +14,12 @@ interface ChatViewProps {
   onSend: (text: string) => void;
   /** Advances `last_read_at`, which is what the unread count derives from. */
   onMarkRead: () => void;
+  /** Tapping the header's name/avatar opens the peer's profile. */
+  onOpenProfile?: () => void;
 }
 
 export function ChatView({
-  conversation, messages, isLoading, currentUserId, onBack, onSend, onMarkRead,
+  conversation, messages, isLoading, currentUserId, onBack, onSend, onMarkRead, onOpenProfile,
 }: ChatViewProps) {
   useEscapeClose(onBack);
   const [text, setText] = useState("");
@@ -51,11 +53,18 @@ export function ChatView({
         <button onClick={onBack} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100" aria-label="Back">
           <ChevronLeft className="w-4 h-4 text-gray-600" />
         </button>
-        <Avatar src={conversation.peerAvatar} name={conversation.peerName} size={32} className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
-        <div className="min-w-0">
-          <p className="text-sm font-semibold text-gray-900 truncate">{conversation.peerName}</p>
-          <p className="text-[11px] text-gray-400 truncate">{conversation.peerHandle}</p>
-        </div>
+        <button
+          onClick={onOpenProfile}
+          disabled={!onOpenProfile}
+          className="flex items-center gap-3 min-w-0 text-left focus:outline-none"
+          aria-label={`View ${conversation.peerName}'s profile`}
+        >
+          <Avatar src={conversation.peerAvatar} name={conversation.peerName} size={32} className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
+          <span className="min-w-0">
+            <span className="block text-sm font-semibold text-gray-900 truncate">{conversation.peerName}</span>
+            <span className="block text-[11px] text-gray-400 truncate">{conversation.peerHandle}</span>
+          </span>
+        </button>
       </div>
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-5 flex flex-col gap-3" style={{ scrollbarWidth: "none" }}>
