@@ -89,7 +89,7 @@ export function SellFlow({ onClose, allCards, onCreate }: SellFlowProps) {
 
         <div className="flex items-center justify-between px-6 pt-4 mb-5">
           <div className="flex-1 flex items-center gap-1 mr-4">
-            {STEPS.map((_, i) => <div key={i} className="flex-1 h-1 rounded-full transition-all duration-300" style={{ background: step > i ? "#111" : "#f0f0f0" }} />)}
+            {STEPS.map((_, i) => <div key={i} className="flex-1 h-1 rounded-full transition-all duration-300" style={{ background: step > i ? "#39558e" : "#26324a" }} />)}
           </div>
           <span className="text-xs text-gray-400 mr-3">{step}/{STEPS.length}</span>
           <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100" aria-label="Close">
@@ -118,9 +118,9 @@ export function SellFlow({ onClose, allCards, onCreate }: SellFlowProps) {
               <div className="grid grid-cols-3 md:grid-cols-4 gap-2 mb-5">
                 {filteredCards.map(card => (
                   <button key={card.id} onClick={() => setSelectedCard(card)} className="relative focus:outline-none group">
-                    <div className="overflow-hidden transition-all" style={{ outline: selectedCard?.id === card.id ? "2px solid #111" : "2px solid transparent", outlineOffset: 2 }}>
+                    <div className="overflow-hidden transition-all" style={{ outline: selectedCard?.id === card.id ? "2px solid #dce4f6" : "2px solid transparent", outlineOffset: 2 }}>
                       {card.img
-                        ? <img src={card.img} alt={card.player} className="w-full block" style={{ objectFit: "contain", background: "#f4f4f5" }} draggable={false} />
+                        ? <img src={card.img} alt={card.player} className="w-full block" style={{ objectFit: "contain", background: "#1d2534" }} draggable={false} />
                         : <div className="w-full flex items-center justify-center py-4" style={{ background: GRADER_COLOR[card.grader]||"#888", aspectRatio:"2.5/3.5" }}><span className="text-white text-[9px] text-center px-1">{card.player}</span></div>
                       }
                     </div>
@@ -147,7 +147,7 @@ export function SellFlow({ onClose, allCards, onCreate }: SellFlowProps) {
 
               <div className="flex items-center gap-3 p-3 rounded-2xl bg-gray-50 mb-5">
                 {selectedCard.img
-                  ? <img src={selectedCard.img} alt={selectedCard.player} className="w-12 flex-shrink-0" style={{ objectFit: "contain", background: "#ebebeb" }} draggable={false} />
+                  ? <img src={selectedCard.img} alt={selectedCard.player} className="w-12 flex-shrink-0" style={{ objectFit: "contain", background: "#1a2333" }} draggable={false} />
                   : <div className="w-12 h-16 flex-shrink-0 flex items-center justify-center rounded" style={{ background: GRADER_COLOR[selectedCard.grader]||"#888" }}><span className="text-white text-[8px] text-center px-0.5">{selectedCard.player}</span></div>
                 }
                 <div>
@@ -157,7 +157,7 @@ export function SellFlow({ onClose, allCards, onCreate }: SellFlowProps) {
                 </div>
               </div>
 
-              <div className="flex items-start gap-2.5 p-3 rounded-2xl mb-4" style={{ background: "#f8fafc" }}>
+              <div className="flex items-start gap-2.5 p-3 rounded-2xl mb-4" style={{ background: "#131c2e" }}>
                 <Store className="w-4 h-4 flex-shrink-0 mt-0.5 text-slate-500" />
                 <p className="text-xs text-slate-600 leading-relaxed">
                   This lists the card on Card Champs, visible to other collectors. It doesn't post to
@@ -195,10 +195,10 @@ export function SellFlow({ onClose, allCards, onCreate }: SellFlowProps) {
               <p className="text-sm text-gray-400 mb-5">Everything looks good?</p>
 
               <div className="rounded-2xl overflow-hidden mb-5 bg-gray-50">
-                <div className="h-1 w-full" style={{ background: GRADER_COLOR[selectedCard.grader] || "#111" }} />
+                <div className="h-1 w-full" style={{ background: GRADER_COLOR[selectedCard.grader] || "#1d2e4e" }} />
                 <div className="flex items-center gap-4 p-4">
                   {selectedCard.img
-                    ? <img src={selectedCard.img} alt={selectedCard.player} className="w-16 flex-shrink-0" style={{ objectFit: "contain", background: "#ebebeb" }} draggable={false} />
+                    ? <img src={selectedCard.img} alt={selectedCard.player} className="w-16 flex-shrink-0" style={{ objectFit: "contain", background: "#1a2333" }} draggable={false} />
                     : <div className="w-16 h-20 flex-shrink-0 flex items-center justify-center rounded" style={{ background: GRADER_COLOR[selectedCard.grader]||"#888" }}><span className="text-white text-[8px] text-center px-1">{selectedCard.player}</span></div>
                   }
                   <div className="flex-1">

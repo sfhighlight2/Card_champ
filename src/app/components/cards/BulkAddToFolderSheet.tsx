@@ -17,7 +17,7 @@ export function BulkAddToFolderSheet({ folders, count, onClose, onPick }: BulkAd
         <div className="flex justify-center pt-3 md:hidden"><div className="w-8 h-1 rounded-full bg-gray-200" /></div>
         <div className="flex items-center justify-between px-6 pt-4 pb-3">
           <div>
-            <h2 className="text-base font-semibold text-gray-900">Add to folder</h2>
+            <h2 className="text-base font-semibold text-gray-900">Add to collection</h2>
             <p className="text-xs text-gray-400 mt-0.5">{count} card{count !== 1 ? "s" : ""} selected</p>
           </div>
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100" aria-label="Close">
@@ -26,7 +26,7 @@ export function BulkAddToFolderSheet({ folders, count, onClose, onPick }: BulkAd
         </div>
         <div className="px-6 pb-8 overflow-y-auto" style={{ scrollbarWidth: "none", maxHeight: "calc(70dvh - 80px)" }}>
           {folders.length === 0 ? (
-            <p className="text-sm text-gray-400 py-8 text-center">No folders yet. Create one from the Folders tab first.</p>
+            <p className="text-sm text-gray-400 py-8 text-center">No collections yet. Create one from the Collections tab first.</p>
           ) : (
             <div className="flex flex-col gap-1.5">
               {folders.map(folder => (

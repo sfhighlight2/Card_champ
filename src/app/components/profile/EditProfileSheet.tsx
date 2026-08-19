@@ -57,7 +57,7 @@ export function EditProfileSheet({ profile, onClose, onSave }: EditProfileSheetP
             <X className="w-4 h-4 text-gray-500" />
           </button>
           <h2 className="text-base font-semibold text-gray-900">Edit Profile</h2>
-          <button onClick={save} className="px-4 py-2 rounded-full text-xs font-bold text-white" style={{ background: "#111" }}>Save</button>
+          <button onClick={save} className="px-4 py-2 rounded-full text-xs font-bold text-white" style={{ background: "#1d2e4e" }}>Save</button>
         </div>
 
         <div className="px-6 pb-8 overflow-y-auto" style={{ maxHeight: "calc(88dvh - 76px)", scrollbarWidth: "none" }}>

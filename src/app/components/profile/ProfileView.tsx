@@ -86,7 +86,7 @@ export function ProfileView({ profile, cards, levelInfo, changePct, onBack, onEd
         ) : (
           <div className="grid grid-cols-3 gap-3 mb-8">
             {featured.map(card => (
-              <div key={card.id} className="rounded-xl overflow-hidden" style={{ background: "#f4f4f5" }}>
+              <div key={card.id} className="rounded-xl overflow-hidden" style={{ background: "#1d2534" }}>
                 <CardThumb card={card} />
               </div>
             ))}

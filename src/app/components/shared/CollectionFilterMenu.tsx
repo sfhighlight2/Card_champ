@@ -124,7 +124,7 @@ function Segmented({ options, value, onChange }: { options: { v: string; label: 
       {options.map(o => (
         <button key={o.v} onClick={() => onChange(o.v)}
           className="flex-1 py-2 rounded-xl text-xs font-semibold transition-colors"
-          style={{ background: value === o.v ? "#111" : "transparent", color: value === o.v ? "#fff" : "#6b7280" }}>
+          style={{ background: value === o.v ? "#1d2e4e" : "transparent", color: value === o.v ? "#fff" : "#8492ac" }}>
           {o.label}
         </button>
       ))}
@@ -138,7 +138,7 @@ function ToggleRow({ icon, label, checked, disabled = false, onChange }: { icon:
       className="w-full flex items-center gap-3 py-2.5 text-left disabled:opacity-40">
       <span className="text-gray-500 flex-shrink-0">{icon}</span>
       <span className="flex-1 text-sm font-medium text-gray-800">{label}</span>
-      <span className="w-10 h-6 rounded-full flex items-center transition-colors flex-shrink-0 px-0.5" style={{ background: checked ? "#111" : "#e5e7eb", justifyContent: checked ? "flex-end" : "flex-start" }}>
+      <span className="w-10 h-6 rounded-full flex items-center transition-colors flex-shrink-0 px-0.5" style={{ background: checked ? "#1d2e4e" : "#33415e", justifyContent: checked ? "flex-end" : "flex-start" }}>
         <span className="w-5 h-5 rounded-full bg-white shadow-sm" />
       </span>
     </button>

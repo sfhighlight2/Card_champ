@@ -84,6 +84,7 @@
  */
 .bg-white { background-color: var(--panel); }
 .bg-gray-50 { background-color: #121a2b; }
+.hover\:bg-gray-50:hover { background-color: #1a2438; }
 .bg-gray-100 { background-color: var(--surface); }
 .bg-gray-200 { background-color: var(--surface-2); }
 .hover\:bg-gray-200:hover { background-color: var(--surface-2); }

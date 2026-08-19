@@ -72,10 +72,10 @@ export function FolderDetailView({ folder, onBack, onSetCards, onSetThumbnail, a
           {menuOpen && (
             <div className="absolute right-0 top-9 z-20 w-40 rounded-2xl bg-white shadow-lg border border-gray-100 overflow-hidden">
               <button onClick={() => { setMenuOpen(false); onEdit(); }} className="w-full flex items-center gap-2 px-4 py-3 text-sm text-gray-700 text-left">
-                <Pencil className="w-3.5 h-3.5" />Edit folder
+                <Pencil className="w-3.5 h-3.5" />Edit collection
               </button>
               <button onClick={() => { setMenuOpen(false); onDelete(); }} className="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-600 text-left border-t border-gray-100">
-                <Trash2 className="w-3.5 h-3.5" />Delete folder
+                <Trash2 className="w-3.5 h-3.5" />Delete collection
               </button>
             </div>
           )}
@@ -86,7 +86,7 @@ export function FolderDetailView({ folder, onBack, onSetCards, onSetThumbnail, a
         {cards.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 gap-3">
             <Folder className="w-8 h-8 text-gray-200" />
-            <p className="text-sm text-gray-400">No cards in this folder</p>
+            <p className="text-sm text-gray-400">No cards in this collection</p>
             <button onClick={() => setAddingCards(true)} className="px-4 py-2 rounded-full bg-gray-950 text-white text-xs font-semibold">Add Cards</button>
           </div>
         ) : (
@@ -114,7 +114,7 @@ export function FolderDetailView({ folder, onBack, onSetCards, onSetThumbnail, a
             <div className="grid grid-cols-3 md:grid-cols-4 gap-3 px-6 pb-10 overflow-y-auto" style={{ scrollbarWidth: "none", maxHeight: "calc(80dvh - 80px)" }}>
               {allCards.map(card => (
                 <button key={card.id} onClick={() => toggleCard(card.id)} className="relative focus:outline-none">
-                  <div className="overflow-hidden" style={{ outline: folder.cardIds.includes(card.id) ? "2px solid #111" : "2px solid transparent", outlineOffset: "2px" }}>
+                  <div className="overflow-hidden" style={{ outline: folder.cardIds.includes(card.id) ? "2px solid #dce4f6" : "2px solid transparent", outlineOffset: "2px" }}>
                     <CardThumb card={card} />
                   </div>
                   {folder.cardIds.includes(card.id) && (
@@ -142,13 +142,13 @@ export function FolderDetailView({ folder, onBack, onSetCards, onSetThumbnail, a
             <div className="grid grid-cols-4 gap-2 px-6 pb-10 overflow-y-auto" style={{ scrollbarWidth: "none", maxHeight: "calc(70dvh - 80px)" }}>
               <button onClick={() => { onSetThumbnail(null); setChangingThumb(false); }}
                 className="aspect-square rounded-xl flex items-center justify-center"
-                style={{ background: folder.color, outline: !folder.thumbnailCopyId ? "2px solid #111" : "none", outlineOffset: "2px" }}>
+                style={{ background: folder.color, outline: !folder.thumbnailCopyId ? "2px solid #dce4f6" : "none", outlineOffset: "2px" }}>
                 <Folder className="w-5 h-5 text-white" />
               </button>
               {allCards.map(card => (
                 <button key={card.id} onClick={() => { onSetThumbnail(card.id); setChangingThumb(false); }}
                   className="overflow-hidden"
-                  style={{ outline: folder.thumbnailCopyId === card.id ? "2px solid #111" : "2px solid transparent", outlineOffset: "2px" }}>
+                  style={{ outline: folder.thumbnailCopyId === card.id ? "2px solid #dce4f6" : "2px solid transparent", outlineOffset: "2px" }}>
                   <CardThumb card={card} />
                 </button>
               ))}

@@ -88,7 +88,7 @@ export function ShareSheet({ title, subtitle, onClose }: ShareSheetProps) {
               key={i}
               onClick={t.action}
               className="w-full flex items-center gap-4 py-3.5 text-left focus:outline-none"
-              style={{ borderBottom: i < targets.length - 1 ? "1px solid #f4f4f5" : "none" }}
+              style={{ borderBottom: i < targets.length - 1 ? "1px solid #1c2740" : "none" }}
             >
               <div className="w-9 h-9 rounded-2xl bg-gray-50 flex items-center justify-center flex-shrink-0">
                 {t.icon}

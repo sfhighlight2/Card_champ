@@ -15,7 +15,7 @@ export function CardThumb({ card, className = "w-full" }: { card: Card; classNam
         src={card.img}
         alt={card.player}
         className={`${className} block`}
-        style={{ objectFit: "contain", background: "#f4f4f5" }}
+        style={{ objectFit: "contain", background: "#1d2534" }}
         draggable={false}
       />
     );

@@ -53,7 +53,7 @@ export function CardTile({ card, onClick, index = 0, selectMode = false, selecte
             ...tilt.style,
             transformStyle: "preserve-3d",
             willChange: "transform",
-            outline: selectMode && selected ? "2px solid #111" : "2px solid transparent",
+            outline: selectMode && selected ? "2px solid #dce4f6" : "2px solid transparent",
             outlineOffset: 2,
             opacity: selectMode && !selected ? 0.55 : 1,
             scale: pressed ? "0.96" : "1",
@@ -68,7 +68,7 @@ export function CardTile({ card, onClick, index = 0, selectMode = false, selecte
           className="relative w-full overflow-hidden"
         >
         {img
-          ? <img src={img} alt={card.player} className="w-full block" style={{ objectFit: "contain", background: "#f4f4f5" }} draggable={false} onError={() => setFailedSrc(img)} />
+          ? <img src={img} alt={card.player} className="w-full block" style={{ objectFit: "contain", background: "#1d2534" }} draggable={false} onError={() => setFailedSrc(img)} />
           : <div className="w-full flex flex-col items-center justify-center gap-1 px-1" style={{ background: gradingColor(card), aspectRatio: "2.5/3.5" }}>
               <span className="text-white font-semibold text-[10px] text-center leading-tight">{card.player}</span>
               <span className="text-white/70 text-[9px]">{card.year}</span>
@@ -84,7 +84,7 @@ export function CardTile({ card, onClick, index = 0, selectMode = false, selecte
         }
         <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(circle at var(--glare-x,50%) var(--glare-y,50%), rgba(255,255,255,0.18) 0%, transparent 65%)" }} />
         {selectMode && (
-          <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full flex items-center justify-center" style={{ background: selected ? "#111" : "rgba(255,255,255,0.85)", border: selected ? "none" : "1.5px solid #d1d5db" }}>
+          <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full flex items-center justify-center" style={{ background: selected ? "#1d2e4e" : "rgba(255,255,255,0.85)", border: selected ? "none" : "1.5px solid #4a5c82" }}>
             {selected && (
               <svg viewBox="0 0 10 10" className="w-2.5 h-2.5" fill="none">
                 <path d="M2 5l2 2 4-4" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />

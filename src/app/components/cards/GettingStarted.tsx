@@ -77,7 +77,7 @@ export function GettingStarted({ achievements, onDismiss, onGo }: GettingStarted
               >
                 <span
                   className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
-                  style={{ background: complete ? "#111111" : isNext ? "#f0fdf4" : "#f4f4f5" }}
+                  style={{ background: complete ? "#111111" : isNext ? "#f0fdf4" : "#1d2534" }}
                 >
                   {complete
                     ? <Check className="w-3.5 h-3.5 text-white" />

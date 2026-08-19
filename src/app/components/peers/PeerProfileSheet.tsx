@@ -33,7 +33,7 @@ export function PeerProfileSheet({ peer, onClose, isFollowing, onToggleFollow }:
   const CardButton = ({ card, className }: { card: Card; className?: string }) => (
     <button
       className={`overflow-hidden focus:outline-none active:opacity-80 ${className ?? ""}`}
-      style={{ background: "#f4f4f5" }}
+      style={{ background: "#1d2534" }}
       onClick={() => setSelectedCardId(card.id)}
     >
       {card.img
@@ -115,7 +115,7 @@ export function PeerProfileSheet({ peer, onClose, isFollowing, onToggleFollow }:
               <button
                 onClick={onToggleFollow}
                 className="px-4 py-2 rounded-full text-xs font-semibold transition-all"
-                style={{ background: isFollowing ? "#f4f4f5" : "#111", color: isFollowing ? "#888" : "#fff" }}
+                style={{ background: isFollowing ? "#1d2534" : "#1d2e4e", color: isFollowing ? "#8492ac" : "#fff" }}
               >
                 {/* "Connect", matching the Connections tab and the PeersView
                     buttons — the same action was labelled "Follow" only here. */}

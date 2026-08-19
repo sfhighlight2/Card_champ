@@ -92,7 +92,7 @@ export function InsightsView({ cards, changePct }: InsightsViewProps) {
                 <YAxis hide domain={["dataMin", "dataMax"]} />
                 <Tooltip
                   formatter={(v: number) => [`$${v.toLocaleString()}`, "Value"]}
-                  contentStyle={{ fontSize: 11, borderRadius: 8, border: "none", background: "#fff", color: "#111" }}
+                  contentStyle={{ fontSize: 11, borderRadius: 8, border: "none", background: "#fff", color: "#1d2e4e" }}
                   labelStyle={{ color: "#9ca3af" }}
                 />
                 <Area type="monotone" dataKey="v" stroke="#34d399" strokeWidth={2} fill="url(#trendFill)" />

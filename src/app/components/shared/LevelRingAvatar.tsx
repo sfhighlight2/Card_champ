@@ -55,7 +55,8 @@ export function LevelRingAvatar({ avatar, name, size = 128, xpFraction, tier, on
     >
       <style>{`@keyframes levelRingGlow { 0%,100%{opacity:0.85} 50%{opacity:1} }`}</style>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="absolute inset-0 -rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#eef0f3" strokeWidth={stroke} />
+        {/* Track tuned for the navy ground rather than the old white page. */}
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(220,228,246,0.12)" strokeWidth={stroke} />
         <circle
           cx={size / 2} cy={size / 2} r={r} fill="none" stroke={`url(#${gradientId})`} strokeWidth={stroke} strokeLinecap="round"
           strokeDasharray={c} strokeDashoffset={c * (1 - fill)}
@@ -76,7 +77,7 @@ export function LevelRingAvatar({ avatar, name, size = 128, xpFraction, tier, on
         className="absolute rounded-full object-cover"
         style={{
           top: inset, left: inset, width: size - inset * 2, height: size - inset * 2,
-          boxShadow: "0 0 0 3px #fff, 0 4px 12px rgba(0,0,0,0.12)",
+          boxShadow: "0 0 0 3px rgba(16,24,40,0.9), 0 4px 12px rgba(0,0,0,0.4)",
         }}
       />
       {showCameraBadge && (
@@ -87,7 +88,7 @@ export function LevelRingAvatar({ avatar, name, size = 128, xpFraction, tier, on
             height: size * 0.24,
             right: size * 0.02,
             bottom: size * 0.02,
-            boxShadow: "0 0 0 3px #fff",
+            boxShadow: "0 0 0 3px rgba(16,24,40,0.9)",
           }}
         >
           <Camera style={{ width: size * 0.12, height: size * 0.12 }} className="text-white" />

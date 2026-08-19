@@ -63,7 +63,7 @@ export function MessagesView({
               return (
                 <AnimateIn key={c.id} delay={i * 60}>
                   <button onClick={() => onOpenConversation(c.id)}
-                    className="w-full flex items-center gap-3 py-3 text-left" style={{ borderBottom: "1px solid #f4f4f5" }}>
+                    className="w-full flex items-center gap-3 py-3 text-left" style={{ borderBottom: "1px solid #1c2740" }}>
                     <div className="relative flex-shrink-0">
                       <Avatar src={c.peerAvatar} name={c.peerName} size={44} className="w-11 h-11 rounded-full object-cover" />
                       {c.unread > 0 && (
@@ -95,7 +95,7 @@ export function MessagesView({
             <div className="flex flex-col">
               {suggested.map((peer, i) => (
                 <AnimateIn key={peer.profileId} delay={i * 60}>
-                  <div className="flex items-center gap-3 py-3" style={{ borderBottom: "1px solid #f4f4f5" }}>
+                  <div className="flex items-center gap-3 py-3" style={{ borderBottom: "1px solid #1c2740" }}>
                     <Avatar src={peer.avatar} name={peer.displayName} size={40} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-gray-900">{peer.displayName}</p>

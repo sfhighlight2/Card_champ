@@ -55,7 +55,7 @@ export function ScanCardSheet({ onClose, onAdd }: ScanCardSheetProps) {
 
   const STEPS = ["Scan","Player","Card","Grading","Pricing","Review"];
   const gradeLabel  = GRADE_LABELS[grade] || "";
-  const graderColor = GRADER_COLOR[grader] || "#111";
+  const graderColor = GRADER_COLOR[grader] || "#1d2e4e";
 
 
   const next = () => setStep(s => s + 1);
@@ -125,7 +125,7 @@ export function ScanCardSheet({ onClose, onAdd }: ScanCardSheetProps) {
           <div className="flex-1 flex items-center gap-1 mr-4">
             {STEPS.map((_, i) => (
               <div key={i} className="flex-1 h-1 rounded-full transition-all duration-300"
-                style={{ background: step > i ? "#111" : "#f0f0f0" }} />
+                style={{ background: step > i ? "#39558e" : "#26324a" }} />
             ))}
           </div>
           <span className="text-xs text-gray-400 mr-3 flex-shrink-0">{step}/{STEPS.length}</span>
@@ -298,7 +298,7 @@ export function ScanCardSheet({ onClose, onAdd }: ScanCardSheetProps) {
                 {GRADERS.map(g => (
                   <button key={g} onClick={() => setGrader(g)}
                     className="py-3 rounded-2xl text-sm font-bold transition-all"
-                    style={{ background: grader === g ? (GRADER_COLOR[g] || "#111") : "#f4f4f5", color: grader === g ? "#fff" : "#888" }}>
+                    style={{ background: grader === g ? (GRADER_COLOR[g] || "#1d2e4e") : "#1d2534", color: grader === g ? "#fff" : "#8492ac" }}>
                     {g}
                   </button>
                 ))}
@@ -309,7 +309,7 @@ export function ScanCardSheet({ onClose, onAdd }: ScanCardSheetProps) {
                 {GRADES.map(g => (
                   <button key={g} onClick={() => setGrade(g)}
                     className="py-3 rounded-2xl text-sm font-bold transition-all"
-                    style={{ background: grade === g ? (graderColor) : "#f4f4f5", color: grade === g ? "#fff" : "#888" }}>
+                    style={{ background: grade === g ? (graderColor) : "#1d2534", color: grade === g ? "#fff" : "#8492ac" }}>
                     {g}
                   </button>
                 ))}

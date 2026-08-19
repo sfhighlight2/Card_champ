@@ -72,7 +72,7 @@ export function DetailSheet({ card, onClose, isPeer = false, cards = [], initial
                 {cards.map((_, i) => (
                   <button key={i} onClick={() => setIdx(i)} aria-label={`Card ${i + 1}`}
                     className="w-1.5 h-1.5 rounded-full transition-all"
-                    style={{ background: i === idx ? "#111" : "#e0e0e0", width: i === idx ? 16 : 6 }} />
+                    style={{ background: i === idx ? "#1d2e4e" : "#33415e", width: i === idx ? 16 : 6 }} />
                 ))}
               </div>
             )}
@@ -93,7 +93,7 @@ export function DetailSheet({ card, onClose, isPeer = false, cards = [], initial
                 className="relative overflow-hidden"
               >
                 {current.img
-                  ? <img src={current.img} alt={current.player} className="w-full block" style={{ objectFit: "contain", background: "#f4f4f5" }} draggable={false} />
+                  ? <img src={current.img} alt={current.player} className="w-full block" style={{ objectFit: "contain", background: "#1d2534" }} draggable={false} />
                   : <div className="w-full flex flex-col items-center justify-center gap-1 px-2" style={{ background: gradeColor, aspectRatio: "2.5/3.5" }}>
                       <span className="text-white font-semibold text-xs text-center">{current.player}</span>
                       {graded ? (

@@ -1,7 +1,7 @@
 import { useCallback, useState, useEffect, useRef, lazy, Suspense } from "react";
 import { useLocation, useNavigate } from "react-router";
 import {
-  Scan, X, Plus, Share2, Search, TrendingUp, TrendingDown, Users, UserPlus, LayoutGrid, Tag, ChevronLeft, ChevronUp, ChevronDown, Folder, SlidersHorizontal, Trash2, FolderPlus, Menu as MenuIcon, MessageCircle, AlertTriangle,
+  Scan, X, Plus, Share2, Search, TrendingUp, TrendingDown, Users, UserPlus, LayoutGrid, Tag, ChevronLeft, ChevronUp, ChevronDown, Folder, SlidersHorizontal, Trash2, FolderPlus, Menu as MenuIcon, MessageCircle, AlertTriangle, Eye, EyeOff,
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import type { Card, Chase, FeedPost, FolderType, MainTab, MarketListing } from "./types";
@@ -15,7 +15,7 @@ import { useMarket } from "./data/useMarket";
 import type { DbProfileStats } from "./data/repositories";
 import type { NewCardInput } from "./data/repositories";
 import { useLocalStorage } from "./hooks/useLocalStorage";
-import { computeLevel } from "./lib/level";
+import { computeLevel, TIER_LABELS } from "./lib/level";
 import { humanizeError } from "./lib/errors";
 import { formatCompact } from "./lib/format";
 import { filterCards, sortCards, SORT_OPTIONS, type SortKey } from "./lib/collectionSort";
@@ -24,7 +24,7 @@ import { ResetPasswordScreen } from "./components/auth/ResetPasswordScreen";
 import { AppMenu } from "./components/shared/AppMenu";
 import { LevelRingAvatar } from "./components/shared/LevelRingAvatar";
 import { Money } from "./components/shared/Money";
-import { TierMedallions } from "./components/shared/TierMedallions";
+import { TierTag, TIER_LAUREL } from "./components/shared/TierTag";
 import { CollectionDropdown } from "./components/shared/CollectionDropdown";
 import type { CollectionSection } from "./components/shared/CollectionDropdown";
 import { CollectionFilterMenu } from "./components/shared/CollectionFilterMenu";
@@ -445,7 +445,7 @@ export default function App() {
 
   const handleEditFolder = (folderId: string, name: string, color: string) => {
     setEditingFolderId(null);
-    void runWrite(updateFolder.mutateAsync({ id: folderId, name, color }), "Folder updated");
+    void runWrite(updateFolder.mutateAsync({ id: folderId, name, color }), "Collection updated");
   };
 
   const handleCreateFolder = (name: string, color: string, cardIds: string[]) => {
@@ -808,7 +808,7 @@ export default function App() {
         )}
 
         <div className="flex flex-col items-center px-7 pt-14 pb-3">
-          <div className="relative mb-14">
+          <div className="relative mb-6">
             <LevelRingAvatar
               avatar={profile.avatar}
               name={profile.name}
@@ -820,9 +820,17 @@ export default function App() {
               // affordance afterwards so it stays changeable.
               showCameraBadge={canWrite && !!stats}
             />
-            <div className="absolute left-1/2 -translate-x-1/2" style={{ bottom: -34 }}>
-              <TierMedallions levelInfo={levelInfo} />
-            </div>
+            {/* The laurel medal sits on the ring's bottom edge — and only once a
+                tier has actually been earned; a new account shows nothing. */}
+            {levelInfo.hasEarnedTier && (
+              <img
+                src={TIER_LAUREL[levelInfo.tier]}
+                alt={`${TIER_LABELS[levelInfo.tier]} tier`}
+                className="absolute left-1/2 -translate-x-1/2 w-14 h-auto pointer-events-none"
+                style={{ bottom: -20, filter: "drop-shadow(0 4px 10px rgba(0,0,0,0.45))" }}
+                draggable={false}
+              />
+            )}
           </div>
           <input
             ref={avatarInputRef}
@@ -836,22 +844,36 @@ export default function App() {
               e.target.value = "";
             }}
           />
-          <h1 className="text-2xl font-bold text-gray-900 leading-none tracking-tight">{profile.handle}</h1>
-          <p className="text-[15px] font-medium text-slate-500 mt-2 flex items-center gap-1.5 flex-wrap justify-center">
-            <span>
-              <CountUp to={cardCount} duration={1000} suffix=" cards" />
-            </span>
-            <span className="text-gray-300">·</span>
-            <span className="font-bold text-gray-900">
-              {hideValues ? <Money value={totalValue} hidden /> : <>$<CountUp to={totalValue} duration={1000} /></>}
-            </span>
-            <span className={`font-bold inline-flex items-center gap-0.5 ${changePct >= 0 ? "text-emerald-600" : "text-red-500"}`}>
-              {changePct >= 0 ? <ChevronUp className="w-3.5 h-3.5 stroke-[2.5]" /> : <ChevronDown className="w-3.5 h-3.5 stroke-[2.5]" />}
-              {Math.abs(changePct).toFixed(1)}%
-            </span>
-            <span className="text-gray-300">·</span>
-            <span>{followersLabel} followers</span>
+          <h1 className="text-2xl font-bold text-white leading-none tracking-tight">{profile.name}</h1>
+          <p className="text-[15px] font-medium mt-2 flex items-center gap-1.5">
+            <span style={{ color: "#99a1af" }}>{profile.handle}</span>
+            <TierTag levelInfo={levelInfo} />
           </p>
+
+          {/* The Cards / Value / Connections stat row from the design: thin
+              blue-bordered cells, muted labels, bold white values. */}
+          <div className="stat-row mt-5 w-full max-w-[380px] grid grid-cols-3 rounded-2xl overflow-hidden">
+            <div className="flex flex-col items-center py-3 px-2">
+              <span className="text-xs" style={{ color: "#99a1af" }}>Cards</span>
+              <span className="text-xl font-bold text-white mt-0.5">
+                <CountUp to={cardCount} duration={1000} />
+              </span>
+            </div>
+            <div className="flex flex-col items-center py-3 px-2">
+              <span className="text-xs" style={{ color: "#99a1af" }}>Value</span>
+              <span className="text-xl font-bold text-white mt-0.5">
+                {hideValues ? <Money value={totalValue} hidden /> : <>$<CountUp to={totalValue} duration={1000} /></>}
+              </span>
+              <span className={`text-[11px] font-bold inline-flex items-center gap-0.5 ${changePct >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+                {changePct >= 0 ? <ChevronUp className="w-3 h-3 stroke-[2.5]" /> : <ChevronDown className="w-3 h-3 stroke-[2.5]" />}
+                {Math.abs(changePct).toFixed(1)}%
+              </span>
+            </div>
+            <div className="flex flex-col items-center py-3 px-2">
+              <span className="text-xs" style={{ color: "#99a1af" }}>Connections</span>
+              <span className="text-xl font-bold text-white mt-0.5">{followersLabel}</span>
+            </div>
+          </div>
         </div>
 
         <div className="flex w-full items-center justify-between gap-1.5 px-7 md:w-auto md:justify-center md:gap-5 md:px-6 mb-4">
@@ -869,9 +891,9 @@ export default function App() {
             return (
               <button key={id} onClick={() => goTab(id)}
                 className={`flex flex-shrink-0 items-center gap-1.5 md:gap-2 text-xs md:text-[15px] font-semibold transition-all ${
-                  active ? "pl-3 pr-2.5 py-2 rounded-full bg-[#0d0d11] text-white font-bold shadow-sm md:pl-4 md:pr-3.5 md:py-2.5" : "text-slate-400 hover:text-slate-600"
+                  active ? "pill-active pl-3 pr-2.5 py-2 rounded-full font-bold shadow-sm md:pl-4 md:pr-3.5 md:py-2.5" : "text-slate-400 hover:text-slate-600"
                 }`}>
-                <Icon className="w-4 h-4 flex-shrink-0 text-slate-400" />
+                <Icon className={`w-4 h-4 flex-shrink-0 ${active ? "text-white" : "text-slate-400"}`} />
                 <span>{label}</span>
               </button>
             );
@@ -908,6 +930,15 @@ export default function App() {
                     className="flex-1 bg-transparent text-sm text-gray-900 placeholder-gray-400 outline-none" style={{ fontFamily: "'Google Sans', sans-serif" }} />
                   {cardQuery && <button onClick={() => setCardQuery("")} aria-label="Clear search"><X className="w-3.5 h-3.5 text-gray-400" /></button>}
                 </div>
+                {/* The design puts value-privacy right beside search. It stays in
+                    the filter menu too — this is a faster path to the same toggle. */}
+                <button
+                  onClick={() => setHideValues(!hideValues)}
+                  aria-label={hideValues ? "Show values" : "Hide values"}
+                  className="w-10 h-10 flex items-center justify-center rounded-2xl bg-gray-100 flex-shrink-0"
+                >
+                  {hideValues ? <EyeOff className="w-4 h-4 text-gray-500" /> : <Eye className="w-4 h-4 text-gray-500" />}
+                </button>
                 <CollectionFilterMenu
                   sortOptions={SORT_OPTIONS}
                   sortBy={sortBy}
@@ -932,11 +963,11 @@ export default function App() {
               <div className="flex items-center gap-2 px-7 mb-4">
                 <div className="flex-1 flex items-center gap-2 rounded-2xl bg-gray-100 px-4 py-2.5">
                   <Search className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                  <input value={cardQuery} onChange={e => setCardQuery(e.target.value)} placeholder="Search folders…"
+                  <input value={cardQuery} onChange={e => setCardQuery(e.target.value)} placeholder="Search collections…"
                     className="flex-1 bg-transparent text-sm text-gray-900 placeholder-gray-400 outline-none" style={{ fontFamily: "'Google Sans', sans-serif" }} />
                   {cardQuery && <button onClick={() => setCardQuery("")} aria-label="Clear search"><X className="w-3.5 h-3.5 text-gray-400" /></button>}
                 </div>
-                <button onClick={guardWrite(() => setShowNewFolder(true))} aria-label="New folder"
+                <button onClick={guardWrite(() => setShowNewFolder(true))} aria-label="New collection"
                   className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 flex-shrink-0">
                   <Plus className="w-4 h-4 text-gray-500" />
                 </button>
@@ -1037,14 +1068,14 @@ export default function App() {
 
             {cardsSubView === "folders" && (
               <div className="flex-1 px-7 overflow-y-auto app-scroll-pad" style={{ scrollbarWidth: "none" }}>
-                <p className="text-xs text-gray-400 mb-3">{displayedFolders.length} folder{displayedFolders.length !== 1 ? "s" : ""}</p>
+                <p className="text-xs text-gray-400 mb-3">{displayedFolders.length} collection{displayedFolders.length !== 1 ? "s" : ""}</p>
                 {displayedFolders.length === 0 && (
                   <div className="flex flex-col items-center text-center pt-12">
                     <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mb-4">
                       <Folder className="w-7 h-7 text-gray-400" />
                     </div>
-                    <p className="text-base font-semibold text-gray-900">{cardQuery ? "No folders found" : "No folders yet"}</p>
-                    <p className="text-sm text-gray-400 mt-1 max-w-[240px]">{cardQuery ? "Try a different search." : "Tap + to create your first folder."}</p>
+                    <p className="text-base font-semibold text-gray-900">{cardQuery ? "No collections found" : "No collections yet"}</p>
+                    <p className="text-sm text-gray-400 mt-1 max-w-[240px]">{cardQuery ? "Try a different search." : "Tap + to create your first collection."}</p>
                   </div>
                 )}
                 <FolderGrid
@@ -1146,10 +1177,12 @@ export default function App() {
                   { label: "Share", icon: <Share2 className="w-4 h-4" />, active: showShare, onClick: () => setShowShare(true) },
                   { label: "Sell",  icon: <Tag className="w-4 h-4" />,    active: showSell,  onClick: guardWrite(() => setShowSell(true))  },
                 ]
-            ).map(btn => (
+            ).map((btn, i) => (
+              // Design: the leading action is the highlighted gradient pill,
+              // the rest sit quiet in the dark footer.
               <button key={btn.label} onClick={btn.onClick}
-                className="flex items-center gap-1.5 px-4 py-2.5 rounded-full text-sm font-semibold active:opacity-70 transition-all"
-                style={{ background: btn.active ? "#111" : "transparent", color: btn.active ? "#fff" : "#374151", border: btn.active ? "none" : "1px solid #e5e7eb" }}>
+                className={`flex items-center gap-1.5 px-4 py-2.5 rounded-full text-sm font-semibold active:opacity-70 transition-all ${i === 0 || btn.active ? "pill-active" : ""}`}
+                style={i === 0 || btn.active ? undefined : { color: "#8492ac" }}>
                 {btn.icon}{btn.label}
               </button>
             ))}
@@ -1271,8 +1304,8 @@ export default function App() {
       )}
       {confirmingDeleteFolder && (
         <ConfirmDialog
-          title="Delete this folder?"
-          message={`This deletes "${confirmingDeleteFolder.name}". Cards inside it stay in your collection.`}
+          title="Delete this collection?"
+          message={`This deletes "${confirmingDeleteFolder.name}". The cards inside it stay in your library.`}
           confirmLabel="Delete"
           onConfirm={() => { handleDeleteFolder(confirmingDeleteFolder); setConfirmingDeleteFolderId(null); }}
           onCancel={() => setConfirmingDeleteFolderId(null)}

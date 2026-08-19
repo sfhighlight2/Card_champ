@@ -141,7 +141,7 @@ export function ShareFlow({ onClose, allCards, folders, ownerName, dmPeers, onSh
 
         <div className="flex items-center justify-between px-6 pt-4 mb-5">
           <div className="flex-1 flex items-center gap-1 mr-4">
-            {[1,2].map(i => <div key={i} className="flex-1 h-1 rounded-full transition-all duration-300" style={{ background: step >= i ? "#111" : "#f0f0f0" }} />)}
+            {[1,2].map(i => <div key={i} className="flex-1 h-1 rounded-full transition-all duration-300" style={{ background: step >= i ? "#39558e" : "#26324a" }} />)}
           </div>
           <span className="text-xs text-gray-400 mr-3">{step}/2</span>
           <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100" aria-label="Close">
@@ -163,9 +163,9 @@ export function ShareFlow({ onClose, allCards, folders, ownerName, dmPeers, onSh
               ].map(opt => (
                 <button key={opt.id} onClick={() => { setType(opt.id); setSelectedFolder(null); setSelectedCard(null); }}
                   className="w-full flex items-center justify-between p-4 rounded-2xl mb-2 text-left transition-all"
-                  style={{ background: type === opt.id ? "#111" : "#f7f7f7" }}>
+                  style={{ background: type === opt.id ? "#1d2e4e" : "#16202f" }}>
                   <div>
-                    <p className="text-sm font-semibold" style={{ color: type === opt.id ? "#fff" : "#111" }}>{opt.label}</p>
+                    <p className="text-sm font-semibold" style={{ color: type === opt.id ? "#fff" : "#dce4f6" }}>{opt.label}</p>
                     <p className="text-xs mt-0.5" style={{ color: type === opt.id ? "rgba(255,255,255,0.6)" : "#aaa" }}>{opt.sub}</p>
                   </div>
                   {type === opt.id && <Check className="w-4 h-4 text-white flex-shrink-0" />}
@@ -177,9 +177,9 @@ export function ShareFlow({ onClose, allCards, folders, ownerName, dmPeers, onSh
                   {folders.map(f => (
                     <button key={f.id} onClick={() => setSelectedFolder(f)}
                       className="flex items-center gap-3 p-3 rounded-2xl transition-all"
-                      style={{ background: selectedFolder?.id === f.id ? f.color : "#f4f4f5" }}>
+                      style={{ background: selectedFolder?.id === f.id ? f.color : "#1d2534" }}>
                       <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: selectedFolder?.id === f.id ? "rgba(255,255,255,0.7)" : f.color }} />
-                      <span className="text-sm font-semibold" style={{ color: selectedFolder?.id === f.id ? "#fff" : "#111" }}>{f.name}</span>
+                      <span className="text-sm font-semibold" style={{ color: selectedFolder?.id === f.id ? "#fff" : "#dce4f6" }}>{f.name}</span>
                       <span className="text-xs ml-auto" style={{ color: selectedFolder?.id === f.id ? "rgba(255,255,255,0.6)" : "#aaa" }}>{f.cardCount} cards</span>
                     </button>
                   ))}
@@ -193,9 +193,9 @@ export function ShareFlow({ onClose, allCards, folders, ownerName, dmPeers, onSh
                 <div className="grid grid-cols-3 md:grid-cols-4 gap-2 mt-3 mb-4">
                   {allCards.map(card => (
                     <button key={card.id} onClick={() => setSelectedCard(card)} className="relative focus:outline-none">
-                      <div className="overflow-hidden" style={{ outline: selectedCard?.id === card.id ? "2px solid #111" : "2px solid transparent", outlineOffset: 2 }}>
+                      <div className="overflow-hidden" style={{ outline: selectedCard?.id === card.id ? "2px solid #dce4f6" : "2px solid transparent", outlineOffset: 2 }}>
                         {card.img
-                          ? <img src={card.img} alt={card.player} className="w-full block" style={{ objectFit: "contain", background: "#f4f4f5" }} draggable={false} />
+                          ? <img src={card.img} alt={card.player} className="w-full block" style={{ objectFit: "contain", background: "#1d2534" }} draggable={false} />
                           : <div className="w-full flex items-center justify-center py-4" style={{ background: GRADER_COLOR[card.grader]||"#888", aspectRatio:"2.5/3.5" }}><span className="text-white text-[9px] text-center px-1">{card.player}</span></div>
                         }
                       </div>
@@ -226,7 +226,7 @@ export function ShareFlow({ onClose, allCards, folders, ownerName, dmPeers, onSh
               {SHARE_PLATFORMS.filter(p => p.id !== "more" || canNativeShare).map((p, i, list) => (
                 <button key={p.id} onClick={() => { if (p.id === "dm") setDmPicking(true); else shareVia(p.id); }}
                   className="w-full flex items-center gap-4 py-3.5 text-left"
-                  style={{ borderBottom: i < list.length - 1 ? "1px solid #f4f4f5" : "none" }}>
+                  style={{ borderBottom: i < list.length - 1 ? "1px solid #1c2740" : "none" }}>
                   <div className="w-9 h-9 rounded-2xl bg-gray-50 flex items-center justify-center flex-shrink-0">
                     {p.id === "copy" && copied ? <Check className="w-4 h-4 text-emerald-500" /> : p.icon}
                   </div>
@@ -253,7 +253,7 @@ export function ShareFlow({ onClose, allCards, folders, ownerName, dmPeers, onSh
                   onClick={() => void sendDm(peer)}
                   disabled={dmSending}
                   className="w-full flex items-center gap-3 py-3 text-left disabled:opacity-50"
-                  style={{ borderBottom: i < dmPeers.length - 1 ? "1px solid #f4f4f5" : "none" }}>
+                  style={{ borderBottom: i < dmPeers.length - 1 ? "1px solid #1c2740" : "none" }}>
                   <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex-shrink-0">
                     <Avatar src={peer.avatar} name={peer.displayName} size={40} className="w-full h-full" style={{ objectFit: "cover", objectPosition: "top center" }} />
                   </div>

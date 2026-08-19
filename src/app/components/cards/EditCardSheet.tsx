@@ -27,7 +27,7 @@ export function EditCardSheet({ card, onClose, onSave }: EditCardSheetProps) {
   const [sellPrice, setSellPrice] = useState(card.sellPrice ? String(card.sellPrice) : "");
   const [popReport, setPopReport] = useState(card.popReport ? String(card.popReport) : "");
 
-  const graderColor = GRADER_COLOR[grader] || "#111";
+  const graderColor = GRADER_COLOR[grader] || "#1d2e4e";
   // Grading is optional here too, so a card can be corrected to raw — or graded
   // later once it comes back from a grader.
   const canSave = player.trim().length > 0 && value.trim().length > 0;
@@ -91,7 +91,7 @@ export function EditCardSheet({ card, onClose, onSave }: EditCardSheetProps) {
             {GRADERS.map(g => (
               <button key={g} onClick={() => setGrader(grader === g ? "" : g)}
                 className="py-3 rounded-2xl text-sm font-bold transition-all"
-                style={{ background: grader === g ? (GRADER_COLOR[g] || "#111") : "#f4f4f5", color: grader === g ? "#fff" : "#888" }}>
+                style={{ background: grader === g ? (GRADER_COLOR[g] || "#1d2e4e") : "#1d2534", color: grader === g ? "#fff" : "#8492ac" }}>
                 {g}
               </button>
             ))}
@@ -102,7 +102,7 @@ export function EditCardSheet({ card, onClose, onSave }: EditCardSheetProps) {
             {GRADES.map(g => (
               <button key={g} onClick={() => setGrade(grade === g ? "" : g)}
                 className="py-3 rounded-2xl text-sm font-bold transition-all"
-                style={{ background: grade === g ? graderColor : "#f4f4f5", color: grade === g ? "#fff" : "#888" }}>
+                style={{ background: grade === g ? graderColor : "#1d2534", color: grade === g ? "#fff" : "#8492ac" }}>
                 {g}
               </button>
             ))}

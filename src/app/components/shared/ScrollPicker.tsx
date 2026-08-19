@@ -28,9 +28,9 @@ export function ScrollPicker({ items, value, onChange, width }: ScrollPickerProp
 
   return (
     <div className="relative overflow-hidden rounded-2xl" style={{ height: ITEM_H * 5, width: width || "100%" }}>
-      <div className="absolute top-0 left-0 right-0 z-10 pointer-events-none" style={{ height: ITEM_H * 2, background: "linear-gradient(to bottom, #fff 20%, transparent)" }} />
-      <div className="absolute bottom-0 left-0 right-0 z-10 pointer-events-none" style={{ height: ITEM_H * 2, background: "linear-gradient(to top, #fff 20%, transparent)" }} />
-      <div className="absolute left-0 right-0 z-0 rounded-xl" style={{ top: ITEM_H * 2, height: ITEM_H, background: "#f4f4f5" }} />
+      <div className="absolute top-0 left-0 right-0 z-10 pointer-events-none" style={{ height: ITEM_H * 2, background: "linear-gradient(to bottom, #101828 20%, transparent)" }} />
+      <div className="absolute bottom-0 left-0 right-0 z-10 pointer-events-none" style={{ height: ITEM_H * 2, background: "linear-gradient(to top, #101828 20%, transparent)" }} />
+      <div className="absolute left-0 right-0 z-0 rounded-xl" style={{ top: ITEM_H * 2, height: ITEM_H, background: "#1d2534" }} />
       <div
         ref={ref}
         onScroll={onScroll}
@@ -42,7 +42,7 @@ export function ScrollPicker({ items, value, onChange, width }: ScrollPickerProp
           <div
             key={item}
             onClick={() => { onChange(item); if (ref.current) ref.current.scrollTop = items.indexOf(item) * ITEM_H; }}
-            style={{ height: ITEM_H, scrollSnapAlign: "center", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: item === value ? 600 : 400, color: item === value ? "#111" : "#aaa", cursor: "pointer", userSelect: "none", transition: "color 0.15s, font-weight 0.15s", fontFamily: "'Google Sans', sans-serif" }}
+            style={{ height: ITEM_H, scrollSnapAlign: "center", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: item === value ? 600 : 400, color: item === value ? "#ffffff" : "#5b6880", cursor: "pointer", userSelect: "none", transition: "color 0.15s, font-weight 0.15s", fontFamily: "'Google Sans', sans-serif" }}
           >
             {item}
           </div>

@@ -58,7 +58,7 @@ export function MarketView({
         ]).map(({ id, label, icon: Icon }) => (
           <button key={id} onClick={() => setTab(id)}
             className="flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-semibold transition-colors"
-            style={{ background: tab === id ? "#111" : "#f3f4f6", color: tab === id ? "#fff" : "#6b7280" }}>
+            style={{ background: tab === id ? "#1d2e4e" : "#1d2534", color: tab === id ? "#fff" : "#8492ac" }}>
             <Icon className="w-3.5 h-3.5" />{label}
           </button>
         ))}
@@ -146,7 +146,7 @@ export function MarketView({
                     </div>
                     <span className="text-[10px] font-bold px-2 py-1 rounded-full flex-shrink-0 uppercase tracking-wider"
                       style={{
-                        background: listing.status === "active" ? "#ecfdf5" : "#f3f4f6",
+                        background: listing.status === "active" ? "#ecfdf5" : "#1d2534",
                         color: listing.status === "active" ? "#047857" : "#6b7280",
                       }}>
                       {listing.status}

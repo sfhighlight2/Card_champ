@@ -78,7 +78,7 @@ export function MarketCardDetailSheet({
                       <YAxis hide domain={["dataMin", "dataMax"]} />
                       <Tooltip
                         formatter={(v: number) => [`$${v.toLocaleString()}`, "Price"]}
-                        contentStyle={{ fontSize: 11, borderRadius: 8, border: "none", background: "#fff", color: "#111" }}
+                        contentStyle={{ fontSize: 11, borderRadius: 8, border: "none", background: "#fff", color: "#1d2e4e" }}
                         labelStyle={{ color: "#9ca3af" }}
                       />
                       <Area type="monotone" dataKey="v" stroke="#34d399" strokeWidth={2} fill="url(#marketTrendFill)" />
@@ -116,7 +116,7 @@ export function MarketCardDetailSheet({
               disabled={!listing.catalogCardId}
               className="flex-1 py-3.5 rounded-2xl border text-sm font-semibold flex items-center justify-center gap-1.5 disabled:opacity-40"
               style={{
-                borderColor: isWatchlisted ? "#dc2626" : "#e5e7eb",
+                borderColor: isWatchlisted ? "#dc2626" : "#33415e",
                 color: isWatchlisted ? "#dc2626" : "#374151",
               }}
             >

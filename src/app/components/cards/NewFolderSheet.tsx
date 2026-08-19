@@ -39,7 +39,7 @@ export function NewFolderSheet({ onClose, onCreate, allCards }: NewFolderSheetPr
         {previewImgs.length > 0 ? (
           previewImgs.map((img, i) => (
             <img key={i} src={img} alt="" draggable={false} className="absolute"
-              style={{ width: 34, objectFit: "contain", background: "#f4f4f5", borderRadius: 3, boxShadow: "0 2px 6px rgba(0,0,0,0.3)", transform: `rotate(${offsets[i].rotate}) translate(${offsets[i].translate})`, zIndex: offsets[i].z }} />
+              style={{ width: 34, objectFit: "contain", background: "#1d2534", borderRadius: 3, boxShadow: "0 2px 6px rgba(0,0,0,0.3)", transform: `rotate(${offsets[i].rotate}) translate(${offsets[i].translate})`, zIndex: offsets[i].z }} />
           ))
         ) : (
           <Folder className="w-5 h-5 text-white/50" />
@@ -60,7 +60,7 @@ export function NewFolderSheet({ onClose, onCreate, allCards }: NewFolderSheetPr
           <div className="flex-1 flex items-center gap-1 mr-4">
             {STEPS.map((_, i) => (
               <div key={i} className="flex-1 h-1 rounded-full transition-all duration-300"
-                style={{ background: step > i ? "#111" : "#f0f0f0" }} />
+                style={{ background: step > i ? "#39558e" : "#26324a" }} />
             ))}
           </div>
           <span className="text-xs text-gray-400 mr-3 flex-shrink-0">{step} / {STEPS.length}</span>
@@ -73,7 +73,7 @@ export function NewFolderSheet({ onClose, onCreate, allCards }: NewFolderSheetPr
 
           {step === 1 && (
             <>
-              <h2 className="text-xl font-semibold text-gray-900 mb-1">Name your folder</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-1">Name your collection</h2>
               <p className="text-sm text-gray-400 mb-6">Give it a name that reflects what's inside.</p>
               <input
                 autoFocus value={name} onChange={e => setName(e.target.value)}
@@ -122,7 +122,7 @@ export function NewFolderSheet({ onClose, onCreate, allCards }: NewFolderSheetPr
                 {filteredCards.map(card => (
                   <button key={card.id} onClick={() => setSelectedCards(prev => prev.includes(card.id) ? prev.filter(id => id !== card.id) : [...prev, card.id])}
                     className="relative focus:outline-none">
-                    <div className="overflow-hidden" style={{ outline: selectedCards.includes(card.id) ? "2px solid #111" : "2px solid transparent", outlineOffset: "2px" }}>
+                    <div className="overflow-hidden" style={{ outline: selectedCards.includes(card.id) ? "2px solid #dce4f6" : "2px solid transparent", outlineOffset: "2px" }}>
                       <CardThumb card={card} />
                     </div>
                     {selectedCards.includes(card.id) && (
@@ -136,7 +136,7 @@ export function NewFolderSheet({ onClose, onCreate, allCards }: NewFolderSheetPr
               </div>
               <button onClick={() => { onCreate(name.trim(), color, selectedCards); onClose(); }}
                 className="w-full py-3.5 rounded-2xl bg-gray-950 text-white text-sm font-semibold">
-                Create Folder{selectedCards.length > 0 ? ` · ${selectedCards.length} cards` : ""}
+                Create Collection{selectedCards.length > 0 ? ` · ${selectedCards.length} cards` : ""}
               </button>
             </>
           )}

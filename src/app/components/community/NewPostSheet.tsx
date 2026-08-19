@@ -32,7 +32,7 @@ export function NewPostSheet({ onClose, topics, onCreate }: NewPostSheetProps) {
           <h2 className="text-base font-semibold text-gray-900">New Post</h2>
           <button onClick={submit} disabled={!canPost}
             className="px-4 py-2 rounded-full text-xs font-bold text-white disabled:opacity-40 transition-opacity"
-            style={{ background: "#111" }}>
+            style={{ background: "#1d2e4e" }}>
             Post
           </button>
         </div>
@@ -43,7 +43,7 @@ export function NewPostSheet({ onClose, topics, onCreate }: NewPostSheetProps) {
             {topics.map(t => (
               <button key={t.slug} onClick={() => setTopic(t.slug)}
                 className="px-4 py-2 rounded-full text-xs font-semibold transition-colors"
-                style={{ background: topic === t.slug ? "#111" : "#f3f4f6", color: topic === t.slug ? "#fff" : "#6b7280" }}>
+                style={{ background: topic === t.slug ? "#1d2e4e" : "#1d2534", color: topic === t.slug ? "#fff" : "#8492ac" }}>
                 {t.emoji} {t.label}
               </button>
             ))}

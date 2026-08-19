@@ -4,9 +4,10 @@ import { LayoutGrid, ChevronDown, Check, Grid3X3, Folder, TrendingUp, Zap } from
 
 export type CollectionSection = "cards" | "folders" | "insights" | "chase";
 
+// "Collections" is the design's name for what the code calls folders.
 const ITEMS: { value: CollectionSection; label: string; icon: typeof Grid3X3 }[] = [
   { value: "cards", label: "Cards", icon: Grid3X3 },
-  { value: "folders", label: "Folders", icon: Folder },
+  { value: "folders", label: "Collections", icon: Folder },
   { value: "chase", label: "Chase", icon: Zap },
   { value: "insights", label: "Insights", icon: TrendingUp },
 ];
@@ -56,6 +57,11 @@ export function CollectionDropdown({ active, value, onChange, onActivate }: Coll
     setOpen(o => !o);
   };
 
+  // The design's pill names the section you're in ("Cards ⌄", "Chase ⌄") and
+  // turns green while chasing; inactive it's just the tab name.
+  const current = ITEMS.find(i => i.value === value) ?? ITEMS[0];
+  const ActiveIcon = active ? current.icon : LayoutGrid;
+
   return (
     <div className="relative flex-shrink-0" ref={ref}>
       <button
@@ -64,13 +70,13 @@ export function CollectionDropdown({ active, value, onChange, onActivate }: Coll
         aria-expanded={open}
         className={`flex items-center gap-1.5 md:gap-2 font-bold transition-all ${
           active
-            ? "pl-3 pr-2.5 py-2 rounded-full bg-[#0d0d11] text-white text-xs md:pl-4 md:pr-3.5 md:py-2.5 md:text-[15px] shadow-sm"
+            ? `${value === "chase" ? "chase-pill-active" : "pill-active"} pl-3 pr-2.5 py-2 rounded-full text-xs md:pl-4 md:pr-3.5 md:py-2.5 md:text-[15px] shadow-sm`
             : "text-slate-400 font-semibold text-xs md:text-[15px] hover:text-slate-600"
         }`}
       >
-        <LayoutGrid className="w-4 h-4 flex-shrink-0" />
-        <span>Collection</span>
-        <ChevronDown className={`w-3.5 h-3.5 text-white/80 transition-transform ${open ? "rotate-180" : ""}`} />
+        <ActiveIcon className="w-4 h-4 flex-shrink-0" />
+        <span>{active ? current.label : "Collection"}</span>
+        <ChevronDown className={`w-3.5 h-3.5 ${active ? "text-white/80" : "text-slate-400"} transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
 
       {open && createPortal(

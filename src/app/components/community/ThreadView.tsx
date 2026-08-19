@@ -46,7 +46,7 @@ export function ThreadView({
   return (
     <div className="fixed inset-0 z-50 bg-white flex flex-col">
       <div className="app-safe-top flex-shrink-0" />
-      <div className="flex items-center gap-3 px-6 pt-6 pb-4 flex-shrink-0" style={{ borderBottom: "1px solid #f4f4f5" }}>
+      <div className="flex items-center gap-3 px-6 pt-6 pb-4 flex-shrink-0" style={{ borderBottom: "1px solid #1c2740" }}>
         <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100" aria-label="Back">
           <ChevronLeft className="w-4 h-4 text-gray-600" />
         </button>
@@ -67,15 +67,15 @@ export function ThreadView({
 
         <p className="text-sm text-gray-800 mb-4 leading-relaxed">{post.body}</p>
 
-        <div className="flex items-center gap-3 mb-6 pb-5" style={{ borderBottom: "1px solid #f4f4f5" }}>
+        <div className="flex items-center gap-3 mb-6 pb-5" style={{ borderBottom: "1px solid #1c2740" }}>
           <button onClick={onToggleLike}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold transition-colors"
-            style={{ background: post.myReaction === "like" ? "#111" : "#f3f4f6", color: post.myReaction === "like" ? "#fff" : "#374151" }}>
+            style={{ background: post.myReaction === "like" ? "#1d2e4e" : "#1d2534", color: post.myReaction === "like" ? "#fff" : "#374151" }}>
             <ThumbsUp className="w-3.5 h-3.5" />{post.likes}
           </button>
           <button onClick={onToggleDislike}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold transition-colors"
-            style={{ background: post.myReaction === "dislike" ? "#111" : "#f3f4f6", color: post.myReaction === "dislike" ? "#fff" : "#374151" }}>
+            style={{ background: post.myReaction === "dislike" ? "#1d2e4e" : "#1d2534", color: post.myReaction === "dislike" ? "#fff" : "#374151" }}>
             <ThumbsDown className="w-3.5 h-3.5" />{post.dislikes}
           </button>
           <span className="flex items-center gap-1.5 text-gray-400 text-sm ml-1">
@@ -105,7 +105,7 @@ export function ThreadView({
         )}
       </div>
 
-      <div className="app-sheet flex items-center gap-2 px-6 py-3 flex-shrink-0" style={{ borderTop: "1px solid #f4f4f5" }}>
+      <div className="app-sheet flex items-center gap-2 px-6 py-3 flex-shrink-0" style={{ borderTop: "1px solid #1c2740" }}>
         <Avatar src={profile.avatar} name={profile.name} size={32} className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
         <input
           value={commentText}

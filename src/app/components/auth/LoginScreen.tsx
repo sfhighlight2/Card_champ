@@ -221,7 +221,7 @@ export function LoginScreen({
               type="button"
               onClick={() => { setMode(m); setLocalError(""); setConfirmPassword(""); }}
               className="flex-1 py-2 rounded-full text-sm font-semibold transition-colors"
-              style={{ background: mode === m ? "#111" : "transparent", color: mode === m ? "#fff" : "#9ca3af" }}
+              style={{ background: mode === m ? "#1d2e4e" : "transparent", color: mode === m ? "#fff" : "#9ca3af" }}
             >
               {m === "signin" ? "Sign In" : "Sign Up"}
             </button>

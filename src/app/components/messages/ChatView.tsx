@@ -47,7 +47,7 @@ export function ChatView({
   return (
     <div className="fixed inset-0 z-50 bg-white flex flex-col">
       <div className="app-safe-top flex-shrink-0" />
-      <div className="flex items-center gap-3 px-6 pt-6 pb-4 flex-shrink-0" style={{ borderBottom: "1px solid #f4f4f5" }}>
+      <div className="flex items-center gap-3 px-6 pt-6 pb-4 flex-shrink-0" style={{ borderBottom: "1px solid #1c2740" }}>
         <button onClick={onBack} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100" aria-label="Back">
           <ChevronLeft className="w-4 h-4 text-gray-600" />
         </button>
@@ -76,8 +76,8 @@ export function ChatView({
                   <div
                     className="px-4 py-2.5 rounded-2xl text-sm"
                     style={{
-                      background: mine ? "#111" : "#f4f4f5",
-                      color: mine ? "#fff" : "#111",
+                      background: mine ? "#1d2e4e" : "#1d2534",
+                      color: mine ? "#fff" : "#dce4f6",
                       borderBottomRightRadius: mine ? 4 : undefined,
                       borderBottomLeftRadius: mine ? undefined : 4,
                     }}
@@ -94,7 +94,7 @@ export function ChatView({
         )}
       </div>
 
-      <div className="app-sheet flex items-center gap-2 px-6 py-3 flex-shrink-0" style={{ borderTop: "1px solid #f4f4f5" }}>
+      <div className="app-sheet flex items-center gap-2 px-6 py-3 flex-shrink-0" style={{ borderTop: "1px solid #1c2740" }}>
         <input
           value={text}
           onChange={e => setText(e.target.value)}

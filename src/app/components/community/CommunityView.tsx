@@ -61,7 +61,7 @@ export function CommunityView({ posts, topics, ready, onOpenPost, showToast }: C
         {chips.map(chip => (
           <button key={chip.id} onClick={() => setFilter(chip.id)}
             className="px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors flex-shrink-0"
-            style={{ background: filter === chip.id ? "#111" : "#f3f4f6", color: filter === chip.id ? "#fff" : "#6b7280" }}>
+            style={{ background: filter === chip.id ? "#1d2e4e" : "#1d2534", color: filter === chip.id ? "#fff" : "#8492ac" }}>
             {chip.label}
           </button>
         ))}

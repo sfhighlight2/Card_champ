@@ -154,7 +154,7 @@ export function PeersView({
             <div className="flex flex-col">
               {filteredPeers.map((p, i) => (
                 <AnimateIn key={p.profileId} delay={i * 60}>
-                  <button onClick={() => setSelectedPeerId(p.profileId)} className="w-full flex items-center gap-3 py-3 text-left" style={{ borderBottom: "1px solid #f4f4f5" }}>
+                  <button onClick={() => setSelectedPeerId(p.profileId)} className="w-full flex items-center gap-3 py-3 text-left" style={{ borderBottom: "1px solid #1c2740" }}>
                     <Avatar src={p.avatar} name={p.displayName} size={40} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-gray-900">{p.displayName}</p>
@@ -177,7 +177,7 @@ export function PeersView({
             <div className="flex flex-col">
               {filteredSuggested.map((s, i) => (
                 <AnimateIn key={s.profileId} delay={i * 70}>
-                  <div className="flex items-center gap-3 py-3" style={{ borderBottom: i < filteredSuggested.length - 1 ? "1px solid #f4f4f5" : "none" }}>
+                  <div className="flex items-center gap-3 py-3" style={{ borderBottom: i < filteredSuggested.length - 1 ? "1px solid #1c2740" : "none" }}>
                     <button onClick={() => setSelectedPeerId(s.profileId)} className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex-shrink-0">
                       <Avatar src={s.avatar} name={s.displayName} size={40} className="w-full h-full" style={{ objectFit: "cover", objectPosition: "top center" }} />
                     </button>
@@ -189,8 +189,8 @@ export function PeersView({
                       onClick={() => onToggleFollow(s)}
                       className="flex-shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all"
                       style={{
-                        background: isFollowing(s.profileId) ? "#f4f4f5" : "#111",
-                        color: isFollowing(s.profileId) ? "#888" : "#fff",
+                        background: isFollowing(s.profileId) ? "#1d2534" : "#1d2e4e",
+                        color: isFollowing(s.profileId) ? "#8492ac" : "#fff",
                       }}
                     >
                       {isFollowing(s.profileId) ? "Connected" : "Connect"}
@@ -249,7 +249,7 @@ function LevelRingAvatar({
   return (
     <div className="relative" style={{ width: size, height: size }}>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="absolute inset-0 -rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#eef0f3" strokeWidth={stroke} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(220,228,246,0.12)" strokeWidth={stroke} />
         <circle
           cx={size / 2}
           cy={size / 2}
@@ -279,7 +279,7 @@ function LevelRingAvatar({
           left: inset,
           width: size - inset * 2,
           height: size - inset * 2,
-          boxShadow: "0 0 0 3px #fff",
+          boxShadow: "0 0 0 3px rgba(16,24,40,0.9)",
         }}
       />
     </div>
