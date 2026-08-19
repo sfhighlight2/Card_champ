@@ -1,4 +1,5 @@
 import { useId, useEffect, useState } from "react";
+import type { MouseEvent as ReactMouseEvent, KeyboardEvent as ReactKeyboardEvent } from "react";
 import { Camera } from "lucide-react";
 import { Avatar } from "./Avatar";
 
@@ -8,12 +9,15 @@ interface LevelRingAvatarProps {
   size?: number;
   xpFraction: number;
   tier?: "bronze" | "silver" | "gold" | "platinum";
-  /** When given, the whole avatar becomes a button — used to pick a new
-   *  profile picture straight from the dashboard. */
+  /** When given, the whole avatar becomes a button — on the dashboard it
+   *  opens the profile page. */
   onPress?: () => void;
   /** Shows the camera affordance, so it is discoverable that the avatar is
    *  tappable rather than decoration. */
   showCameraBadge?: boolean;
+  /** When given, the camera badge is its own tap target (change the photo)
+   *  separate from the avatar itself (open the profile). */
+  onCameraPress?: () => void;
 }
 
 const TIER_STOPS: Record<"bronze" | "silver" | "gold" | "platinum", { start: string; end: string }> = {
@@ -26,7 +30,7 @@ const TIER_STOPS: Record<"bronze" | "silver" | "gold" | "platinum", { start: str
 // Shared by the profile header, Profile detail page, and Peers list so the XP ring
 // treatment stays identical in both places. The progress arc animates up
 // from empty on mount and keeps a soft breathing glow.
-export function LevelRingAvatar({ avatar, name, size = 128, xpFraction, tier, onPress, showCameraBadge = false }: LevelRingAvatarProps) {
+export function LevelRingAvatar({ avatar, name, size = 128, xpFraction, tier, onPress, showCameraBadge = false, onCameraPress }: LevelRingAvatarProps) {
   const gradientId = `levelRingGradient-${useId()}`;
   const stroke = size >= 120 ? 8 : 6;
   const r = size / 2 - stroke / 2 - 1;
@@ -48,7 +52,7 @@ export function LevelRingAvatar({ avatar, name, size = 128, xpFraction, tier, on
   return (
     <Root
       {...(onPress
-        ? { onClick: onPress, type: "button" as const, "aria-label": `Change ${name}'s profile picture` }
+        ? { onClick: onPress, type: "button" as const, "aria-label": `View ${name}'s profile` }
         : {})}
       className="relative block focus:outline-none"
       style={{ width: size, height: size }}
@@ -81,7 +85,20 @@ export function LevelRingAvatar({ avatar, name, size = 128, xpFraction, tier, on
         }}
       />
       {showCameraBadge && (
+        // span with role=button, not <button>: the avatar root is already a
+        // button and buttons can't nest.
         <span
+          {...(onCameraPress
+            ? {
+                role: "button" as const,
+                tabIndex: 0,
+                "aria-label": "Change profile picture",
+                onClick: (e: ReactMouseEvent) => { e.stopPropagation(); onCameraPress(); },
+                onKeyDown: (e: ReactKeyboardEvent) => {
+                  if (e.key === "Enter" || e.key === " ") { e.stopPropagation(); onCameraPress(); }
+                },
+              }
+            : {})}
           className="absolute rounded-full bg-gray-950 flex items-center justify-center"
           style={{
             width: size * 0.24,

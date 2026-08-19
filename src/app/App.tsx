@@ -882,12 +882,12 @@ export default function App() {
               avatar={profile.avatar}
               name={profile.name}
               xpFraction={levelInfo.xpFraction}
-              // Guests cannot write, so the avatar stays inert for them rather
-              // than opening a picker whose upload RLS would reject.
-              onPress={canWrite && stats ? () => avatarInputRef.current?.click() : undefined}
-              // Prompt hardest when there is no picture yet, but keep the
-              // affordance afterwards so it stays changeable.
+              // The photo itself opens the profile page; the camera badge is
+              // the separate tap target for changing the picture. Guests can't
+              // upload (RLS rejects), so they get no camera badge.
+              onPress={() => navigate("/profile")}
               showCameraBadge={canWrite && !!stats}
+              onCameraPress={canWrite && stats ? () => avatarInputRef.current?.click() : undefined}
             />
             {/* The laurel medal sits on the ring's bottom edge — and only once a
                 tier has actually been earned; a new account shows nothing. */}
