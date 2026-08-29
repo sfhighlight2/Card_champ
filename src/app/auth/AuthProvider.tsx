@@ -18,7 +18,6 @@ export interface AuthContextValue {
     profile?: { displayName: string; handle: string }
   ) => Promise<{ needsConfirmation: boolean }>;
   signIn: (email: string, password: string) => Promise<void>;
-  continueAsGuest: () => Promise<void>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   /** Completes a recovery: valid only while the recovery session from the email
@@ -44,6 +43,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     supabase.auth.getSession().then(({ data }) => {
       if (!active) return;
+      if (data.session?.user?.is_anonymous) {
+        void supabase.auth.signOut();
+        setSession(null);
+        setReady(true);
+        return;
+      }
       if (cachedUserId.current === undefined) {
         cachedUserId.current = data.session?.user?.id ?? null;
       }
@@ -52,6 +57,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     const { data: sub } = supabase.auth.onAuthStateChange((event, next) => {
+      // Guest access is retired: the app requires a real login. A device that
+      // still holds an anonymous session from before is signed out so it lands
+      // on the sign-in screen rather than a read-only guest view.
+      if (next?.user?.is_anonymous) {
+        void supabase.auth.signOut();
+        return;
+      }
+
       // Several query keys (conversations, feed, peers) are not user-scoped, so
       // account changes in the same tab — sign out, then someone else signs in —
       // would otherwise serve the previous user's cached private data. Dropping
@@ -107,11 +120,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       async signIn(email, password) {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-      },
-
-      async continueAsGuest() {
-        const { error } = await supabase.auth.signInAnonymously();
         if (error) throw error;
       },
 

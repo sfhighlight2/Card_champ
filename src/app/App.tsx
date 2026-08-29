@@ -76,7 +76,7 @@ export default function App() {
 
   const {
     user, ready: authReady, isSignedIn, isGuest, isRecovering,
-    signIn, signUp, continueAsGuest, signOut, resetPassword, updatePassword,
+    signIn, signUp, signOut, resetPassword, updatePassword,
   } = useAuth();
   const [authError, setAuthError] = useState("");
   const [authBusy, setAuthBusy] = useState(false);
@@ -417,18 +417,6 @@ export default function App() {
     }
   };
 
-  const handleGuest = async () => {
-    setAuthBusy(true);
-    setAuthError("");
-    try {
-      await continueAsGuest();
-    } catch (err) {
-      setAuthError(humanizeError(err, "Could not continue as guest."));
-    } finally {
-      setAuthBusy(false);
-    }
-  };
-
   const handleLogout = () => {
     setAuthInitialMode("signin");
     void signOut();
@@ -696,7 +684,6 @@ export default function App() {
           <LoginScreen
             onSignIn={handleSignIn}
             onSignUp={handleSignUp}
-            onGuest={handleGuest}
             onForgotPassword={handleForgotPassword}
             authError={authError}
             busy={authBusy}

@@ -1,9 +1,8 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { Mail, MailCheck, Lock, Eye, EyeOff, User, AtSign, IdCard, Check, Loader2 } from "lucide-react";
+import { Mail, MailCheck, Lock, Eye, EyeOff, AtSign, IdCard, Check, Loader2 } from "lucide-react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
-import { Separator } from "../ui/separator";
 import { AnimateIn } from "../shared/AnimateIn";
 import { cardChampsLogoDark } from "../../data/cardImages";
 import { isHandleAvailable } from "../../data/repositories";
@@ -28,7 +27,6 @@ function suggestHandle(displayName: string, email: string): string {
 interface LoginScreenProps {
   onSignIn: (email: string, password: string) => void;
   onSignUp: (email: string, password: string, profile: { displayName: string; handle: string }) => void;
-  onGuest: () => void;
   /** Sends a reset email; the link lands on /reset-password. */
   onForgotPassword: (email: string) => void;
   /** Message from the auth call itself, e.g. wrong password. */
@@ -47,7 +45,7 @@ interface LoginScreenProps {
 }
 
 export function LoginScreen({
-  onSignIn, onSignUp, onGuest, onForgotPassword,
+  onSignIn, onSignUp, onForgotPassword,
   authError = "", busy = false, awaitingConfirmation = false, resetEmailSent = false,
   initialMode = "signin", onBackToSignIn,
 }: LoginScreenProps) {
@@ -387,23 +385,6 @@ export function LoginScreen({
             {busy ? "Please wait…" : mode === "signin" ? "Sign In" : "Create Account"}
           </Button>
         </form>
-
-        <div className="flex items-center gap-3 my-6">
-          <Separator className="flex-1" />
-          <span className="text-[10px] text-gray-400 uppercase tracking-widest">or</span>
-          <Separator className="flex-1" />
-        </div>
-
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onGuest}
-          disabled={busy}
-          className="w-full h-auto rounded-full py-3.5 text-sm font-semibold border-gray-200"
-        >
-          <User className="w-4 h-4" />
-          Continue as Guest
-        </Button>
       </AnimateIn>
     </div>
   );
