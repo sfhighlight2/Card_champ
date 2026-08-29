@@ -335,12 +335,10 @@ export async function addCard(
       if (media.error) throw media.error;
     }
 
-    const event = await supabase.from("copy_ownership_events").insert({
-      copy_id: copyId,
-      new_owner_id: ownerId,
-      event_type: "added",
-    });
-    if (event.error) throw event.error;
+    // The 'added' ownership event is recorded by a database trigger
+    // (card_copies_record_added). Clients can't insert history rows at all —
+    // copy_ownership_events has no INSERT policy by design — and attempting
+    // to here was a 403 that failed every card add.
   } catch (err) {
     await supabase.from("card_copies").delete().eq("id", copyId);
     if (imagePath) await supabase.storage.from("card-images").remove([imagePath]);

@@ -142,6 +142,16 @@ d("live: collection writes under RLS", () => {
     });
     createdCardIds.push(id);
 
+    // The 'added' history event is written by a database trigger, not the
+    // client (which has no INSERT policy on this table — the 403 that once
+    // failed every card add). The owner can read it back.
+    const { data: events, error: eventsError } = await supabase
+      .from("copy_ownership_events")
+      .select("event_type")
+      .eq("copy_id", id);
+    expect(eventsError).toBeNull();
+    expect(events?.map(e => e.event_type)).toContain("added");
+
     const cards = await repo.fetchCards(alphaId);
     const card = cards.find(c => c.id === id)!;
     expect(card.player).toBe("QA Testcard");

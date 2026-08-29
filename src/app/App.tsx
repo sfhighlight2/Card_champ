@@ -1260,7 +1260,10 @@ export default function App() {
         )}
 
         {toast && (
-          <div className="absolute left-1/2 -translate-x-1/2 px-4 py-2.5 rounded-full bg-gray-950 text-white text-xs font-semibold shadow-lg whitespace-nowrap z-50"
+          // fixed + z-[100]: sheets and flows are fixed z-50 and rendered
+          // later in the DOM, so an absolute z-50 toast painted BEHIND them.
+          // A failed card add showed its error to nobody.
+          <div className="fixed left-1/2 -translate-x-1/2 px-4 py-2.5 rounded-full bg-gray-950 text-white text-xs font-semibold shadow-lg whitespace-nowrap z-[100]"
             style={{ bottom: "calc(7rem + var(--safe-bottom))" }}>
             {toast}
           </div>
