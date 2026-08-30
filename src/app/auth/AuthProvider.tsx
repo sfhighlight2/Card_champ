@@ -106,12 +106,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
-          // Lands in auth.users.raw_user_meta_data, which the handle_new_user
-          // trigger reads to name the profile. A taken or malformed handle falls
-          // back to collector_N server-side rather than failing the signup.
-          options: profile
-            ? { data: { display_name: profile.displayName, handle: profile.handle } }
-            : undefined,
+          options: {
+            // Explicit redirect so the confirmation email lands back on THIS
+            // deployment, rather than falling back to the dashboard's Site URL
+            // (which once pointed at localhost and stranded every signup).
+            emailRedirectTo: window.location.origin,
+            // Lands in auth.users.raw_user_meta_data, which the handle_new_user
+            // trigger reads to name the profile. A taken or malformed handle
+            // falls back to collector_N server-side rather than failing signup.
+            ...(profile
+              ? { data: { display_name: profile.displayName, handle: profile.handle } }
+              : {}),
+          },
         });
         if (error) throw error;
         // With email confirmation on, Supabase returns a user but no session.
